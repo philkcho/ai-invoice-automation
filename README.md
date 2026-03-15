@@ -1,6 +1,6 @@
-# Invoice & Vendor Management System
+# AI Invoice Automation System
 
-멀티컴퍼니 인보이스 처리, 검증, 승인, 결제 추적 시스템
+AI 기반 멀티컴퍼니 인보이스 자동 처리, 검증, 승인, 결제 추적 시스템
 
 ## 기술 스택
 
@@ -80,7 +80,7 @@ docker-compose exec db psql -U invoice_user -d invoice_db
 ## 프로젝트 구조
 
 ```
-invoice-system/
+ai-invoice-automation/
 ├── backend/
 │   ├── app/
 │   │   ├── api/v1/endpoints/   # FastAPI 라우터

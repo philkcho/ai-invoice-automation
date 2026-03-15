@@ -1,1 +1,1 @@
-# Invoice & Vendor Management System
+# AI Invoice Automation System

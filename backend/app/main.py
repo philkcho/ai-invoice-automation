@@ -32,8 +32,8 @@ async def lifespan(app: FastAPI):
 
 # ── FastAPI 앱 ────────────────────────────────────────
 app = FastAPI(
-    title="Invoice & Vendor Management System",
-    description="Multi-company invoice processing, validation, approval, and payment tracking",
+    title="AI Invoice Automation System",
+    description="AI-powered multi-company invoice processing, validation, approval, and payment tracking",
     version="1.0.0",
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,

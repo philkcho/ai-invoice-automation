@@ -1,26 +1,24 @@
-version: "3.9"
-
-services:
-  # ── PostgreSQL ──────────────────────────────
+﻿services:
+  # â”€â”€ PostgreSQL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   db:
     image: postgres:15-alpine
     container_name: invoice_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: invoice_user
+      POSTGRES_PASSWORD: invoice_password_dev
+      POSTGRES_DB: invoice_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U invoice_user -d invoice_db"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # ── Redis ───────────────────────────────────
+  # â”€â”€ Redis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   redis:
     image: redis:7-alpine
     container_name: invoice_redis
@@ -33,7 +31,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── FastAPI Backend ──────────────────────────
+  # â”€â”€ FastAPI Backend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   backend:
     build:
       context: ./backend
@@ -53,7 +51,7 @@ services:
       redis:
         condition: service_healthy
 
-  # ── Celery Worker ────────────────────────────
+  # â”€â”€ Celery Worker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   celery_worker:
     build:
       context: ./backend
@@ -72,7 +70,7 @@ services:
       redis:
         condition: service_healthy
 
-  # ── Celery Beat (스케줄러) ────────────────────
+  # â”€â”€ Celery Beat (ìŠ¤ì¼€ì¤„ëŸ¬) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   celery_beat:
     build:
       context: ./backend
@@ -90,7 +88,7 @@ services:
       redis:
         condition: service_healthy
 
-  # ── Flower (Celery 모니터링) ──────────────────
+  # â”€â”€ Flower (Celery ëª¨ë‹ˆí„°ë§) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   flower:
     build:
       context: ./backend
@@ -105,7 +103,7 @@ services:
     depends_on:
       - redis
 
-  # ── Next.js Frontend ─────────────────────────
+  # â”€â”€ Next.js Frontend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   frontend:
     build:
       context: ./frontend
