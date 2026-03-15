@@ -66,6 +66,7 @@ backend/
       database.py       # DB 엔진 및 세션 팩토리 (비동기)
       security.py       # JWT 토큰 생성/검증, 비밀번호 해싱
       context.py        # 다중 회사 컨텍스트 변수 관리
+    middleware/          # 미들웨어 (company_context, rate_limiter, audit 등)
     models/             # SQLAlchemy ORM 모델 (DB 테이블 정의)
     schemas/            # Pydantic 스키마 (요청/응답 검증)
     services/           # 비즈니스 로직 계층
@@ -73,18 +74,29 @@ backend/
       celery_app.py     # Celery 설정 및 스케줄 정의
     utils/              # 공통 유틸리티 함수
     main.py             # FastAPI 앱 초기화 및 미들웨어 설정
+  tests/                # 테스트 (pytest)
+    test_api/           # API 엔드포인트 테스트
+    test_services/      # 서비스 계층 테스트
   alembic/              # DB 마이그레이션 파일
   requirements.txt      # Python 패키지 의존성
   Dockerfile            # 백엔드 컨테이너 이미지 정의
 
 frontend/
   app/                  # Next.js App Router 페이지 및 레이아웃
+  components/           # 공통 UI 컴포넌트
+    common/             # Button, Modal, Table, StatusBadge 등
+    layout/             # Header, Sidebar, Footer
+  hooks/                # 커스텀 훅 (useAuth, useApi 등)
+  lib/                  # API 클라이언트, 유틸리티
+  stores/               # Zustand 상태 관리
+  types/                # TypeScript 타입 정의
+  public/               # 정적 파일 (favicon, 이미지 등)
   package.json          # Node.js 패키지 의존성
   tailwind.config.ts    # Tailwind CSS 테마 설정
   tsconfig.json         # TypeScript 컴파일러 설정
   Dockerfile            # 프론트엔드 컨테이너 이미지 정의
 
-설계서/                  # 시스템 설계 문서 (v4, v5, v7, Overview)
+설계서/                  # 시스템 설계 문서 (v12 최신, Overview)
 ```
 
 ## 코드 컨벤션
@@ -127,7 +139,7 @@ frontend/
 - **Phase 10**: 최종화 & 프로덕션 배포
 
 ## 참고 사항
-- 설계 문서는 `설계서/` 폴더에 위치 (v4 → v5 → v7 순으로 최신)
+- 설계 문서는 `설계서/` 폴더에 위치 (v12가 최신)
 - 현재 구현된 엔드포인트: `/health`만 존재 (Phase 2부터 본격 개발)
 - 테스트: 아직 미구현 (Phase 2부터 pytest + jest 추가 예정)
 - Docker 서비스 간 의존성과 헬스체크가 docker-compose.yml에 정의되어 있음

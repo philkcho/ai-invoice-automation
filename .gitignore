@@ -52,3 +52,9 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Claude Code
+.claude/
+
+# Archives (바이너리 파일은 git으로 관리하지 않음)
+*.zip
