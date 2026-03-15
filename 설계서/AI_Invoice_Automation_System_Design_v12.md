@@ -1496,22 +1496,35 @@ frontend/
 
 ## 28. Development Roadmap
 
-### Phase 1 — Foundation (Week 1–2)
-- [ ] Docker + PostgreSQL + Redis + AWS S3 (local mock) setup
-- [ ] FastAPI base + JWT auth + HTTPS
-- [ ] All DB models & Alembic migrations (incl. PO, OCR, Tax tables)
-- [ ] Celery + Celery Beat setup
-- [ ] Company context + audit + rate limit middleware
-- [ ] Sentry error monitoring setup (dev/staging/prod 분리)
-- [ ] Environment config (.env.dev / .env.staging / .env.prod)
-- [ ] Next.js + Tailwind + auth setup
+### Phase 1 — Foundation ✅ 완료
+- [x] Docker Compose 7개 서비스 구성 (PostgreSQL, Redis, Backend, Celery Worker/Beat, Flower, Frontend)
+- [x] FastAPI 기본 구조 + CORS + 헬스 체크 엔드포인트 (/health)
+- [x] Pydantic Settings 기반 환경변수 설정 (config.py)
+- [x] SQLAlchemy 비동기 엔진 + 세션 팩토리 (database.py)
+- [x] JWT 인증 모듈 (access/refresh token 생성/검증) + bcrypt 비밀번호 해싱 (security.py)
+- [x] RBAC 역할 체계 정의 + require_roles 의존성 (security.py)
+- [x] 멀티테넌트 ContextVar 컨텍스트 관리 (context.py)
+- [x] Celery + Celery Beat 설정 및 스케줄 정의 (celery_app.py)
+- [x] Sentry 에러 모니터링 초기화 (main.py)
+- [x] Next.js 14 + Tailwind CSS 프로젝트 셋업
+- [x] 전체 Python 패키지 의존성 정의 (requirements.txt — 48개)
+- [x] .env.dev 개발 환경 설정
 
-### Phase 2 — Company & User Management (Week 2–3)
-- [ ] Company CRUD (Super Admin)
-- [ ] User management + role-based access
+### Phase 2 — Company & User Management
+- [ ] DB 모델 정의: companies, users 테이블 (SQLAlchemy ORM)
+- [ ] Alembic 초기 마이그레이션 생성 및 적용
+- [ ] company_context 미들웨어 구현 (middleware/company_context.py)
+- [ ] rate_limiter 미들웨어 구현 (middleware/rate_limiter.py)
+- [ ] audit 미들웨어 구현 (middleware/audit_middleware.py)
+- [ ] Company CRUD API + Pydantic 스키마 (Super Admin)
+- [ ] User management API + role-based access
+- [ ] 인증 API (로그인/로그아웃/토큰 갱신)
 - [ ] Company switcher UI
+- [ ] pytest 테스트 환경 구성 (conftest.py)
 
-### Phase 3 — Vendor Master + Duplicate Detection (Week 3–4)
+### Phase 3 — Vendor Master + Duplicate Detection
+- [ ] DB 모델 정의: vendors, vendor_contracts 테이블
+- [ ] Alembic 마이그레이션
 - [ ] Vendor API (shared pool + company-specific)
 - [ ] EIN 정규화 + 중복 감지 로직
 - [ ] Company name fuzzy match 경고
@@ -1519,20 +1532,24 @@ frontend/
 - [ ] Vendor registration & list UI
 - [ ] ACH encryption
 
-### Phase 4 — Tax Rates & PO Master (Week 4–5)
+### Phase 4 — Tax Rates & PO Master
+- [ ] DB 모델 정의: tax_rates, purchase_orders, purchase_order_lines 테이블
+- [ ] Alembic 마이그레이션
 - [ ] Tax rate management API + UI (State별)
 - [ ] PO master API + UI
 - [ ] PO line items management
 - [ ] PO ↔ Invoice matching logic + 초과 청구 감지
 
-### Phase 5 — Invoice Type & Rule Engine (Week 5–7)
+### Phase 5 — Invoice Type & Rule Engine
+- [ ] DB 모델 정의: invoice_types, global_validation_rules, type_rule_sets, type_rule_conditions 테이블
+- [ ] Alembic 마이그레이션
 - [ ] Invoice type master
 - [ ] Global rules management
 - [ ] Type rule sets + conditions
 - [ ] Vendor contract rules
 - [ ] 3-layer validation engine (incl. PO match + tax check)
 
-### Phase 6 — Invoice Upload, OCR, Manual Entry (Week 7–9)
+### Phase 6 — Invoice Upload, OCR, Manual Entry
 - [ ] S3 file upload
 - [ ] Claude API OCR → Celery async task
 - [ ] OCR Review screen (field correction + ocr_corrections 저장)
@@ -1541,26 +1558,26 @@ frontend/
 - [ ] Invoice + line item save
 - [ ] Auto-run validation
 
-### Phase 7 — Approval & Payment Workflow (Week 9–10)
+### Phase 7 — Approval & Payment Workflow
 - [ ] Approval settings 관리 API + UI (금액 구간별 승인 단계 설정)
 - [ ] Multi-step approval workflow API + UI (역할 기반 배정, 선착순 처리)
 - [ ] Payment tracking API + UI
 - [ ] Notification service (email + in-app) via Celery
 - [ ] Scheduled tasks: contract_expiry / tax_exempt_expiry / payment_due
 
-### Phase 8 — Email Integration (Week 10–11)
+### Phase 8 — Email Integration
 - [ ] Gmail API polling (Celery Beat)
 - [ ] Outlook MS Graph API polling (Celery Beat)
 - [ ] Auto vendor + type matching
 
-### Phase 9 — Dashboard & Reports (Week 11–12)
+### Phase 9 — Dashboard & Reports
 - [ ] Per-company dashboard + KPIs
 - [ ] Super Admin cross-company view
 - [ ] Excel / PDF export (Celery async)
 - [ ] 1099 prep report
 - [ ] Audit log viewer
 
-### Phase 10 — Polish & Deploy (Week 12–13)
+### Phase 10 — Polish & Deploy
 - [ ] Role-based UI restrictions
 - [ ] Backup strategy (pg_dump + S3)
 - [ ] Docker Compose production setup
