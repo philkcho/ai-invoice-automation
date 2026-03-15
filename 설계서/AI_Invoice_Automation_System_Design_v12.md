@@ -75,36 +75,17 @@
 
 ### User Role Hierarchy
 
-```
-┌─────────────────────────────────────────────────────┐
-│  Super Admin                                        │
-│  - Manage all companies                             │
-│  - Move users between companies                     │
-│  - Manage system-wide rule templates                │
-│  - Manage shared vendor pool                        │
-│  - View cross-company dashboard                     │
-└──────────────────────┬──────────────────────────────┘
-                       │
-        ┌──────────────┼──────────────┐
-        ▼              ▼              ▼
-   Company A       Company B       Company C
-        │
-        ├── Company Admin
-        │     - Full access within own company
-        │     - Invite / manage users
-        │     - Configure rules & contracts
-        │     - Configure email accounts
-        │
-        ├── Accountant
-        │     - Upload & submit invoices
-        │     - View invoices & reports
-        │
-        ├── Approver
-        │     - Review & approve/reject invoices
-        │     - View assigned invoices
-        │
-        └── Viewer
-              - Read-only access
+```mermaid
+graph TD
+    SA["<b>Super Admin</b><br/>Manage all companies<br/>Move users between companies<br/>Manage system-wide rule templates<br/>Manage shared vendor pool<br/>View cross-company dashboard"]
+    SA --> A["Company A"]
+    SA --> B["Company B"]
+    SA --> C["Company C"]
+
+    A --> CA["<b>Company Admin</b><br/>Full access within own company<br/>Invite / manage users<br/>Configure rules & contracts<br/>Configure email accounts"]
+    A --> AC["<b>Accountant</b><br/>Upload & submit invoices<br/>View invoices & reports"]
+    A --> AP["<b>Approver</b><br/>Review & approve/reject invoices<br/>View assigned invoices"]
+    A --> VW["<b>Viewer</b><br/>Read-only access"]
 ```
 
 ---
@@ -137,125 +118,67 @@
 
 ## 6. Invoice Lifecycle
 
-```
-                    ┌─────────────┐       ┌──────────────┐
-                    │   RECEIVED  │       │ MANUAL_ENTRY │ ← 사용자 직접 입력
-                    └──────┬──────┘       └──────┬───────┘
-                           │                     │
-                    ┌──────▼──────┐              │
-                    │ OCR_REVIEW  │              │
-                    └──────┬──────┘              │
-                           └──────────┬──────────┘
-                                      │
-                               ┌──────▼──────┐
-                               │   PENDING   │  ← Validation running
-                               └──────┬──────┘
-                                      │
-                         ┌────────────┴────────────┐
-                         ▼                         ▼
-                  Validation PASS           Validation FAIL
-                         │                         │
-                         ▼                         ▼
-                  ┌────────────┐           ┌──────────────┐
-                  │ SUBMITTED  │           │REVIEW_NEEDED │
-                  └─────┬──────┘           └──────┬───────┘
-                        │                         │
-                        │              ┌──────────┴───────────┐
-                        │              ▼                       ▼
-                        │       수정 후 재검증             Override
-                        │       (→ PENDING 루프)      (Company Admin만)
-                        │              │                       │
-                        │              └──────────┬────────────┘
-                        ▼                         ▼
-                  ┌────────────────────────────────────┐
-                  │            IN_APPROVAL             │
-                  └─────────────────┬──────────────────┘
-                                    │
-                        ┌───────────┴───────────┐
-                        ▼                       ▼
-                   ┌─────────┐           ┌──────────┐
-                   │APPROVED │           │ REJECTED │ → Reason + resubmit
-                   └────┬────┘           └──────────┘
-                        │
-                        ▼
-                   ┌─────────────┐
-                   │  SCHEDULED  │  ← Payment scheduled
-                   └──────┬──────┘
-                           │
-                           ▼
-                   ┌─────────────┐
-                   │    PAID     │  ← Payment confirmed
-                   └──────┬──────┘
-                           │
-                           ▼
-                   ┌─────────────┐
-                   │    VOID     │  ← Cancelled after approval
-                   └─────────────┘
+```mermaid
+flowchart TD
+    RECEIVED["RECEIVED"] --> OCR_REVIEW["OCR_REVIEW"]
+    MANUAL["MANUAL_ENTRY<br/><i>사용자 직접 입력</i>"] --> PENDING
+
+    OCR_REVIEW --> PENDING["PENDING<br/><i>Validation running</i>"]
+
+    PENDING --> PASS{"Validation<br/>PASS"}
+    PENDING --> FAIL{"Validation<br/>FAIL"}
+
+    PASS --> SUBMITTED["SUBMITTED"]
+    FAIL --> REVIEW["REVIEW_NEEDED"]
+
+    REVIEW --> FIX["수정 후 재검증"] --> PENDING
+    REVIEW --> OVERRIDE["Override<br/><i>Company Admin만</i>"] --> IN_APPROVAL
+
+    SUBMITTED --> IN_APPROVAL["IN_APPROVAL"]
+
+    IN_APPROVAL --> APPROVED["APPROVED"]
+    IN_APPROVAL --> REJECTED["REJECTED<br/><i>Reason + resubmit</i>"]
+
+    APPROVED --> SCHEDULED["SCHEDULED<br/><i>Payment scheduled</i>"]
+    SCHEDULED --> PAID["PAID<br/><i>Payment confirmed</i>"]
+    APPROVED --> VOID["VOID<br/><i>Cancelled after approval</i>"]
 ```
 
 ---
 
 ## 7. System Architecture
 
-```
-📬 Mail Photo  📧 Gmail    📧 Outlook   ✏️ Manual Entry
-      │              │            │              │
-      ▼              ▼            ▼              │
-  Web Upload    Gmail API   MS Graph API        │
-  (+ Company)   (Auto Poll) (Auto Poll)         │
-      │              │            │              │
-      └──────────────┼────────────┘              │
-                     ▼                           │
-            Claude API Processing                │
-            ① OCR + JSON Extraction              │
-            ② Invoice Type Detection             │
-            ③ USD Normalization                  │
-            ④ Exchange Rate Applied              │
-                     ▼                           │
-        ┌────────────────────────┐               │
-        │    OCR Review Screen   │               │
-        │  (field-by-field edit) │               │
-        └────────────┬───────────┘               │
-                     └──────────────┬────────────┘
-                                    ▼
-                             Identify Company
-                             (session / email config)
-                                    ▼
-                           ┌─────────────────┐
-                           │   AWS S3        │ ← File stored
-                           └────────┬────────┘
-                                    │
-                              PostgreSQL DB
-                              (company_id 기반)
-                                    ▼
-                   ┌────────────────────────────┐
-                   │     Validation Engine      │
-                   │  Layer 1: Global Rules     │
-                   │  Layer 2: Type Rules       │
-                   │  Layer 3: Contract Rules   │
-                   └────────────┬───────────────┘
-                                │
-                                ▼
-                   ┌────────────────────────────┐
-                   │    Approval Workflow        │
-                   │  Submit → Review → Approve │
-                   └────────────┬───────────────┘
-                                │
-                                ▼
-                   ┌────────────────────────────┐
-                   │    Payment Tracking        │
-                   │  Approved → Scheduled →    │
-                   │  Paid → Void               │
-                   └────────────┬───────────────┘
-                                │
-                                ▼
-                   ┌────────────────────────────┐
-                   │    Notification Service    │
-                   │  Email + In-app alerts     │
-                   └────────────┬───────────────┘
-                                │
-                                ▼
-                          Next.js Dashboard
+```mermaid
+flowchart TD
+    MAIL["Mail Photo"] --> UPLOAD["Web Upload<br/>(+ Company)"]
+    GMAIL["Gmail"] --> GMAIL_API["Gmail API<br/>(Auto Poll)"]
+    OUTLOOK["Outlook"] --> MS_API["MS Graph API<br/>(Auto Poll)"]
+    MANUAL["Manual Entry"]
+
+    UPLOAD --> CLAUDE
+    GMAIL_API --> CLAUDE
+    MS_API --> CLAUDE
+
+    CLAUDE["<b>Claude API Processing</b><br/>1. OCR + JSON Extraction<br/>2. Invoice Type Detection<br/>3. USD Normalization<br/>4. Exchange Rate Applied"]
+
+    CLAUDE --> OCR_SCREEN["OCR Review Screen<br/>(field-by-field edit)"]
+    OCR_SCREEN --> IDENTIFY
+    MANUAL --> IDENTIFY
+
+    IDENTIFY["Identify Company<br/>(session / email config)"]
+
+    IDENTIFY --> S3["AWS S3<br/><i>File stored</i>"]
+    S3 --> DB["PostgreSQL DB<br/>(company_id 기반)"]
+
+    DB --> VALIDATION["<b>Validation Engine</b><br/>Layer 1: Global Rules<br/>Layer 2: Type Rules<br/>Layer 3: Contract Rules"]
+
+    VALIDATION --> APPROVAL["<b>Approval Workflow</b><br/>Submit → Review → Approve"]
+
+    APPROVAL --> PAYMENT["<b>Payment Tracking</b><br/>Approved → Scheduled → Paid → Void"]
+
+    PAYMENT --> NOTIF["<b>Notification Service</b><br/>Email + In-app alerts"]
+
+    NOTIF --> DASHBOARD["<b>Next.js Dashboard</b>"]
 ```
 
 ---
@@ -833,93 +756,56 @@ ANNUAL_LIMIT:    { "annual_spend_limit": 500000, "fiscal_year_based": true, "sco
 
 ## 10. Validation Engine (3-Layer)
 
-```
-Invoice Saved (with company_id)
-      │
-      ▼
-Layer 1: Global Rules
-  → System templates + company custom rules
-  ✔ Max Invoice Amount
-  ✔ Allowed Payment Terms
-  ✔ Required Documents (W-9 etc.)
-  ✔ Duplicate Invoice Check
-  ✔ Due Date Overdue Check
-  ✔ Annual Spend Limit
-      (집계 기준: companies.fiscal_year_start 기준 회계연도.
-       e.g. fiscal_year_start="07-01" → 매년 7/1~6/30 기준 누적 집계)
-      │
-      ▼
-Layer 2: Type-based Rules
-  → System templates + company custom conditions
-  PO          → PO# match, qty/price verify
-  FREIGHT     → rate, route check
-  SERVICE     → contracted rate, deliverable
-  RECURRING   → fixed amount, billing cycle
-  UTILITY     → prior month variance
-  PROFESSIONAL→ hourly rate, approver required
-      │
-      ▼
-Layer 3: Contract Rules
-  → Per vendor contract conditions
-  ✔ Contracted price match (± tolerance %)
-  ✔ Max order amount per invoice
-  ✔ Allowed item categories
-  ✔ Contract period / expiry warning
-      │
-      ▼
-Aggregate Result → Save to validation_results
-  ALL PASS  → ✅ PASS  → Auto-submit for approval
-  ANY WARN  → ⚠️ WARNING → Submit with warnings
-  ANY FAIL  → ❌ FAIL  → REVIEW_NEEDED
+```mermaid
+flowchart TD
+    START["Invoice Saved<br/>(with company_id)"]
+
+    START --> L1
+
+    subgraph L1["Layer 1: Global Rules"]
+        direction LR
+        L1_DESC["System templates + company custom rules<br/>- Max Invoice Amount<br/>- Allowed Payment Terms<br/>- Required Documents (W-9 etc.)<br/>- Duplicate Invoice Check<br/>- Due Date Overdue Check<br/>- Annual Spend Limit<br/><i>집계 기준: fiscal_year_start 기준 회계연도</i>"]
+    end
+
+    L1 --> L2
+
+    subgraph L2["Layer 2: Type-based Rules"]
+        direction LR
+        L2_DESC["System templates + company custom conditions<br/>PO → PO# match, qty/price verify<br/>FREIGHT → rate, route check<br/>SERVICE → contracted rate, deliverable<br/>RECURRING → fixed amount, billing cycle<br/>UTILITY → prior month variance<br/>PROFESSIONAL → hourly rate, approver required"]
+    end
+
+    L2 --> L3
+
+    subgraph L3["Layer 3: Contract Rules"]
+        direction LR
+        L3_DESC["Per vendor contract conditions<br/>- Contracted price match (± tolerance %)<br/>- Max order amount per invoice<br/>- Allowed item categories<br/>- Contract period / expiry warning"]
+    end
+
+    L3 --> AGG["Aggregate Result → Save to validation_results"]
+    AGG --> PASS["ALL PASS → Auto-submit for approval"]
+    AGG --> WARN["ANY WARNING → Submit with warnings"]
+    AGG --> FAIL["ANY FAIL → REVIEW_NEEDED"]
 ```
 
 **REVIEW_NEEDED 수동 처리 흐름:**
-```
-invoice.status = REVIEW_NEEDED
-      │
-      ▼
-Company Admin 또는 Accountant가 검토
-(validation_results 각 항목 확인)
-      │
-      ├── 문제 수정 후 재검증 요청
-      │     → invoice.status → PENDING (validation 재실행)
-      │
-      └── 검증 오류 무시하고 강제 제출 (Override)
-            → Company Admin 권한만 가능
-            → 사유 입력 필수 (override_reason)
-            → audit_logs에 OVERRIDE 액션 기록
-            → invoice.status → IN_APPROVAL
-            → validation_results에 override 표시
+```mermaid
+flowchart TD
+    RN["invoice.status = REVIEW_NEEDED"]
+    RN --> REVIEW["Company Admin 또는 Accountant가 검토<br/>(validation_results 각 항목 확인)"]
+    REVIEW --> FIX["문제 수정 후 재검증 요청<br/>→ invoice.status → PENDING<br/>(validation 재실행)"]
+    REVIEW --> OVERRIDE["검증 오류 무시 — 강제 제출 (Override)<br/>→ Company Admin 권한만 가능<br/>→ 사유 입력 필수 (override_reason)<br/>→ audit_logs에 OVERRIDE 액션 기록<br/>→ invoice.status → IN_APPROVAL<br/>→ validation_results에 override 표시"]
 ```
 
 ---
 
 ## 11. OCR Review & Correction Flow
 
-```
-OCR Completed → Status: OCR_REVIEW
-      │
-      ▼
-┌─────────────────────────────────────────┐
-│  OCR Review Screen                      │
-│                                         │
-│  Field          OCR Value   Corrected   │
-│  ──────────     ─────────   ─────────   │
-│  Vendor Name  [ ABC Co.  ] [ ABC Corp ] │
-│  Invoice #    [ INV-001  ] [ INV-0012 ] │
-│  Amount       [ $1,200   ] [ $1,250   ] │
-│  Date         [ 03/12/26 ] [confirmed] │
-│  Line Items   [table edit per line]     │
-│                                         │
-│  [Confirm & Proceed] [Re-run OCR]       │
-└─────────────────────────────────────────┘
-      │
-      ▼
-Corrections saved to ocr_corrections table
-(original value + corrected value + user)
-      │
-      ▼
-Status: PENDING → Run Validation Engine
+```mermaid
+flowchart TD
+    OCR["OCR Completed → Status: OCR_REVIEW"]
+    OCR --> SCREEN["<b>OCR Review Screen</b><br/><br/>Field &emsp;&emsp;&emsp; OCR Value &emsp; Corrected<br/>Vendor Name &ensp; ABC Co. &emsp;&ensp; ABC Corp<br/>Invoice # &emsp;&emsp; INV-001 &emsp;&ensp; INV-0012<br/>Amount &emsp;&emsp;&emsp; $1,200 &emsp;&emsp; $1,250<br/>Date &emsp;&emsp;&emsp;&emsp;&ensp; 03/12/26 &emsp; confirmed<br/>Line Items &emsp;&ensp; table edit per line<br/><br/>[Confirm & Proceed] [Re-run OCR]"]
+    SCREEN --> SAVE["Corrections saved to ocr_corrections table<br/>(original value + corrected value + user)"]
+    SAVE --> PENDING["Status: PENDING → Run Validation Engine"]
 ```
 
 **OCR 수정 화면 규칙:**
@@ -929,114 +815,84 @@ Status: PENDING → Run Validation Engine
 - 수정 이력은 audit_logs + ocr_corrections 양쪽에 저장
 
 **OCR 실패 처리 흐름:**
-```
-Claude API 호출
-      │
-      ├── 성공 → ocr_status: COMPLETED → OCR_REVIEW 화면
-      │
-      └── 실패 (API 오류 / 파싱 오류)
-            │
-            ▼
-          Celery 자동 재시도 (최대 3회, 60초 간격)
-            │
-            ├── 재시도 성공 → COMPLETED → OCR_REVIEW 화면
-            │
-            └── 3회 모두 실패
-                  │
-                  ▼
-                ocr_status: FAILED
-                invoice.status: OCR_REVIEW (수동 처리 필요)
-                Sentry alert 발송 (Critical)
-                담당 Accountant 알림 발송
-                  │
-                  ▼
-                OCR_REVIEW 화면에 "OCR 실패" 배너 표시
-                모든 필드 수동 입력 가능 상태로 전환
-                [수동 입력 완료] 버튼 → ocr_status: CORRECTED
-                  │
-                  ▼
-                PENDING → Validation 실행
+```mermaid
+flowchart TD
+    CALL["Claude API 호출"]
+    CALL -->|성공| COMPLETED["ocr_status: COMPLETED<br/>→ OCR_REVIEW 화면"]
+    CALL -->|실패| RETRY["Celery 자동 재시도<br/>(최대 3회, 60초 간격)"]
+
+    RETRY -->|재시도 성공| COMPLETED
+    RETRY -->|3회 모두 실패| FAILED["ocr_status: FAILED<br/>invoice.status: OCR_REVIEW (수동 처리 필요)<br/>Sentry alert 발송 (Critical)<br/>담당 Accountant 알림 발송"]
+
+    FAILED --> BANNER["OCR_REVIEW 화면에 'OCR 실패' 배너 표시<br/>모든 필드 수동 입력 가능 상태로 전환<br/>[수동 입력 완료] → ocr_status: CORRECTED"]
+
+    BANNER --> PENDING["PENDING → Validation 실행"]
 ```
 
 ---
 
 ## 12. Purchase Order (PO) Management
 
-```
-PO 등록 (purchase_orders)
-      │
-      ▼
-PO Line Items 등록 (purchase_order_lines)
-      │
-      ▼
-PO 타입 Invoice 수신
-      │
-      ▼
-PO Number 매칭 (invoice.po_id → purchase_orders)
-      │
-      ├── 매칭 성공
-      │     │
-      │     ▼
-      │   Line Item 수량/단가 검증
-      │   amount_invoiced 누적 업데이트
-      │     │
-      │     ├── amount_invoiced < amount_total → PARTIALLY_INVOICED
-      │     └── amount_invoiced = amount_total → FULLY_INVOICED
-      │
-      └── 매칭 실패
-            │
-            ▼
-          Validation FAIL: "PO# not found"
+```mermaid
+flowchart TD
+    PO["PO 등록 (purchase_orders)"]
+    PO --> LINES["PO Line Items 등록<br/>(purchase_order_lines)"]
+    LINES --> RECV["PO 타입 Invoice 수신"]
+    RECV --> MATCH["PO Number 매칭<br/>(invoice.po_id → purchase_orders)"]
+
+    MATCH -->|매칭 성공| VERIFY["Line Item 수량/단가 검증<br/>amount_invoiced 누적 업데이트"]
+    MATCH -->|매칭 실패| FAIL["Validation FAIL:<br/>'PO# not found'"]
+
+    VERIFY --> PARTIAL["amount_invoiced < amount_total<br/>→ PARTIALLY_INVOICED"]
+    VERIFY --> FULL["amount_invoiced = amount_total<br/>→ FULLY_INVOICED"]
 ```
 
 **PO 초과 청구 감지:**
-```
-[헤더 레벨]
-Invoice amount_total + PO.amount_invoiced > PO.amount_total
-→ Validation FAIL: "Invoice exceeds PO remaining balance"
-→ Notification: PO_OVER_BUDGET → Company Admin
+```mermaid
+flowchart TD
+    subgraph HEADER["Header Level"]
+        H1["Invoice amount_total + PO.amount_invoiced > PO.amount_total"]
+        H1 --> H2["Validation FAIL: 'Invoice exceeds PO remaining balance'"]
+        H2 --> H3["Notification: PO_OVER_BUDGET → Company Admin"]
+    end
 
-[라인 레벨]
-invoice_line.quantity + po_line.quantity_invoiced > po_line.quantity
-→ Validation WARNING: "Line #{n}: Quantity exceeds PO line remaining"
-→ 헤더 FAIL과 별도로 라인별 경고 표시
+    subgraph LINE["Line Level"]
+        L1["invoice_line.quantity + po_line.quantity_invoiced > po_line.quantity"]
+        L1 --> L2["Validation WARNING: 'Line #n: Quantity exceeds PO line remaining'"]
+        L2 --> L3["헤더 FAIL과 별도로 라인별 경고 표시"]
+    end
 ```
 
 **amount_remaining 자동 업데이트 규칙:**
-```
-Invoice APPROVED (status → APPROVED)
-      │
-      ▼
-approval_service 내에서 동기 호출 (같은 트랜잭션 내)
-po_service.update_po_amounts(po_id)
-  purchase_orders.amount_invoiced += invoice.amount_total
-  purchase_orders.amount_remaining  = amount_total - amount_invoiced
-  purchase_orders.status 자동 변경:
-    amount_remaining > 0              → PARTIALLY_INVOICED
-    amount_remaining = 0              → FULLY_INVOICED
+```mermaid
+flowchart TD
+    subgraph APPROVE_FLOW["Invoice APPROVED"]
+        A1["Invoice APPROVED (status → APPROVED)"]
+        A1 --> A2["approval_service 동기 호출 (같은 트랜잭션 내)<br/>po_service.update_po_amounts(po_id)"]
+        A2 --> A3["amount_invoiced += invoice.amount_total<br/>amount_remaining = amount_total - amount_invoiced"]
+        A3 --> A4{"amount_remaining"}
+        A4 -->|"> 0"| PARTIAL["PARTIALLY_INVOICED"]
+        A4 -->|"= 0"| FULLY["FULLY_INVOICED"]
+    end
 
-Invoice VOID (status → VOID)
-      │
-      ▼
-payment_service 내에서 동기 호출 (같은 트랜잭션 내)
-po_service.update_po_amounts(po_id) (역산)
-  purchase_orders.amount_invoiced -= invoice.amount_total
-  purchase_orders.amount_remaining  = amount_total - amount_invoiced
-  purchase_orders.status → PARTIALLY_INVOICED or OPEN
+    subgraph VOID_FLOW["Invoice VOID"]
+        V1["Invoice VOID (status → VOID)"]
+        V1 --> V2["payment_service 동기 호출 (같은 트랜잭션 내)<br/>po_service.update_po_amounts(po_id) — 역산"]
+        V2 --> V3["amount_invoiced -= invoice.amount_total<br/>amount_remaining = amount_total - amount_invoiced"]
+        V3 --> V4["status → PARTIALLY_INVOICED or OPEN"]
+    end
 ```
 *PO 금액 업데이트는 Celery 비동기 처리 없이 approval_service / payment_service 트랜잭션 내 동기 처리. 데이터 정합성 보장을 위해 동일 DB 트랜잭션 안에서 실행.*
 
 **동시성(Race condition) 처리:**
-```
-동일 PO에 인보이스 A, B가 동시에 IN_APPROVAL 진행 중인 경우,
-Validation 시점(PENDING)에 둘 다 초과 없음으로 통과 후 APPROVED될 수 있음.
-
-처리 방침: APPROVED 직전 po_service.check_po_budget(po_id, amount) 재검증 실행
-  → SELECT FOR UPDATE로 purchase_orders 행 잠금
-  → 잠금 후 amount_invoiced + invoice.amount_total > amount_total 확인
-  → 초과 시 해당 APPROVE 액션 거부 → approval_service에서 FAIL 반환
-  → 먼저 APPROVED된 인보이스가 PO를 소진한 경우,
-    나중 인보이스는 REJECTED 처리 후 담당자 알림
+```mermaid
+flowchart TD
+    RACE["동일 PO에 인보이스 A, B 동시 IN_APPROVAL<br/>Validation 시점에 둘 다 통과 가능"]
+    RACE --> CHECK["APPROVED 직전 재검증<br/>po_service.check_po_budget(po_id, amount)"]
+    CHECK --> LOCK["SELECT FOR UPDATE로<br/>purchase_orders 행 잠금"]
+    LOCK --> VERIFY{"amount_invoiced +<br/>invoice.amount_total ><br/>amount_total?"}
+    VERIFY -->|초과 없음| OK["APPROVE 진행"]
+    VERIFY -->|초과| BLOCK["APPROVE 거부 → FAIL 반환<br/>나중 인보이스 REJECTED 처리<br/>담당자 알림 발송"]
 ```
 
 ---
@@ -1045,24 +901,13 @@ Validation 시점(PENDING)에 둘 다 초과 없음으로 통과 후 APPROVED될
 
 ### State Sales Tax 구조
 
-```
-Invoice Line Item
-      │
-      ▼
-Vendor billing_state 확인
-      │
-      ▼
-tax_rates 테이블 조회
-(state_code + effective_date 기준)
-      │
-      ├── Tax Exempt Vendor → tax_amount = 0
-      │                       (w9 + exempt 여부 체크)
-      │
-      └── Taxable → rate_pct 적용
-            │
-            ▼
-          line.tax_amount = line.amount × rate_pct
-          invoice.amount_tax = SUM(line.tax_amount)
+```mermaid
+flowchart TD
+    LINE["Invoice Line Item"]
+    LINE --> STATE["Vendor billing_state 확인"]
+    STATE --> LOOKUP["tax_rates 테이블 조회<br/>(state_code + effective_date 기준)"]
+    LOOKUP -->|Tax Exempt Vendor| EXEMPT["tax_amount = 0<br/>(w9 + exempt 여부 체크)"]
+    LOOKUP -->|Taxable| CALC["rate_pct 적용<br/>line.tax_amount = line.amount × rate_pct<br/>invoice.amount_tax = SUM(line.tax_amount)"]
 ```
 
 ### Tax 구분
@@ -1078,93 +923,75 @@ tax_rates 테이블 조회
 
 ## 14. Background Jobs (Celery + Redis)
 
-```
-Redis (Message Broker)
-      │
-      ├── Celery Workers (async tasks)
-      │     ├── ocr_task          → Claude API OCR 처리
-      │     ├── validation_task   → 3-layer validation 실행
-      │     ├── notification_task → 이메일/인앱 알림 발송
-      │     └── export_task       → Excel/PDF 생성
-      │
-      └── Celery Beat (scheduled tasks)
-            ├── email_poll_task            → Every 5 min (Gmail + Outlook)
-            ├── exchange_rate_task         → Daily midnight UTC
-            ├── contract_expiry_task       → Daily 8 AM (expiry_warning_days 기준, 아래 참조)
-            ├── tax_exempt_expiry_task     → Daily 8 AM (30일 이내 만료 vendor 체크)
-            └── payment_due_task           → Daily 8 AM (due_date 7일 이내 미결제 인보이스 알림)
+```mermaid
+flowchart LR
+    REDIS["Redis<br/>(Message Broker)"]
+
+    REDIS --> WORKERS
+    REDIS --> BEAT
+
+    subgraph WORKERS["Celery Workers (async)"]
+        W1["ocr_task → Claude API OCR 처리"]
+        W2["validation_task → 3-layer validation"]
+        W3["notification_task → 이메일/인앱 알림"]
+        W4["export_task → Excel/PDF 생성"]
+    end
+
+    subgraph BEAT["Celery Beat (scheduled)"]
+        B1["email_poll_task → Every 5 min"]
+        B2["exchange_rate_task → Daily midnight UTC"]
+        B3["contract_expiry_task → Daily 8 AM"]
+        B4["tax_exempt_expiry_task → Daily 8 AM"]
+        B5["payment_due_task → Daily 8 AM"]
+    end
 ```
 
 **Scheduled Task 상세 로직:**
-```
-[contract_expiry_task] — Daily 8 AM
-  SELECT * FROM vendor_contracts
-  WHERE is_active = TRUE
-    AND expiry_date BETWEEN TODAY AND TODAY + expiry_warning_days
-  → 해당 계약 건별 Notification: CONTRACT_EXPIRY → Company Admin
+```mermaid
+flowchart TD
+    subgraph CONTRACT["contract_expiry_task — Daily 8 AM"]
+        C1["SELECT FROM vendor_contracts<br/>WHERE is_active = TRUE<br/>AND expiry_date BETWEEN TODAY AND TODAY + warning_days"]
+        C1 --> C2["Notification: CONTRACT_EXPIRY → Company Admin"]
+    end
 
-[tax_exempt_expiry_task] — Daily 8 AM (contract_expiry_task 직후 실행)
-  SELECT * FROM vendors
-  WHERE is_tax_exempt = TRUE
-    AND tax_exempt_expiry_date BETWEEN TODAY AND TODAY + 30
-  → Notification: TAX_EXEMPT_EXPIRED → Company Admin
-  (만료일이 이미 지난 경우:
-    인보이스 신규 수신 시 Tax Handling 단계에서 Validation WARNING 처리)
+    subgraph TAX["tax_exempt_expiry_task — Daily 8 AM"]
+        T1["SELECT FROM vendors<br/>WHERE is_tax_exempt = TRUE<br/>AND tax_exempt_expiry_date BETWEEN TODAY AND TODAY + 30"]
+        T1 --> T2["Notification: TAX_EXEMPT_EXPIRED → Company Admin"]
+        T2 --> T3["만료일 경과 시: 신규 인보이스 수신 시<br/>Validation WARNING 처리"]
+    end
 
-[payment_due_task] — Daily 8 AM
-  SELECT * FROM invoices
-  WHERE status = 'SCHEDULED'
-    AND due_date BETWEEN TODAY AND TODAY + 7
-  → Notification: PAYMENT_DUE → Company Admin
+    subgraph PAY["payment_due_task — Daily 8 AM"]
+        P1["SELECT FROM invoices<br/>WHERE status = 'SCHEDULED'<br/>AND due_date BETWEEN TODAY AND TODAY + 7"]
+        P1 --> P2["Notification: PAYMENT_DUE → Company Admin"]
+    end
 ```
 
 **이메일 중복 수신 방지 (Deduplication):**
-```
-email_poll_task 실행
-      │
-      ▼
-Gmail/Outlook API → 신규 메시지 조회
-(last_polled_at 이후 수신된 메시지)
-      │
-      ▼
-각 메시지의 message_id 확인
-      │
-      ├── processed_message_ids에 포함? → 스킵 (중복)
-      │
-      └── 신규 메시지
-            │
-            ▼
-          OCR task 큐에 추가
-          processed_message_ids에 message_id 기록
-          last_polled_at 업데이트
-          (processed_message_ids는 최대 500건 유지, FIFO 삭제)
+```mermaid
+flowchart TD
+    POLL["email_poll_task 실행"]
+    POLL --> FETCH["Gmail/Outlook API → 신규 메시지 조회<br/>(last_polled_at 이후 수신)"]
+    FETCH --> CHECK["각 메시지의 message_id 확인"]
+    CHECK -->|processed_message_ids에 포함| SKIP["스킵 (중복)"]
+    CHECK -->|신규 메시지| PROCESS["OCR task 큐에 추가<br/>processed_message_ids에 기록<br/>last_polled_at 업데이트<br/>(최대 500건 유지, FIFO 삭제)"]
 ```
 
 **처리 흐름:**
-```
-[File Upload / Email Received]           [Manual Entry]
-         │                                     │
-         ▼                                     │
-API → Redis Queue에 ocr_task 추가             │
-         │                                     │
-         ▼  (비동기)                           │
-Celery Worker → Claude API 호출               │
-         │                                     │
-         ▼                                     │
-OCR 완료 → DB 저장                            │
-         │                                     │
-         └──────────────┬──────────────────────┘
-                        ▼
-              Redis Queue에 validation_task 추가
-                        │
-                        ▼  (비동기)
-              Celery Worker → Validation 실행
-                        │
-                        ▼
-              결과 저장 → notification_task 추가
-                        │
-                        ▼  (비동기)
-              Celery Worker → 알림 발송
+```mermaid
+flowchart TD
+    UPLOAD["File Upload / Email Received"] --> QUEUE1["API → Redis Queue에<br/>ocr_task 추가"]
+    MANUAL["Manual Entry"]
+
+    QUEUE1 -->|비동기| OCR["Celery Worker<br/>→ Claude API 호출"]
+    OCR --> SAVE["OCR 완료 → DB 저장"]
+
+    SAVE --> QUEUE2
+    MANUAL --> QUEUE2["Redis Queue에<br/>validation_task 추가"]
+
+    QUEUE2 -->|비동기| VALID["Celery Worker<br/>→ Validation 실행"]
+    VALID --> RESULT["결과 저장<br/>→ notification_task 추가"]
+
+    RESULT -->|비동기| NOTIFY["Celery Worker<br/>→ 알림 발송"]
 ```
 
 ---
@@ -1217,29 +1044,15 @@ Medium 오류    → Slack #alerts-medium (일일 요약)
 
 ### 중복 감지 로직
 
-```
-Vendor 등록 시도
-      │
-      ▼
-EIN 정규화 (하이픈 제거, 공백 제거)
-e.g. "12-3456789" → "123456789"
-      │
-      ▼
-중복 체크 (우선순위 순서)
-  ① 공용 풀(company_id = NULL)에서 동일 EIN 존재?
-  ② 같은 company_id 내에서 동일 EIN 존재?
-      │
-      ├── 중복 없음 → 정상 등록
-      │
-      └── 중복 발견
-            │
-            ├── 공용 풀에 존재
-            │     → "이미 공용 Vendor로 등록됨. 공용 Vendor를 사용하시겠습니까?"
-            │     → [공용 사용] or [별도 회사 전용으로 등록]
-            │
-            └── 같은 company 내 존재
-                  → "동일 EIN의 Vendor가 이미 존재합니다."
-                  → 기존 Vendor 링크 표시 후 등록 차단
+```mermaid
+flowchart TD
+    REG["Vendor 등록 시도"]
+    REG --> NORM["EIN 정규화<br/>(하이픈/공백 제거)<br/>e.g. '12-3456789' → '123456789'"]
+    NORM --> CHECK["중복 체크<br/>1. 공용 풀(company_id=NULL)에서 동일 EIN?<br/>2. 같은 company_id 내에서 동일 EIN?"]
+
+    CHECK -->|중복 없음| OK["정상 등록"]
+    CHECK -->|공용 풀에 존재| SHARED["'이미 공용 Vendor로 등록됨'<br/>[공용 사용] or [별도 회사 전용으로 등록]"]
+    CHECK -->|같은 company 내 존재| BLOCK["'동일 EIN의 Vendor가 이미 존재합니다'<br/>기존 Vendor 링크 표시 후 등록 차단"]
 ```
 
 ### 중복 감지 추가 기준
@@ -1278,131 +1091,67 @@ e.g. "12-3456789" → "123456789"
 
 ### 승인 단계 결정 로직
 
-```
-Invoice SUBMITTED
-      │
-      ▼
-approval_settings 조회
-WHERE company_id = invoice.company_id
-  AND (invoice_type_id = invoice.invoice_type_id OR invoice_type_id IS NULL)
-  AND amount_threshold_min <= invoice.amount_total
-  AND (amount_threshold_max >= invoice.amount_total OR amount_threshold_max IS NULL)
-  AND is_active = TRUE
-ORDER BY step ASC
-      │
-      ▼
-매칭 결과 없음? → Fallback: step=1, role=COMPANY_ADMIN 으로 자동 처리
-              (설정 누락 시 Company Admin이 단독 승인)
-      │
-      ▼
-조회된 행 = 단계별 승인 설정 목록
-e.g. $12,000 SERVICE 인보이스
-  → step=1, role=APPROVER
-  → step=2, role=COMPANY_ADMIN
-      │
-      ▼
-승인자 배정 (approver_id 결정)
-  role=APPROVER      → 해당 company에서 role=APPROVER인 users 전원에게 알림
-                       (먼저 승인한 1명의 action이 해당 step을 완료로 처리)
-  role=COMPANY_ADMIN → 해당 company에서 role=COMPANY_ADMIN인 users 전원에게 알림
-                       (먼저 승인한 1명의 action이 해당 step을 완료로 처리)
-  → invoice_approvals.approver_id = NULL (특정인 미지정, 역할 기반 배정)
-      │
-      ▼
-invoice_approvals 레코드 생성 (submission_round = invoice.submission_round)
-  step=1, approver_role=APPROVER,       approver_id=NULL, status=PENDING
-  step=2, approver_role=COMPANY_ADMIN,  approver_id=NULL, status=PENDING
+```mermaid
+flowchart TD
+    SUB["Invoice SUBMITTED"]
+    SUB --> QUERY["approval_settings 조회<br/>WHERE company_id, invoice_type_id,<br/>amount range, is_active = TRUE<br/>ORDER BY step ASC"]
+
+    QUERY --> NOMATCH{"매칭 결과 없음?"}
+    NOMATCH -->|Yes| FALLBACK["Fallback: step=1, role=COMPANY_ADMIN<br/>(설정 누락 시 단독 승인)"]
+    NOMATCH -->|No| STEPS["조회된 행 = 단계별 승인 설정<br/>e.g. $12,000 SERVICE:<br/>step=1 APPROVER<br/>step=2 COMPANY_ADMIN"]
+
+    FALLBACK --> ASSIGN
+    STEPS --> ASSIGN["승인자 배정 (역할 기반)<br/>해당 role의 users 전원에게 알림<br/>선착순 1명이 step 완료 처리<br/>approver_id = NULL (미지정)"]
+
+    ASSIGN --> CREATE["invoice_approvals 레코드 생성<br/>step=1, APPROVER, PENDING<br/>step=2, COMPANY_ADMIN, PENDING"]
 ```
 
 ### 단계별 승인 흐름
 
-```
-Step 1 Approver 알림 (email + in-app)
-      │
-      ├── APPROVE
-      │     │
-      │     ▼
-      │   step=1 status → APPROVED
-      │   step=2 Approver 알림 발송
-      │     │
-      │     ├── APPROVE → Invoice status: APPROVED
-      │     │             Payment scheduling enabled
-      │     │
-      │     └── REJECT  → 전체 승인 취소
-      │                   Rejection reason 저장
-      │                   Invoice status: REJECTED
-      │                   Accountant 알림
-      │
-      └── REJECT
-            │
-            ▼
-          전체 승인 취소
-          Rejection reason 저장
-          Invoice status: REJECTED
-          Accountant 알림 → 수정 후 재제출 가능
+```mermaid
+flowchart TD
+    S1["Step 1 Approver 알림<br/>(email + in-app)"]
+
+    S1 -->|APPROVE| S1_OK["step=1 → APPROVED<br/>Step 2 Approver 알림 발송"]
+    S1 -->|REJECT| S1_REJ["전체 승인 취소<br/>Rejection reason 저장<br/>Invoice: REJECTED<br/>Accountant 알림 → 재제출 가능"]
+
+    S1_OK -->|APPROVE| FINAL["Invoice status: APPROVED<br/>Payment scheduling enabled"]
+    S1_OK -->|REJECT| S2_REJ["전체 승인 취소<br/>Rejection reason 저장<br/>Invoice: REJECTED<br/>Accountant 알림"]
 ```
 
 ### 재제출 처리 규칙
 
-```
-Invoice REJECTED → 담당자가 내용 수정 후 재제출
-      │
-      ▼
-invoices.submission_round += 1
-invoices.status → PENDING (재검증 시작)
-invoices.rejection_reason → NULL (초기화)
-  ※ 이전 rejection_reason은 invoice_approvals.rejection_reason에 이력 보존됨.
-     invoices 테이블은 "현재 상태"만 보유하는 설계 원칙에 따라 초기화.
-      │
-      ▼
-기존 invoice_approvals (이전 submission_round)
-  → status: CANCELLED (이력 보존, 덮어쓰지 않음)
-      │
-      ▼
-validation_results 재실행
-  → 신규 행 insert (submission_round = 새 round)
-  → 이전 round 결과는 보존
-      │
-      ▼
-검증 통과 시 → 새 invoice_approvals 생성
-  (submission_round = 새 round, step=1부터 재시작)
+```mermaid
+flowchart TD
+    REJ["Invoice REJECTED → 담당자 수정 후 재제출"]
+    REJ --> UPDATE["submission_round += 1<br/>status → PENDING (재검증)<br/>rejection_reason → NULL 초기화<br/><i>이전 reason은 invoice_approvals에 보존</i>"]
+    UPDATE --> CANCEL["기존 invoice_approvals<br/>(이전 round) → CANCELLED<br/>(이력 보존, 덮어쓰지 않음)"]
+    CANCEL --> REVALID["validation_results 재실행<br/>신규 행 insert (새 round)<br/>이전 round 결과는 보존"]
+    REVALID --> NEW["검증 통과 시<br/>→ 새 invoice_approvals 생성<br/>(새 round, step=1부터 재시작)"]
 ```
 
 ---
 
 ## 19. Payment Tracking
 
-```
-APPROVED
-   │
-   ▼
-Company Admin schedules payment
-   │ (method: ACH / Check / Wire / Credit Card)
-   ▼
-invoice_payments 레코드 생성 (payment_status: SCHEDULED)
-payment_service에서 동기 처리: invoices.status → SCHEDULED
-   │
-   ▼
-Payment processed
-   │
-   ├── ACH / Wire → payment_status: PROCESSING (은행 처리 대기)
-   │                invoices.status: SCHEDULED 유지
-   │                     │
-   │                     ├── 확인 완료 → payment_status: PAID
-   │                     │              invoices.status → PAID
-   │                     └── 실패 → payment_status: FAILED
-   │
-   ├── Check / Credit Card → payment_status: PAID (즉시 확인)
-   │                         invoice_payments.paid_date + transaction_ref 기록
-   │                         payment_service에서 동기 처리: invoices.status → PAID
-   │
-   └── FAILURE → invoice_payments.payment_status → FAILED
-                 notification 발송, retry 옵션 제공
+```mermaid
+flowchart TD
+    APPROVED["APPROVED"]
+    APPROVED --> SCHEDULE["Company Admin schedules payment<br/>(ACH / Check / Wire / Credit Card)"]
+    SCHEDULE --> CREATE["invoice_payments 생성<br/>payment_status: SCHEDULED<br/>invoices.status → SCHEDULED"]
 
-VOID 처리:
-   invoice_payments.payment_status → VOID
-   payment_service에서 동기 처리: invoices.status → VOID
-   po_service.update_po_amounts(po_id) 역산 (동일 트랜잭션 내)
+    CREATE --> PROCESS{"Payment Method"}
+
+    PROCESS -->|ACH / Wire| PROCESSING["payment_status: PROCESSING<br/>(은행 처리 대기)<br/>invoices.status: SCHEDULED 유지"]
+    PROCESSING -->|확인 완료| PAID1["payment_status: PAID<br/>invoices.status → PAID"]
+    PROCESSING -->|실패| FAILED1["payment_status: FAILED"]
+
+    PROCESS -->|Check / Credit Card| PAID2["payment_status: PAID (즉시)<br/>paid_date + transaction_ref 기록<br/>invoices.status → PAID"]
+
+    PROCESS -->|FAILURE| FAILED2["payment_status: FAILED<br/>notification 발송, retry 옵션"]
+
+    VOID_TITLE["<b>VOID 처리</b>"]
+    VOID_TITLE --> VOID["payment_status → VOID<br/>invoices.status → VOID<br/>po_service.update_po_amounts 역산<br/>(동일 트랜잭션 내)"]
 ```
 
 ---
@@ -1430,23 +1179,23 @@ VOID 처리:
 
 ## 21. File Storage Strategy (AWS S3)
 
-```
-S3 Bucket Structure:
-invoice-management-files/
-├── {company_code}/
-│   ├── invoices/
-│   │   └── {year}/{month}/{invoice_id}.pdf
-│   ├── vendors/
-│   │   ├── w9/{vendor_id}_w9.pdf
-│   │   └── tax_exempt/{vendor_id}_exempt_cert.pdf
-│   ├── contracts/
-│   │   └── {contract_id}.pdf
-│   └── purchase_orders/
-│       └── {po_id}.pdf
-└── shared/
-    └── vendors/
-        ├── w9/{vendor_id}_w9.pdf
-        └── tax_exempt/{vendor_id}_exempt_cert.pdf
+```mermaid
+graph LR
+    S3["invoice-management-files/"]
+    S3 --> COMP["{company_code}/"]
+    S3 --> SHARED["shared/"]
+
+    COMP --> INV["invoices/{year}/{month}/{invoice_id}.pdf"]
+    COMP --> VEND["vendors/"]
+    COMP --> CONT["contracts/{contract_id}.pdf"]
+    COMP --> PO["purchase_orders/{po_id}.pdf"]
+
+    VEND --> W9["w9/{vendor_id}_w9.pdf"]
+    VEND --> TAX["tax_exempt/{vendor_id}_exempt_cert.pdf"]
+
+    SHARED --> SVEND["vendors/"]
+    SVEND --> SW9["w9/{vendor_id}_w9.pdf"]
+    SVEND --> STAX["tax_exempt/{vendor_id}_exempt_cert.pdf"]
 ```
 
 - Files stored in S3 with pre-signed URLs for secure access
@@ -1458,26 +1207,15 @@ invoice-management-files/
 
 ## 22. Exchange Rate Management
 
-```
-Daily Auto-fetch (Open Exchange Rates API)
-      │
-      ▼
-exchange_rates table updated
-      │
-      ▼
-Invoice OCR → currency detected
-      │
-      ├── USD → no conversion needed
-      │
-      └── Other (KRW, EUR, etc.)
-            │
-            ▼
-          Lookup rate for invoice_date
-          (fallback: latest available rate)
-            │
-            ▼
-          amount_original × rate = USD amount
-          exchange_rate_id saved on invoice
+```mermaid
+flowchart TD
+    FETCH["Daily Auto-fetch<br/>(Open Exchange Rates API)"]
+    FETCH --> UPDATE["exchange_rates table updated"]
+    UPDATE --> DETECT["Invoice OCR → currency detected"]
+
+    DETECT -->|USD| NOUSD["No conversion needed"]
+    DETECT -->|Other (KRW, EUR, etc.)| LOOKUP["Lookup rate for invoice_date<br/>(fallback: latest available rate)"]
+    LOOKUP --> CONVERT["amount_original × rate = USD amount<br/>exchange_rate_id saved on invoice"]
 ```
 
 - Rates fetched daily at midnight UTC
