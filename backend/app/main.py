@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import engine, Base
+from app.middleware import CompanyContextMiddleware, RateLimiterMiddleware, AuditMiddleware
 
 
 # ── Sentry 초기화 ─────────────────────────────────────
@@ -48,6 +49,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── 미들웨어 등록 (실행 순서: 아래에서 위로) ──────────
+app.add_middleware(AuditMiddleware)
+app.add_middleware(RateLimiterMiddleware, redis_client=None)  # Phase 2에서 Redis 연결 후 활성화
+app.add_middleware(CompanyContextMiddleware)
 
 # ── 라우터 등록 (Phase별로 추가 예정) ─────────────────
 # from app.api.v1.endpoints import auth, companies, users
