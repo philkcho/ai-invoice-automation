@@ -139,15 +139,23 @@ async def upload_invoice_file(
     # invoice에 파일 경로 저장
     invoice.file_path = file_path
     if invoice.source_channel != "MANUAL":
-        invoice.status = "OCR_REVIEW"
+        invoice.status = "RECEIVED"
         invoice.ocr_status = "PENDING"
     await db.flush()
     await db.refresh(invoice, ["line_items"])
+
+    # OCR task 비동기 실행
+    ocr_task_id = None
+    if invoice.source_channel != "MANUAL":
+        from app.tasks.ocr_tasks import process_invoice_ocr
+        task = process_invoice_ocr.delay(str(invoice_id), file_path)
+        ocr_task_id = task.id
 
     return {
         "file_path": file_path,
         "file_url": get_file_url(file_path),
         "invoice_id": str(invoice_id),
+        "ocr_task_id": ocr_task_id,
     }
 
 

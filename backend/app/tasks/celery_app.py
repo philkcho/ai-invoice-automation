@@ -6,8 +6,10 @@ celery_app = Celery(
     "ai_invoice_automation",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    # 각 Phase에서 task 파일 구현 시 include에 추가
-    # "app.tasks.ocr_tasks",           # Phase 6
+    include=[
+        "app.tasks.ocr_tasks",           # Phase 6
+    ],
+    # 향후 추가:
     # "app.tasks.validation_tasks",    # Phase 5
     # "app.tasks.notification_tasks",  # Phase 7
     # "app.tasks.export_tasks",        # Phase 9
