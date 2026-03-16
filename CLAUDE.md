@@ -132,7 +132,7 @@ frontend/
 - **Phase 3**: 거래처(Vendor) 마스터 데이터 관리 ✅ 완료
 - **Phase 4**: 세금 & 구매주문서(PO) 관리 ✅ 완료
 - **Phase 5**: 인보이스 검증 엔진 (규칙 기반 유효성 검사) ✅ 완료
-- **Phase 6**: 인보이스 처리 + OCR (Claude API 연동)
+- **Phase 6**: 인보이스 처리 + OCR (Claude API 연동) ✅ 완료
 - **Phase 7**: 승인 워크플로우 & 결제 추적
 - **Phase 8**: 이메일 연동 (자동 인보이스 수집)
 - **Phase 9**: 대시보드 & 리포트 (차트, 통계, Excel/PDF 내보내기)

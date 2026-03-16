@@ -1549,14 +1549,14 @@ frontend/
 - [x] Vendor contract rules (CRUD API)
 - [x] 3-layer validation engine (Global → Type → Contract, Phase 6에서 Invoice 연동)
 
-### Phase 6 — Invoice Upload, OCR, Manual Entry
-- [ ] S3 file upload
-- [ ] Claude API OCR → Celery async task
-- [ ] OCR Review screen (field correction + ocr_corrections 저장)
-- [ ] Manual invoice entry screen (OCR 없이 직접 입력)
-- [ ] Exchange rate integration
-- [ ] Invoice + line item save
-- [ ] Auto-run validation
+### Phase 6 — Invoice Upload, OCR, Manual Entry ✅ 완료
+- [x] S3 file upload (로컬 개발용 + S3 프로덕션용)
+- [x] Claude API OCR → Celery async task (3회 재시도)
+- [x] OCR Review screen + Invoice 상세 페이지
+- [x] Manual invoice entry screen (수동 입력 폼)
+- [x] Exchange rate API (환율 등록/조회)
+- [x] Invoice + line item CRUD API
+- [x] Auto-run validation (제출 시 3-layer 검증 자동 실행)
 
 ### Phase 7 — Approval & Payment Workflow
 - [ ] Approval settings 관리 API + UI (금액 구간별 승인 단계 설정)
