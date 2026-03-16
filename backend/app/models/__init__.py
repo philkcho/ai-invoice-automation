@@ -9,3 +9,8 @@ from app.models.invoice_type import InvoiceType  # noqa: F401
 from app.models.global_validation_rule import GlobalValidationRule  # noqa: F401
 from app.models.type_rule_set import TypeRuleSet  # noqa: F401
 from app.models.type_rule_condition import TypeRuleCondition  # noqa: F401
+from app.models.invoice import Invoice  # noqa: F401
+from app.models.invoice_line_item import InvoiceLineItem  # noqa: F401
+from app.models.exchange_rate import ExchangeRate  # noqa: F401
+from app.models.ocr_correction import OcrCorrection  # noqa: F401
+from app.models.validation_result import ValidationResult  # noqa: F401

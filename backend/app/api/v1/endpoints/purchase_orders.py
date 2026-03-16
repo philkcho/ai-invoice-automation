@@ -101,8 +101,9 @@ async def add_po_line(
     return await po_service.add_po_line(db, po_id, data)
 
 
-@router.patch("/lines/{line_id}", response_model=POLineResponse)
+@router.patch("/{po_id}/lines/{line_id}", response_model=POLineResponse)
 async def update_po_line(
+    po_id: UUID,
     line_id: UUID,
     data: POLineUpdate,
     db: AsyncSession = Depends(get_db),
@@ -112,8 +113,9 @@ async def update_po_line(
     return await po_service.update_po_line(db, line_id, data)
 
 
-@router.delete("/lines/{line_id}", status_code=204)
+@router.delete("/{po_id}/lines/{line_id}", status_code=204)
 async def delete_po_line(
+    po_id: UUID,
     line_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_admin),

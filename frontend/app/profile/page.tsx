@@ -29,10 +29,11 @@ export default function ProfilePage() {
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setError('');
     setSaving(true);
     try {
-      await api.patch(`/api/v1/users/${user?.id}`, {
+      await api.patch(`/api/v1/users/${user.id}`, {
         full_name: form.full_name,
         notification_email: form.notification_email,
       });
@@ -55,9 +56,10 @@ export default function ProfilePage() {
       return;
     }
 
+    if (!user) return;
     setChangingPw(true);
     try {
-      await api.post(`/api/v1/users/${user?.id}/change-password`, {
+      await api.post(`/api/v1/users/${user.id}/change-password`, {
         current_password: pwForm.current_password,
         new_password: pwForm.new_password,
       });

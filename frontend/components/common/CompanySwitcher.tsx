@@ -21,6 +21,8 @@ export default function CompanySwitcher() {
       params: { limit: 100, status: 'ACTIVE' },
     }).then(({ data }) => {
       setCompanies(data.items);
+    }).catch(() => {
+      // 회사 목록 로드 실패 시 무시 (Super Admin 전용 기능)
     });
   }, [isSuperAdmin]);
 

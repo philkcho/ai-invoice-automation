@@ -40,7 +40,7 @@ export default function InvoiceTypesPage() {
       const { data } = await api.get('/api/v1/invoice-types', { params: { limit: 100 } });
       setTypes(data.items);
       setTotal(data.total);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to fetch invoice types', err);
     } finally {
       setLoading(false);

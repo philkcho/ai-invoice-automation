@@ -36,7 +36,8 @@ export default function NewPurchaseOrderPage() {
 
   useEffect(() => {
     api.get<VendorListResponse>('/api/v1/vendors', { params: { limit: 100, status: 'ACTIVE' } })
-      .then(({ data }) => setVendors(data.items));
+      .then(({ data }) => setVendors(data.items))
+      .catch(() => { /* vendor 로드 실패 시 빈 목록 유지 */ });
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {

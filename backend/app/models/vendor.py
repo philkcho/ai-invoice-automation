@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 
 from sqlalchemy import (
     String, Text, Boolean, Date, Enum as SAEnum,
@@ -42,7 +42,7 @@ class Vendor(Base):
         Boolean, nullable=False, server_default="false"
     )
     tax_exempt_cert_path: Mapped[str | None] = mapped_column(String(500))
-    tax_exempt_expiry_date: Mapped[datetime | None] = mapped_column(Date)
+    tax_exempt_expiry_date: Mapped[date | None] = mapped_column(Date)
     website: Mapped[str | None] = mapped_column(String(255))
     vendor_category: Mapped[str | None] = mapped_column(
         SAEnum("SERVICE", "PRODUCT", "BOTH", name="vendor_category")
