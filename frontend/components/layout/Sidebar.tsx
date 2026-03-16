@@ -15,6 +15,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/' },
   { label: 'Companies', href: '/companies', roles: ['SUPER_ADMIN'] },
   { label: 'Users', href: '/users', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+  { label: 'Vendors', href: '/vendors', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
 ];
 
 export default function Sidebar() {
@@ -34,7 +35,7 @@ export default function Sidebar() {
             href={item.href}
             className={cn(
               'block px-4 py-2.5 text-sm hover:bg-gray-800 hover:text-white transition-colors',
-              pathname === item.href && 'bg-gray-800 text-white border-l-2 border-blue-500'
+              (pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))) && 'bg-gray-800 text-white border-l-2 border-blue-500'
             )}
           >
             {item.label}
