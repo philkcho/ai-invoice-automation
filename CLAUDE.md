@@ -133,13 +133,13 @@ frontend/
 - **Phase 4**: 세금 & 구매주문서(PO) 관리 ✅ 완료
 - **Phase 5**: 인보이스 검증 엔진 (규칙 기반 유효성 검사) ✅ 완료
 - **Phase 6**: 인보이스 처리 + OCR (Claude API 연동) ✅ 완료
-- **Phase 7**: 승인 워크플로우 & 결제 추적
+- **Phase 7**: 승인 워크플로우 & 결제 추적 ✅ 완료
 - **Phase 8**: 이메일 연동 (자동 인보이스 수집)
 - **Phase 9**: 대시보드 & 리포트 (차트, 통계, Excel/PDF 내보내기)
 - **Phase 10**: 최종화 & 프로덕션 배포
 
 ## 참고 사항
 - 설계 문서는 `설계서/` 폴더에 위치 (v12가 최신)
-- 현재 구현된 엔드포인트: `/health`만 존재 (Phase 2부터 본격 개발)
+- 구현된 엔드포인트: auth, companies, users, vendors, tax-rates, purchase-orders, invoice-types, invoices, exchange-rates, global-rules, type-rules, vendor-contracts, notifications, approval-settings, approvals, payments
 - 테스트: 아직 미구현 (Phase 2부터 pytest + jest 추가 예정)
 - Docker 서비스 간 의존성과 헬스체크가 docker-compose.yml에 정의되어 있음

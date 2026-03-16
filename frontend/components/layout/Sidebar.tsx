@@ -18,8 +18,11 @@ const navItems: NavItem[] = [
   { label: 'Vendors', href: '/vendors', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
   { label: 'Invoices', href: '/invoices', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT'] },
   { label: 'Purchase Orders', href: '/purchase-orders', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT'] },
+  { label: 'Approvals', href: '/approvals', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'APPROVER'] },
+  { label: 'Payments', href: '/payments', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT'] },
   { label: 'Tax Rates', href: '/settings/tax-rates', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
   { label: 'Invoice Types', href: '/settings/invoice-types', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+  { label: 'Approval Settings', href: '/settings/approval-settings', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
 ];
 
 const bottomItems: NavItem[] = [

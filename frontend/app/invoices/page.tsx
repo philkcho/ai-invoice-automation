@@ -25,11 +25,13 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
   const fetchInvoices = async () => {
     setLoading(true);
+    setError('');
     try {
       const params: Record<string, string> = { limit: '50' };
       if (search) params.search = search;
@@ -39,6 +41,7 @@ export default function InvoicesPage() {
       setTotal(data.total);
     } catch (err) {
       console.error('Failed to fetch invoices', err);
+      setError('Failed to load invoices. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -86,6 +89,8 @@ export default function InvoicesPage() {
               <button type="submit" className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm">Search</button>
             </form>
           </div>
+
+          {error && <div className="bg-red-50 text-red-600 text-sm rounded-md p-3 mb-4">{error}</div>}
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {loading ? (

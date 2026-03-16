@@ -123,6 +123,10 @@ export interface InvoiceLineItem {
   unit_price: number;
   amount: number;
   category: string | null;
+  po_line_id: string | null;
+  matched_contract_price: number | null;
+  price_variance_pct: number | null;
+  tax_rate_id: string | null;
   tax_amount: number;
 }
 
@@ -138,14 +142,22 @@ export interface Invoice {
   amount_tax: number;
   amount_total: number;
   currency_original: string;
+  amount_original: number | null;
+  exchange_rate_id: string | null;
+  po_number: string | null;
+  po_id: string | null;
   source_channel: string;
+  source_email: string | null;
+  file_path: string | null;
   ocr_status: string | null;
   status: string;
   validation_status: string | null;
-  file_path: string | null;
-  po_number: string | null;
+  rejection_reason: string | null;
+  submission_round: number;
   notes: string | null;
+  created_by: string | null;
   created_at: string;
+  updated_at: string;
   line_items: InvoiceLineItem[];
 }
 

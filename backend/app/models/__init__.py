@@ -14,3 +14,7 @@ from app.models.invoice_line_item import InvoiceLineItem  # noqa: F401
 from app.models.exchange_rate import ExchangeRate  # noqa: F401
 from app.models.ocr_correction import OcrCorrection  # noqa: F401
 from app.models.validation_result import ValidationResult  # noqa: F401
+from app.models.approval_setting import ApprovalSetting  # noqa: F401
+from app.models.invoice_approval import InvoiceApproval  # noqa: F401
+from app.models.invoice_payment import InvoicePayment  # noqa: F401
+from app.models.notification import Notification  # noqa: F401

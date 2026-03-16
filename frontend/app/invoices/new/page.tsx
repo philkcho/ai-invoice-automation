@@ -215,8 +215,14 @@ export default function NewInvoicePage() {
                   <tfoot>
                     <tr className="border-t-2 border-gray-300">
                       <td colSpan={4} className="py-2 text-right text-gray-600">Subtotal:</td>
-                      <td className="py-2 text-right text-gray-600 font-mono">{fmt(taxTotal)}</td>
-                      <td className="py-2 text-right font-mono font-semibold">{fmt(subtotal)}</td>
+                      <td className="py-2 text-right text-gray-600 font-mono">{fmt(subtotal)}</td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td colSpan={4} className="py-1 text-right text-gray-600">Tax:</td>
+                      <td className="py-1 text-right text-gray-600 font-mono">{fmt(taxTotal)}</td>
+                      <td></td>
                       <td></td>
                     </tr>
                     <tr>

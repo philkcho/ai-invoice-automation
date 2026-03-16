@@ -11,6 +11,7 @@ from app.models.invoice_line_item import InvoiceLineItem
 from app.models.validation_result import ValidationResult as VResult
 from app.schemas.invoice import InvoiceCreate, InvoiceUpdate
 from app.services.validation_service import validate_invoice
+from app.services.approval_service import start_approval_workflow
 
 logger = logging.getLogger(__name__)
 
@@ -167,12 +168,11 @@ async def submit_invoice(db: AsyncSession, invoice_id: UUID) -> Invoice:
     if result["overall"] == "FAIL":
         invoice.status = "REVIEW_NEEDED"
         invoice.validation_status = "FAIL"
-    elif result["overall"] == "WARNING":
-        invoice.status = "SUBMITTED"
-        invoice.validation_status = "WARNING"
     else:
-        invoice.status = "SUBMITTED"
-        invoice.validation_status = "PASS"
+        # PASS 또는 WARNING → 승인 워크플로우 시작
+        invoice.validation_status = result["overall"]
+        await db.flush()
+        await start_approval_workflow(db, invoice)
 
     await db.flush()
     await db.refresh(invoice, ["line_items"])
@@ -187,7 +187,7 @@ async def _run_and_save_validation(db: AsyncSession, invoice: Invoice) -> dict:
         "due_date": str(invoice.due_date) if invoice.due_date else None,
         "invoice_number": invoice.invoice_number,
         "vendor_id": str(invoice.vendor_id),
-        "has_approver": False,  # TODO: Phase 7에서 승인 워크플로우 연결
+        "has_approver": True,  # Phase 7: 승인 워크플로우 연동 완료
     }
 
     result = await validate_invoice(
@@ -216,7 +216,3 @@ async def _run_and_save_validation(db: AsyncSession, invoice: Invoice) -> dict:
     await db.flush()
 
     return result
-
-
-# UUID import for _run_and_save_validation
-from uuid import UUID  # noqa: E402

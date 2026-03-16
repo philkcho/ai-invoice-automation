@@ -27,9 +27,9 @@ def process_invoice_ocr(self, invoice_id: str, file_path: str):
         return result
     except Exception as exc:
         logger.error("OCR failed for invoice %s: %s", invoice_id, exc)
-        try:
-            self.retry(exc=exc)
-        except self.MaxRetriesExceededError:
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=exc, countdown=60)
+        else:
             logger.critical("OCR max retries exceeded for invoice %s", invoice_id)
             asyncio.run(_mark_ocr_failed(invoice_id))
             return {"status": "FAILED", "invoice_id": invoice_id, "error": str(exc)}

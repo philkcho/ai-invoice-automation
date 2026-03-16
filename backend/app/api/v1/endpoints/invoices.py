@@ -1,7 +1,9 @@
+import os
 from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +20,21 @@ from app.services import invoice_service
 from app.utils.file_handler import save_file, get_file_url
 
 router = APIRouter()
+
+
+# ── 로컬 개발용 미디어 서빙 (/{invoice_id} 보다 앞에 위치해야 라우트 충돌 방지) ──
+@router.get("/media/{file_path:path}")
+async def serve_media(file_path: str):
+    """로컬 개발 환경 미디어 파일 서빙"""
+    from app.core.config import settings
+    if settings.ENVIRONMENT != "development":
+        raise HTTPException(status_code=404, detail="Not available in production")
+
+    full_path = os.path.join("/app/media", file_path)
+    if not os.path.exists(full_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(full_path)
 
 
 @router.post("", response_model=InvoiceResponse, status_code=201)
@@ -157,21 +174,3 @@ async def upload_invoice_file(
         "invoice_id": str(invoice_id),
         "ocr_task_id": ocr_task_id,
     }
-
-
-# ── 로컬 개발용 미디어 서빙 ─────────────────────────
-from fastapi.responses import FileResponse
-import os
-
-@router.get("/media/{file_path:path}")
-async def serve_media(file_path: str):
-    """로컬 개발 환경 미디어 파일 서빙"""
-    from app.core.config import settings
-    if settings.ENVIRONMENT != "development":
-        raise HTTPException(status_code=404, detail="Not available in production")
-
-    full_path = os.path.join("/app/media", file_path)
-    if not os.path.exists(full_path):
-        raise HTTPException(status_code=404, detail="File not found")
-
-    return FileResponse(full_path)
