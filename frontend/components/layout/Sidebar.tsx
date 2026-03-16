@@ -20,6 +20,10 @@ const navItems: NavItem[] = [
   { label: 'Tax Rates', href: '/settings/tax-rates', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
 ];
 
+const bottomItems: NavItem[] = [
+  { label: 'My Profile', href: '/profile' },
+];
+
 export default function Sidebar() {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
@@ -27,6 +31,9 @@ export default function Sidebar() {
   const visibleItems = navItems.filter(
     (item) => !item.roles || (user && item.roles.includes(user.role))
   );
+
+  const isActive = (href: string) =>
+    pathname === href || (href !== '/' && pathname.startsWith(href));
 
   return (
     <aside className="w-56 bg-gray-900 text-gray-300 flex flex-col">
@@ -37,13 +44,27 @@ export default function Sidebar() {
             href={item.href}
             className={cn(
               'block px-4 py-2.5 text-sm hover:bg-gray-800 hover:text-white transition-colors',
-              (pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))) && 'bg-gray-800 text-white border-l-2 border-blue-500'
+              isActive(item.href) && 'bg-gray-800 text-white border-l-2 border-blue-500'
             )}
           >
             {item.label}
           </Link>
         ))}
       </nav>
+      <div className="border-t border-gray-700 py-2">
+        {bottomItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              'block px-4 py-2.5 text-sm hover:bg-gray-800 hover:text-white transition-colors',
+              isActive(item.href) && 'bg-gray-800 text-white border-l-2 border-blue-500'
+            )}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>
     </aside>
   );
 }

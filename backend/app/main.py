@@ -1,11 +1,16 @@
+import logging
+
 import sentry_sdk
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.middleware import CompanyContextMiddleware, RateLimiterMiddleware, AuditMiddleware
+
+logger = logging.getLogger(__name__)
 
 
 # ── Sentry 초기화 ─────────────────────────────────────
@@ -17,17 +22,45 @@ if settings.SENTRY_DSN:
     )
 
 
+# ── Redis 클라이언트 ──────────────────────────────────
+redis_client = None
+
+
+async def _init_redis():
+    """Redis 비동기 클라이언트 초기화"""
+    global redis_client
+    try:
+        import redis.asyncio as aioredis
+        redis_client = aioredis.from_url(
+            settings.REDIS_URL,
+            encoding="utf-8",
+            decode_responses=True,
+        )
+        await redis_client.ping()
+        logger.info("Redis 연결 성공: %s", settings.REDIS_URL)
+    except Exception as e:
+        logger.warning("Redis 연결 실패 — Rate Limiting 비활성화: %s", e)
+        redis_client = None
+
+
+async def _close_redis():
+    global redis_client
+    if redis_client:
+        await redis_client.close()
+        redis_client = None
+
+
 # ── 앱 시작/종료 이벤트 ───────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await _init_redis()
     # startup: DB 테이블 확인 (개발 환경에서만 — 운영은 alembic 사용)
     if settings.DEBUG:
         async with engine.begin() as conn:
-            # 개발 중 자동 생성 (운영에서는 주석 처리)
-            # await conn.run_sync(Base.metadata.create_all)
             pass
     yield
     # shutdown
+    await _close_redis()
     await engine.dispose()
 
 
@@ -41,10 +74,59 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── CORS ──────────────────────────────────────────────
+
+# ── 글로벌 에러 핸들러 ────────────────────────────────
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """처리되지 않은 예외를 표준 JSON 응답으로 변환"""
+    logger.error("Unhandled exception: %s %s — %s", request.method, request.url.path, exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error",
+            "type": type(exc).__name__,
+        },
+    )
+
+
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Pydantic 유효성 검증 오류를 표준 포맷으로"""
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Validation error",
+            "errors": [
+                {
+                    "field": ".".join(str(loc) for loc in err["loc"]),
+                    "message": err["msg"],
+                    "type": err["type"],
+                }
+                for err in exc.errors()
+            ],
+        },
+    )
+
+
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """HTTPException을 표준 포맷으로"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
+
+# ── CORS (환경변수에서 origins 로드) ─────────────────
+cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,10 +134,13 @@ app.add_middleware(
 
 # ── 미들웨어 등록 (실행 순서: 아래에서 위로) ──────────
 app.add_middleware(AuditMiddleware)
-app.add_middleware(RateLimiterMiddleware, redis_client=None)  # Phase 2에서 Redis 연결 후 활성화
+# Redis 클라이언트는 lifespan에서 초기화 후 주입
+# RateLimiterMiddleware는 __init__ 시점에 redis=None으로 등록되지만,
+# dispatch에서 app.state.redis를 참조하도록 개선
+app.add_middleware(RateLimiterMiddleware)
 app.add_middleware(CompanyContextMiddleware)
 
-# ── 라우터 등록 (Phase별로 추가 예정) ─────────────────
+# ── 라우터 등록 ───────────────────────────────────────
 from app.api.v1.endpoints import auth, companies, users, vendors, tax_rates, purchase_orders
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(companies.router, prefix="/api/v1/companies", tags=["Companies"])
@@ -68,4 +153,15 @@ app.include_router(purchase_orders.router, prefix="/api/v1/purchase-orders", tag
 # ── 헬스 체크 ─────────────────────────────────────────
 @app.get("/health", tags=["System"])
 async def health_check():
-    return {"status": "ok", "environment": settings.ENVIRONMENT}
+    redis_ok = False
+    if redis_client:
+        try:
+            await redis_client.ping()
+            redis_ok = True
+        except Exception:
+            pass
+    return {
+        "status": "ok",
+        "environment": settings.ENVIRONMENT,
+        "redis": "connected" if redis_ok else "disconnected",
+    }

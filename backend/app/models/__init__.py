@@ -5,3 +5,7 @@ from app.models.vendor_contract import VendorContract  # noqa: F401
 from app.models.tax_rate import TaxRate  # noqa: F401
 from app.models.purchase_order import PurchaseOrder  # noqa: F401
 from app.models.purchase_order_line import PurchaseOrderLine  # noqa: F401
+from app.models.invoice_type import InvoiceType  # noqa: F401
+from app.models.global_validation_rule import GlobalValidationRule  # noqa: F401
+from app.models.type_rule_set import TypeRuleSet  # noqa: F401
+from app.models.type_rule_condition import TypeRuleCondition  # noqa: F401

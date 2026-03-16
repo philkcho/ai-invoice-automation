@@ -47,11 +47,20 @@ class Settings(BaseSettings):
     # Open Exchange Rates
     OPEN_EXCHANGE_RATES_APP_ID: Optional[str] = None
 
+    # CORS
+    CORS_ORIGINS: str = "http://localhost:3000"  # 콤마 구분 다중 도메인
+
     # Sentry
     SENTRY_DSN: Optional[str] = None
 
     # 암호화 (ACH)
     ENCRYPTION_KEY: str
+
+    # Rate Limiting
+    RATE_LIMIT_IP_PER_MIN: int = 100
+    RATE_LIMIT_COMPANY_PER_MIN: int = 1000
+    LOGIN_MAX_ATTEMPTS: int = 5
+    LOGIN_LOCKOUT_MINUTES: int = 15
 
     # SMTP
     SMTP_HOST: str = "smtp.gmail.com"

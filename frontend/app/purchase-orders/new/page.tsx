@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/error';
 import type { Vendor, VendorListResponse } from '@/types';
 
 interface LineItem {
@@ -42,9 +43,9 @@ export default function NewPurchaseOrderPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleLineChange = (index: number, field: string, value: string) => {
+  const handleLineChange = (index: number, field: keyof LineItem, value: string | number) => {
     const updated = [...lines];
-    (updated[index] as any)[field] = value;
+    updated[index] = { ...updated[index], [field]: value };
     setLines(updated);
   };
 
@@ -72,20 +73,18 @@ export default function NewPurchaseOrderPage() {
     try {
       // company_id는 백엔드에서 현재 사용자의 company_id를 사용
       // Super Admin의 경우 첫 번째 회사 사용 (임시)
-      const meRes = await api.get('/api/v1/users/me');
-      const companyId = meRes.data.company_id;
+      const meRes = await api.get<{ company_id: string | null }>('/api/v1/users/me');
+      let selectedCompanyId = meRes.data.company_id;
 
-      if (!companyId) {
+      if (!selectedCompanyId) {
         // Super Admin: 회사 목록에서 첫 번째 사용
-        const compRes = await api.get('/api/v1/companies', { params: { limit: 1 } });
+        const compRes = await api.get<{ items: { id: string }[] }>('/api/v1/companies', { params: { limit: 1 } });
         if (compRes.data.items.length === 0) {
           setError('No company found. Please create a company first.');
           setLoading(false);
           return;
         }
-        var selectedCompanyId = compRes.data.items[0].id;
-      } else {
-        var selectedCompanyId = companyId;
+        selectedCompanyId = compRes.data.items[0].id;
       }
 
       const payload = {
@@ -106,8 +105,8 @@ export default function NewPurchaseOrderPage() {
 
       await api.post('/api/v1/purchase-orders', payload);
       router.push('/purchase-orders');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to create PO');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -10,7 +10,11 @@ from app.core.database import Base
 from app.core.config import settings
 
 # 모델 임포트 (Phase별로 추가)
-from app.models import Company, User, Vendor, VendorContract, TaxRate, PurchaseOrder, PurchaseOrderLine  # noqa: F401
+from app.models import (  # noqa: F401
+    Company, User, Vendor, VendorContract, TaxRate,
+    PurchaseOrder, PurchaseOrderLine,
+    InvoiceType, GlobalValidationRule, TypeRuleSet, TypeRuleCondition,
+)
 
 config = context.config
 

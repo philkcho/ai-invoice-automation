@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/error';
 import type { DuplicateWarning, VendorCreateResponse } from '@/types';
 
 export default function NewVendorPage() {
@@ -44,11 +45,11 @@ export default function NewVendorPage() {
     setLoading(true);
 
     try {
-      const payload: Record<string, any> = { ...form };
+      const payload: Record<string, string | null> = {};
       // 빈 문자열을 null로 변환
-      Object.keys(payload).forEach((key) => {
-        if (payload[key] === '') payload[key] = null;
-      });
+      for (const [key, value] of Object.entries(form)) {
+        payload[key] = value === '' ? null : value;
+      }
 
       const { data } = await api.post<VendorCreateResponse>('/api/v1/vendors', payload);
 
@@ -57,8 +58,8 @@ export default function NewVendorPage() {
       }
 
       router.push('/vendors');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to create vendor');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

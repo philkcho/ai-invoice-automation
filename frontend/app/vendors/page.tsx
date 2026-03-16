@@ -1,43 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
-import api from '@/lib/api';
-import type { Vendor, VendorListResponse } from '@/types';
+import { useVendors } from '@/hooks/useApi';
 
 export default function VendorsPage() {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [loading, setLoading] = useState(true);
 
-  const fetchVendors = async () => {
-    setLoading(true);
-    try {
-      const params: Record<string, string> = { limit: '50' };
-      if (search) params.search = search;
-      if (statusFilter) params.status = statusFilter;
+  const { data, isLoading } = useVendors({
+    limit: 50,
+    search: search || undefined,
+    status: statusFilter || undefined,
+  });
 
-      const { data } = await api.get<VendorListResponse>('/api/v1/vendors', { params });
-      setVendors(data.items);
-      setTotal(data.total);
-    } catch (err) {
-      console.error('Failed to fetch vendors', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchVendors();
-  }, [statusFilter]);
+  const vendors = data?.items ?? [];
+  const total = data?.total ?? 0;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchVendors();
+    setSearch(searchInput);
   };
 
   return (
@@ -59,14 +44,13 @@ export default function VendorsPage() {
             </Link>
           </div>
 
-          {/* 검색 + 필터 */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
             <form onSubmit={handleSearch} className="flex gap-3">
               <input
                 type="text"
                 placeholder="Search by name, code, or EIN..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <select
@@ -87,9 +71,8 @@ export default function VendorsPage() {
             </form>
           </div>
 
-          {/* 테이블 */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            {loading ? (
+            {isLoading ? (
               <div className="p-8 text-center text-gray-500">Loading...</div>
             ) : vendors.length === 0 ? (
               <div className="p-8 text-center text-gray-500">No vendors found</div>
@@ -104,6 +87,7 @@ export default function VendorsPage() {
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Contact</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Scope</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -114,10 +98,10 @@ export default function VendorsPage() {
                         <div className="font-medium text-gray-800">{v.company_name}</div>
                         {v.dba && <div className="text-xs text-gray-400">DBA: {v.dba}</div>}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{v.ein || '—'}</td>
-                      <td className="px-4 py-3 text-gray-600">{v.vendor_category || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{v.ein || '\u2014'}</td>
+                      <td className="px-4 py-3 text-gray-600">{v.vendor_category || '\u2014'}</td>
                       <td className="px-4 py-3">
-                        <div className="text-gray-700">{v.contact_name || '—'}</div>
+                        <div className="text-gray-700">{v.contact_name || '\u2014'}</div>
                         <div className="text-xs text-gray-400">{v.contact_email || ''}</div>
                       </td>
                       <td className="px-4 py-3">
@@ -133,6 +117,11 @@ export default function VendorsPage() {
                         }`}>
                           {v.status}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/vendors/${v.id}`} className="text-blue-600 hover:text-blue-800 text-xs">
+                          View
+                        </Link>
                       </td>
                     </tr>
                   ))}

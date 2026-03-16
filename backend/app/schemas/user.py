@@ -2,7 +2,24 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, EmailStr, ConfigDict
+import re
+
+from pydantic import BaseModel, Field, EmailStr, ConfigDict, field_validator
+
+
+def validate_password_strength(password: str) -> str:
+    """비밀번호 복잡도 검증: 8자 이상, 대문자, 소문자, 숫자, 특수문자 각 1개 이상"""
+    if len(password) < 8:
+        raise ValueError("Password must be at least 8 characters long")
+    if not re.search(r"[A-Z]", password):
+        raise ValueError("Password must contain at least one uppercase letter")
+    if not re.search(r"[a-z]", password):
+        raise ValueError("Password must contain at least one lowercase letter")
+    if not re.search(r"\d", password):
+        raise ValueError("Password must contain at least one digit")
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]", password):
+        raise ValueError("Password must contain at least one special character")
+    return password
 
 
 # ── 요청 스키마 ──────────────────────────────────────
@@ -13,6 +30,11 @@ class UserCreate(BaseModel):
     role: str = Field(..., pattern=r"^(SUPER_ADMIN|COMPANY_ADMIN|ACCOUNTANT|APPROVER|VIEWER)$")
     password: str = Field(..., min_length=8, max_length=128)
     notification_email: bool = True
+
+    @field_validator("password")
+    @classmethod
+    def check_password_strength(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 
 class UserUpdate(BaseModel):
@@ -26,6 +48,11 @@ class UserUpdate(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def check_password_strength(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 
 # ── 응답 스키마 ──────────────────────────────────────

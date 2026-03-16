@@ -1,22 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
-import api from '@/lib/api';
-
-interface PO {
-  id: string;
-  po_number: string;
-  po_date: string;
-  description: string | null;
-  amount_total: number;
-  amount_invoiced: number;
-  amount_remaining: number;
-  status: string;
-  vendor_id: string;
-}
+import { usePurchaseOrders } from '@/hooks/useApi';
 
 const STATUS_COLORS: Record<string, string> = {
   OPEN: 'bg-blue-50 text-blue-700',
@@ -27,34 +15,22 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function PurchaseOrdersPage() {
-  const [pos, setPOs] = useState<PO[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const fetchPOs = async () => {
-    setLoading(true);
-    try {
-      const params: Record<string, string> = { limit: '50' };
-      if (search) params.search = search;
-      if (statusFilter) params.status = statusFilter;
+  const { data, isLoading } = usePurchaseOrders({
+    limit: 50,
+    search: search || undefined,
+    status: statusFilter || undefined,
+  });
 
-      const { data } = await api.get('/api/v1/purchase-orders', { params });
-      setPOs(data.items);
-      setTotal(data.total);
-    } catch (err) {
-      console.error('Failed to fetch POs', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchPOs(); }, [statusFilter]);
+  const pos = data?.items ?? [];
+  const total = data?.total ?? 0;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchPOs();
+    setSearch(searchInput);
   };
 
   const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
@@ -79,7 +55,7 @@ export default function PurchaseOrdersPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
             <form onSubmit={handleSearch} className="flex gap-3">
               <input type="text" placeholder="Search by PO number..."
-                value={search} onChange={(e) => setSearch(e.target.value)}
+                value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm">
@@ -97,7 +73,7 @@ export default function PurchaseOrdersPage() {
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            {loading ? (
+            {isLoading ? (
               <div className="p-8 text-center text-gray-500">Loading...</div>
             ) : pos.length === 0 ? (
               <div className="p-8 text-center text-gray-500">No purchase orders found</div>
@@ -119,7 +95,7 @@ export default function PurchaseOrdersPage() {
                     <tr key={po.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-3 font-mono text-xs font-medium">{po.po_number}</td>
                       <td className="px-4 py-3 text-gray-600">{po.po_date}</td>
-                      <td className="px-4 py-3 text-gray-700">{po.description || '—'}</td>
+                      <td className="px-4 py-3 text-gray-700">{po.description || '\u2014'}</td>
                       <td className="px-4 py-3 text-right font-mono">{fmt(po.amount_total)}</td>
                       <td className="px-4 py-3 text-right font-mono">{fmt(po.amount_invoiced)}</td>
                       <td className="px-4 py-3 text-right font-mono">{fmt(po.amount_remaining)}</td>

@@ -20,6 +20,17 @@ async def create_company(db: AsyncSession, data: CompanyCreate) -> Company:
             detail=f"Company code '{data.company_code}' already exists",
         )
 
+    # EIN 중복 체크 (값이 있는 경우만)
+    if data.ein:
+        ein_exists = await db.execute(
+            select(Company).where(Company.ein == data.ein)
+        )
+        if ein_exists.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"EIN '{data.ein}' already exists",
+            )
+
     company = Company(**data.model_dump())
     db.add(company)
     await db.flush()
@@ -69,6 +80,20 @@ async def update_company(
 ) -> Company:
     company = await get_company(db, company_id)
     update_data = data.model_dump(exclude_unset=True)
+
+    # EIN 변경 시 중복 체크
+    if "ein" in update_data and update_data["ein"]:
+        ein_exists = await db.execute(
+            select(Company).where(
+                Company.ein == update_data["ein"],
+                Company.id != company_id,
+            )
+        )
+        if ein_exists.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"EIN '{update_data['ein']}' already exists",
+            )
 
     for field, value in update_data.items():
         setattr(company, field, value)
