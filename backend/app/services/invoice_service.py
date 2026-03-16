@@ -1,0 +1,222 @@
+import logging
+from typing import Optional
+from uuid import UUID
+
+from sqlalchemy import select, func, or_
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException, status
+
+from app.models.invoice import Invoice
+from app.models.invoice_line_item import InvoiceLineItem
+from app.models.validation_result import ValidationResult as VResult
+from app.schemas.invoice import InvoiceCreate, InvoiceUpdate
+from app.services.validation_service import validate_invoice
+
+logger = logging.getLogger(__name__)
+
+
+async def create_invoice(
+    db: AsyncSession, data: InvoiceCreate, created_by: UUID | None
+) -> Invoice:
+    """인보이스 생성 (수동 입력 또는 OCR 후 생성)"""
+    # 라인 금액 계산
+    lines_data = data.lines
+    amount_subtotal = sum(round(l.quantity * l.unit_price, 2) for l in lines_data)
+    amount_tax = sum(l.tax_amount for l in lines_data)
+    amount_total = amount_subtotal + amount_tax
+
+    # 수동 입력이면 바로 PENDING, OCR이면 OCR_REVIEW
+    if data.source_channel == "MANUAL":
+        initial_status = "PENDING"
+        ocr_status = None
+    else:
+        initial_status = "RECEIVED"
+        ocr_status = "PENDING"
+
+    invoice = Invoice(
+        company_id=data.company_id,
+        vendor_id=data.vendor_id,
+        invoice_type_id=data.invoice_type_id,
+        invoice_number=data.invoice_number,
+        invoice_date=data.invoice_date,
+        due_date=data.due_date,
+        amount_subtotal=amount_subtotal,
+        amount_tax=amount_tax,
+        amount_total=amount_total,
+        currency_original=data.currency_original,
+        amount_original=data.amount_original,
+        po_number=data.po_number,
+        po_id=data.po_id,
+        source_channel=data.source_channel,
+        ocr_status=ocr_status,
+        status=initial_status,
+        notes=data.notes,
+        created_by=created_by,
+    )
+    db.add(invoice)
+    await db.flush()
+
+    # 라인 아이템 생성
+    for line_data in lines_data:
+        line = InvoiceLineItem(
+            invoice_id=invoice.id,
+            line_number=line_data.line_number,
+            description=line_data.description,
+            quantity=line_data.quantity,
+            unit_price=line_data.unit_price,
+            amount=round(line_data.quantity * line_data.unit_price, 2),
+            category=line_data.category,
+            po_line_id=line_data.po_line_id,
+            tax_rate_id=line_data.tax_rate_id,
+            tax_amount=line_data.tax_amount,
+        )
+        db.add(line)
+
+    await db.flush()
+    await db.refresh(invoice, ["line_items"])
+
+    # 수동 입력이면 자동 validation 실행
+    if data.source_channel == "MANUAL" and lines_data:
+        await _run_and_save_validation(db, invoice)
+
+    return invoice
+
+
+async def get_invoice(db: AsyncSession, invoice_id: UUID) -> Invoice:
+    result = await db.execute(select(Invoice).where(Invoice.id == invoice_id))
+    invoice = result.scalar_one_or_none()
+    if not invoice:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
+    return invoice
+
+
+async def list_invoices(
+    db: AsyncSession, skip: int = 0, limit: int = 20,
+    company_id: Optional[UUID] = None, vendor_id: Optional[UUID] = None,
+    status_filter: Optional[str] = None, search: Optional[str] = None,
+) -> tuple[list[Invoice], int]:
+    query = select(Invoice)
+    count_query = select(func.count()).select_from(Invoice)
+
+    if company_id:
+        query = query.where(Invoice.company_id == company_id)
+        count_query = count_query.where(Invoice.company_id == company_id)
+
+    if vendor_id:
+        query = query.where(Invoice.vendor_id == vendor_id)
+        count_query = count_query.where(Invoice.vendor_id == vendor_id)
+
+    if status_filter:
+        query = query.where(Invoice.status == status_filter)
+        count_query = count_query.where(Invoice.status == status_filter)
+
+    if search:
+        search_filter = or_(
+            Invoice.invoice_number.ilike(f"%{search}%"),
+            Invoice.po_number.ilike(f"%{search}%"),
+        )
+        query = query.where(search_filter)
+        count_query = count_query.where(search_filter)
+
+    total = (await db.execute(count_query)).scalar()
+    result = await db.execute(
+        query.order_by(Invoice.created_at.desc()).offset(skip).limit(limit)
+    )
+    return list(result.scalars().all()), total
+
+
+async def update_invoice(db: AsyncSession, invoice_id: UUID, data: InvoiceUpdate) -> Invoice:
+    invoice = await get_invoice(db, invoice_id)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(invoice, field, value)
+    await db.flush()
+    await db.refresh(invoice, ["line_items"])
+    return invoice
+
+
+async def delete_invoice(db: AsyncSession, invoice_id: UUID) -> None:
+    invoice = await get_invoice(db, invoice_id)
+    if invoice.status not in ("RECEIVED", "OCR_REVIEW", "PENDING", "REVIEW_NEEDED"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete invoice with status '{invoice.status}'",
+        )
+    await db.delete(invoice)
+    await db.flush()
+
+
+async def run_validation(db: AsyncSession, invoice_id: UUID) -> dict:
+    """인보이스에 대해 3-layer validation 실행 및 결과 저장"""
+    invoice = await get_invoice(db, invoice_id)
+    return await _run_and_save_validation(db, invoice)
+
+
+async def submit_invoice(db: AsyncSession, invoice_id: UUID) -> Invoice:
+    """인보이스 제출 (PENDING → SUBMITTED 또는 REVIEW_NEEDED)"""
+    invoice = await get_invoice(db, invoice_id)
+
+    if invoice.status not in ("PENDING", "REVIEW_NEEDED"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot submit invoice with status '{invoice.status}'",
+        )
+
+    # validation 실행
+    result = await _run_and_save_validation(db, invoice)
+
+    if result["overall"] == "FAIL":
+        invoice.status = "REVIEW_NEEDED"
+        invoice.validation_status = "FAIL"
+    elif result["overall"] == "WARNING":
+        invoice.status = "SUBMITTED"
+        invoice.validation_status = "WARNING"
+    else:
+        invoice.status = "SUBMITTED"
+        invoice.validation_status = "PASS"
+
+    await db.flush()
+    await db.refresh(invoice, ["line_items"])
+    return invoice
+
+
+async def _run_and_save_validation(db: AsyncSession, invoice: Invoice) -> dict:
+    """validation 실행 + validation_results 테이블 저장"""
+    invoice_data = {
+        "amount_total": float(invoice.amount_total),
+        "payment_terms": None,  # TODO: vendor의 payment_terms 연결
+        "due_date": str(invoice.due_date) if invoice.due_date else None,
+        "invoice_number": invoice.invoice_number,
+        "vendor_id": str(invoice.vendor_id),
+        "has_approver": False,  # TODO: Phase 7에서 승인 워크플로우 연결
+    }
+
+    result = await validate_invoice(
+        db, invoice.company_id, invoice.invoice_type_id,
+        invoice.vendor_id, invoice_data,
+    )
+
+    # validation_results 저장
+    for r in result["results"]:
+        vr = VResult(
+            company_id=invoice.company_id,
+            invoice_id=invoice.id,
+            submission_round=invoice.submission_round,
+            layer=r["layer"],
+            rule_id=UUID(r["rule_id"]) if r.get("rule_id") else None,
+            rule_table=r.get("rule_table"),
+            rule_name=r.get("rule_name"),
+            condition_name=r.get("condition_name"),
+            result=r["result"],
+            reason=r.get("reason"),
+        )
+        db.add(vr)
+
+    # invoice validation_status 업데이트
+    invoice.validation_status = result["overall"]
+    await db.flush()
+
+    return result
+
+
+# UUID import for _run_and_save_validation
+from uuid import UUID  # noqa: E402

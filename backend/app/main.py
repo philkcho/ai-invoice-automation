@@ -144,6 +144,7 @@ app.add_middleware(CompanyContextMiddleware)
 from app.api.v1.endpoints import (
     auth, companies, users, vendors, tax_rates,
     purchase_orders, invoice_types, global_rules, type_rules, vendor_contracts,
+    invoices, exchange_rates,
 )
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(companies.router, prefix="/api/v1/companies", tags=["Companies"])
@@ -152,6 +153,8 @@ app.include_router(vendors.router, prefix="/api/v1/vendors", tags=["Vendors"])
 app.include_router(tax_rates.router, prefix="/api/v1/tax-rates", tags=["Tax Rates"])
 app.include_router(purchase_orders.router, prefix="/api/v1/purchase-orders", tags=["Purchase Orders"])
 app.include_router(invoice_types.router, prefix="/api/v1/invoice-types", tags=["Invoice Types"])
+app.include_router(invoices.router, prefix="/api/v1/invoices", tags=["Invoices"])
+app.include_router(exchange_rates.router, prefix="/api/v1/exchange-rates", tags=["Exchange Rates"])
 app.include_router(global_rules.router, prefix="/api/v1/global-rules", tags=["Global Rules"])
 app.include_router(type_rules.router, prefix="/api/v1/type-rules", tags=["Type Rules"])
 app.include_router(vendor_contracts.router, prefix="/api/v1/vendor-contracts", tags=["Vendor Contracts"])
