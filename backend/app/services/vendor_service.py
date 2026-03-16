@@ -128,13 +128,18 @@ async def create_vendor(
 ) -> tuple[Vendor, list[DuplicateWarning]]:
     ein_norm = normalize_ein(data.ein)
 
-    # EIN 완전 일치 시 같은 company 내에서는 등록 차단
-    if ein_norm and data.company_id:
+    # EIN 완전 일치 시 같은 스코프 내에서는 등록 차단
+    if ein_norm:
+        if data.company_id:
+            ein_filter = Vendor.ein_normalized == ein_norm
+            scope_filter = Vendor.company_id == data.company_id
+        else:
+            # shared pool: company_id가 NULL인 벤더 중 EIN 중복 체크
+            ein_filter = Vendor.ein_normalized == ein_norm
+            scope_filter = Vendor.company_id.is_(None)
+
         existing = await db.execute(
-            select(Vendor).where(
-                Vendor.ein_normalized == ein_norm,
-                Vendor.company_id == data.company_id,
-            )
+            select(Vendor).where(ein_filter, scope_filter)
         )
         if existing.scalar_one_or_none():
             raise HTTPException(
