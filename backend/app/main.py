@@ -141,13 +141,14 @@ app.add_middleware(RateLimiterMiddleware)
 app.add_middleware(CompanyContextMiddleware)
 
 # ── 라우터 등록 ───────────────────────────────────────
-from app.api.v1.endpoints import auth, companies, users, vendors, tax_rates, purchase_orders
+from app.api.v1.endpoints import auth, companies, users, vendors, tax_rates, purchase_orders, invoice_types
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(companies.router, prefix="/api/v1/companies", tags=["Companies"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(vendors.router, prefix="/api/v1/vendors", tags=["Vendors"])
 app.include_router(tax_rates.router, prefix="/api/v1/tax-rates", tags=["Tax Rates"])
 app.include_router(purchase_orders.router, prefix="/api/v1/purchase-orders", tags=["Purchase Orders"])
+app.include_router(invoice_types.router, prefix="/api/v1/invoice-types", tags=["Invoice Types"])
 
 
 # ── 헬스 체크 ─────────────────────────────────────────
