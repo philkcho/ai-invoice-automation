@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
   { label: 'Companies', href: '/companies', roles: ['SUPER_ADMIN'] },
   { label: 'Users', href: '/users', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
   { label: 'Vendors', href: '/vendors', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+  { label: 'Tax Rates', href: '/settings/tax-rates', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
 ];
 
 export default function Sidebar() {
