@@ -56,12 +56,13 @@ app.add_middleware(RateLimiterMiddleware, redis_client=None)  # Phase 2에서 Re
 app.add_middleware(CompanyContextMiddleware)
 
 # ── 라우터 등록 (Phase별로 추가 예정) ─────────────────
-from app.api.v1.endpoints import auth, companies, users, vendors, tax_rates
+from app.api.v1.endpoints import auth, companies, users, vendors, tax_rates, purchase_orders
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(companies.router, prefix="/api/v1/companies", tags=["Companies"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(vendors.router, prefix="/api/v1/vendors", tags=["Vendors"])
 app.include_router(tax_rates.router, prefix="/api/v1/tax-rates", tags=["Tax Rates"])
+app.include_router(purchase_orders.router, prefix="/api/v1/purchase-orders", tags=["Purchase Orders"])
 
 
 # ── 헬스 체크 ─────────────────────────────────────────

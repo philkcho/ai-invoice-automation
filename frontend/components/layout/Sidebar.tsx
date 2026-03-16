@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
   { label: 'Companies', href: '/companies', roles: ['SUPER_ADMIN'] },
   { label: 'Users', href: '/users', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
   { label: 'Vendors', href: '/vendors', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+  { label: 'Purchase Orders', href: '/purchase-orders', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT'] },
   { label: 'Tax Rates', href: '/settings/tax-rates', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
 ];
 
