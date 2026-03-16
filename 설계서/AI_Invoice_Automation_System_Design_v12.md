@@ -1510,27 +1510,27 @@ frontend/
 - [x] 전체 Python 패키지 의존성 정의 (requirements.txt — 48개)
 - [x] .env.dev 개발 환경 설정
 
-### Phase 2 — Company & User Management
-- [ ] DB 모델 정의: companies, users 테이블 (SQLAlchemy ORM)
-- [ ] Alembic 초기 마이그레이션 생성 및 적용
-- [ ] company_context 미들웨어 구현 (middleware/company_context.py)
-- [ ] rate_limiter 미들웨어 구현 (middleware/rate_limiter.py)
-- [ ] audit 미들웨어 구현 (middleware/audit_middleware.py)
-- [ ] Company CRUD API + Pydantic 스키마 (Super Admin)
-- [ ] User management API + role-based access
-- [ ] 인증 API (로그인/로그아웃/토큰 갱신)
-- [ ] Company switcher UI
-- [ ] pytest 테스트 환경 구성 (conftest.py)
+### Phase 2 — Company & User Management ✅ 완료
+- [x] DB 모델 정의: companies, users 테이블 (SQLAlchemy ORM)
+- [x] Alembic 초기 마이그레이션 생성 및 적용
+- [x] company_context 미들웨어 구현 (middleware/company_context.py)
+- [x] rate_limiter 미들웨어 구현 (middleware/rate_limiter.py)
+- [x] audit 미들웨어 구현 (middleware/audit_middleware.py)
+- [x] Company CRUD API + Pydantic 스키마 (Super Admin)
+- [x] User management API + role-based access
+- [x] 인증 API (로그인/로그아웃/토큰 갱신)
+- [x] Company switcher UI
+- [x] pytest 테스트 환경 구성 (conftest.py)
 
 ### Phase 3 — Vendor Master + Duplicate Detection
-- [ ] DB 모델 정의: vendors, vendor_contracts 테이블
-- [ ] Alembic 마이그레이션
-- [ ] Vendor API (shared pool + company-specific)
-- [ ] EIN 정규화 + 중복 감지 로직
-- [ ] Company name fuzzy match 경고
-- [ ] ACH 계좌 중복 체크
+- [x] DB 모델 정의: vendors, vendor_contracts 테이블
+- [x] Alembic 마이그레이션
+- [x] Vendor API (shared pool + company-specific)
+- [x] EIN 정규화 + 중복 감지 로직
+- [x] Company name fuzzy match 경고
+- [x] ACH 계좌 중복 체크
 - [ ] Vendor registration & list UI
-- [ ] ACH encryption
+- [x] ACH encryption
 
 ### Phase 4 — Tax Rates & PO Master
 - [ ] DB 모델 정의: tax_rates, purchase_orders, purchase_order_lines 테이블
