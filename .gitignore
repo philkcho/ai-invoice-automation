@@ -56,5 +56,9 @@ htmlcov/
 # Claude Code
 .claude/
 
+# Celery
+celerybeat-schedule
+celerybeat-schedule.db
+
 # Archives (바이너리 파일은 git으로 관리하지 않음)
 *.zip
