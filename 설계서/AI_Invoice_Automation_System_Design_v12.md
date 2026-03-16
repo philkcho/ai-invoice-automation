@@ -1522,14 +1522,14 @@ frontend/
 - [x] Company switcher UI
 - [x] pytest 테스트 환경 구성 (conftest.py)
 
-### Phase 3 — Vendor Master + Duplicate Detection
+### Phase 3 — Vendor Master + Duplicate Detection ✅ 완료
 - [x] DB 모델 정의: vendors, vendor_contracts 테이블
 - [x] Alembic 마이그레이션
 - [x] Vendor API (shared pool + company-specific)
 - [x] EIN 정규화 + 중복 감지 로직
 - [x] Company name fuzzy match 경고
 - [x] ACH 계좌 중복 체크
-- [ ] Vendor registration & list UI
+- [x] Vendor registration & list UI
 - [x] ACH encryption
 
 ### Phase 4 — Tax Rates & PO Master
