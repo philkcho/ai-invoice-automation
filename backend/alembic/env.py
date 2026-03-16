@@ -10,7 +10,7 @@ from app.core.database import Base
 from app.core.config import settings
 
 # 모델 임포트 (Phase별로 추가)
-from app.models import Company, User  # noqa: F401
+from app.models import Company, User, Vendor, VendorContract  # noqa: F401
 
 config = context.config
 
