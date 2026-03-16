@@ -231,7 +231,7 @@ async def list_payments(
 
     items = []
     for payment, invoice in result.all():
-        vendor_name = invoice.vendor.name if invoice.vendor else None
+        vendor_name = invoice.vendor.company_name if invoice.vendor else None
         items.append({
             "id": payment.id,
             "company_id": payment.company_id,

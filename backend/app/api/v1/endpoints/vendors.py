@@ -9,6 +9,7 @@ from app.core.security import (
     require_super_admin, require_admin, get_current_user,
     ROLE_SUPER_ADMIN, ROLE_COMPANY_ADMIN,
 )
+from app.utils.company_access import verify_company_access, verify_company_modify
 from app.schemas.vendor import (
     VendorCreate, VendorUpdate, VendorResponse,
     VendorListResponse, VendorCreateResponse,
@@ -81,12 +82,7 @@ async def get_vendor(
 ):
     """벤더 상세 조회"""
     vendor = await vendor_service.get_vendor(db, vendor_id)
-
-    # 접근 권한 체크: shared pool 또는 자기 회사
-    if current_user["role"] != ROLE_SUPER_ADMIN:
-        if vendor.company_id is not None and vendor.company_id != current_user["company_id"]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
+    verify_company_access(current_user, vendor.company_id, allow_shared=True)
     return VendorResponse(**vendor_to_response_dict(vendor))
 
 
@@ -99,17 +95,7 @@ async def update_vendor(
 ):
     """벤더 수정"""
     vendor = await vendor_service.get_vendor(db, vendor_id)
-
-    # 권한 체크
-    if current_user["role"] == ROLE_COMPANY_ADMIN:
-        if vendor.company_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only Super Admin can modify shared pool vendors",
-            )
-        if vendor.company_id != current_user["company_id"]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
+    verify_company_modify(current_user, vendor.company_id)
     vendor = await vendor_service.update_vendor(db, vendor_id, data)
     return VendorResponse(**vendor_to_response_dict(vendor))
 
@@ -122,14 +108,5 @@ async def delete_vendor(
 ):
     """벤더 삭제"""
     vendor = await vendor_service.get_vendor(db, vendor_id)
-
-    if current_user["role"] == ROLE_COMPANY_ADMIN:
-        if vendor.company_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only Super Admin can delete shared pool vendors",
-            )
-        if vendor.company_id != current_user["company_id"]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
+    verify_company_modify(current_user, vendor.company_id)
     await vendor_service.delete_vendor(db, vendor_id)

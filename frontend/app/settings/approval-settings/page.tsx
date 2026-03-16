@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/error';
+import RequireRole from '@/components/common/RequireRole';
 import { useAuthStore } from '@/stores/auth';
 
 interface InvoiceType {
@@ -152,33 +153,34 @@ export default function ApprovalSettingsPage() {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 bg-gray-50 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <main className="flex-1 bg-surface-50 p-8">
+          <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN']}>
+          <div className="page-header flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800">Approval Settings</h2>
-              <p className="text-sm text-gray-500">{total} rules configured</p>
+              <h2 className="page-title">Approval Settings</h2>
+              <p className="page-subtitle">{total} rules configured</p>
             </div>
             <button
               onClick={() => { setShowForm(!showForm); if (showForm) resetForm(); }}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm transition-colors"
+              className="btn-primary"
             >
               {showForm ? 'Cancel' : '+ New Rule'}
             </button>
           </div>
 
           {showForm && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+            <div className="card p-6 mb-4">
               <h3 className="text-sm font-medium text-gray-700 mb-4">
                 {editingId ? 'Edit Approval Rule' : 'New Approval Rule'}
               </h3>
-              {error && <div className="bg-red-50 text-red-600 text-sm rounded-md p-3 mb-4">{error}</div>}
+              {error && <div className="alert-error mb-4">{error}</div>}
               <form onSubmit={handleSubmit} className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Invoice Type</label>
+                  <label className="label">Invoice Type</label>
                   <select
                     value={form.invoice_type_id}
                     onChange={(e) => setForm({ ...form, invoice_type_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input w-full"
                   >
                     <option value="">All Types</option>
                     {invoiceTypes.map((t) => (
@@ -187,39 +189,39 @@ export default function ApprovalSettingsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Min Amount ($)</label>
+                  <label className="label">Min Amount ($)</label>
                   <input
                     type="number" min="0" step="0.01" required
                     value={form.amount_threshold_min}
                     onChange={(e) => setForm({ ...form, amount_threshold_min: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Max Amount ($) <span className="text-gray-400">(blank=unlimited)</span></label>
+                  <label className="label">Max Amount ($) <span className="text-gray-400">(blank=unlimited)</span></label>
                   <input
                     type="number" min="0" step="0.01"
                     value={form.amount_threshold_max}
                     onChange={(e) => setForm({ ...form, amount_threshold_max: e.target.value })}
                     placeholder="Unlimited"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Step *</label>
+                  <label className="label">Step *</label>
                   <input
                     type="number" min="1" required
                     value={form.step}
                     onChange={(e) => setForm({ ...form, step: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Approver Role *</label>
+                  <label className="label">Approver Role *</label>
                   <select
                     value={form.step_approver_role}
                     onChange={(e) => setForm({ ...form, step_approver_role: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input w-full"
                   >
                     <option value="APPROVER">Approver</option>
                     <option value="COMPANY_ADMIN">Company Admin</option>
@@ -230,13 +232,13 @@ export default function ApprovalSettingsPage() {
                     <input
                       type="checkbox" checked={form.is_active}
                       onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                      className="rounded"
+                      className="accent-primary-500 rounded"
                     />
                     Active
                   </label>
                   <button
                     type="submit"
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 text-sm transition-colors"
+                    className="btn-primary"
                   >
                     {editingId ? 'Update' : 'Create'}
                   </button>
@@ -245,58 +247,55 @@ export default function ApprovalSettingsPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="card overflow-hidden">
             {loading ? (
-              <div className="p-8 text-center text-gray-500">Loading...</div>
+              <div className="loading-state">Loading...</div>
             ) : settings.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
+              <div className="empty-state">
                 No approval rules configured. Default: single COMPANY_ADMIN approval for all invoices.
               </div>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="table-header">
                   <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Invoice Type</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-600">Min Amount</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-600">Max Amount</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">Step</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">Status</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">Actions</th>
+                    <th className="table-th text-left">Invoice Type</th>
+                    <th className="table-th text-right">Min Amount</th>
+                    <th className="table-th text-right">Max Amount</th>
+                    <th className="table-th text-center">Step</th>
+                    <th className="table-th text-left">Role</th>
+                    <th className="table-th text-center">Status</th>
+                    <th className="table-th text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {settings.map((s) => (
-                    <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3">{getTypeName(s.invoice_type_id)}</td>
-                      <td className="px-4 py-3 text-right font-mono text-xs">${s.amount_threshold_min.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right font-mono text-xs">{formatAmount(s.amount_threshold_max)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                    <tr key={s.id} className="table-row">
+                      <td className="table-td">{getTypeName(s.invoice_type_id)}</td>
+                      <td className="table-td text-right font-mono text-xs">${s.amount_threshold_min.toLocaleString()}</td>
+                      <td className="table-td text-right font-mono text-xs">{formatAmount(s.amount_threshold_max)}</td>
+                      <td className="table-td text-center">
+                        <span className="badge-blue">
                           Step {s.step}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          s.step_approver_role === 'COMPANY_ADMIN'
-                            ? 'bg-purple-50 text-purple-700'
-                            : 'bg-orange-50 text-orange-700'
-                        }`}>
+                      <td className="table-td">
+                        <span className={s.step_approver_role === 'COMPANY_ADMIN'
+                            ? 'badge-purple'
+                            : 'badge-orange'
+                        }>
                           {s.step_approver_role}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          s.is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                        }`}>
+                      <td className="table-td text-center">
+                        <span className={s.is_active ? 'badge-green' : 'badge-red'}>
                           {s.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="table-td text-center">
                         <button onClick={() => handleEdit(s)}
-                          className="text-blue-600 hover:text-blue-800 text-xs mr-2">Edit</button>
+                          className="text-primary-600 hover:text-primary-700 text-xs font-medium mr-2">Edit</button>
                         <button onClick={() => handleDelete(s.id)}
-                          className="text-red-600 hover:text-red-800 text-xs">Delete</button>
+                          className="text-rose-500 hover:text-rose-600 text-xs font-medium">Delete</button>
                       </td>
                     </tr>
                   ))}
@@ -304,6 +303,7 @@ export default function ApprovalSettingsPage() {
               </table>
             )}
           </div>
+          </RequireRole>
         </main>
       </div>
     </div>

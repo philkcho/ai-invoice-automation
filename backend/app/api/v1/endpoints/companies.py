@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import require_super_admin, require_admin
+from app.core.security import require_super_admin, require_admin, ROLE_SUPER_ADMIN
+from app.utils.company_access import verify_company_access
 from app.schemas.company import (
     CompanyCreate,
     CompanyUpdate,
@@ -34,9 +35,14 @@ async def list_companies(
     status: Optional[str] = Query(None, pattern=r"^(ACTIVE|INACTIVE)$"),
     search: Optional[str] = Query(None, max_length=255),
     db: AsyncSession = Depends(get_db),
-    _current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin),
 ):
-    """회사 목록 조회 (Admin 이상)"""
+    """회사 목록 조회 (Super Admin: 전체, Company Admin: 자기 회사만)"""
+    if current_user["role"] != ROLE_SUPER_ADMIN:
+        # Company Admin은 자기 회사만 조회
+        company = await company_service.get_company(db, current_user["company_id"])
+        return CompanyListResponse(items=[company], total=1)
+
     items, total = await company_service.list_companies(db, skip, limit, status, search)
     return CompanyListResponse(items=items, total=total)
 
@@ -45,9 +51,10 @@ async def list_companies(
 async def get_company(
     company_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin),
 ):
-    """회사 상세 조회 (Admin 이상)"""
+    """회사 상세 조회 (Admin 이상, Company Admin은 자기 회사만)"""
+    verify_company_access(current_user, company_id)
     return await company_service.get_company(db, company_id)
 
 

@@ -9,6 +9,7 @@ from app.core.security import (
     require_admin, require_accountant_up, get_current_user,
     ROLE_SUPER_ADMIN,
 )
+from app.utils.company_access import verify_company_access, verify_company_modify
 from app.schemas.purchase_order import (
     PurchaseOrderCreate, PurchaseOrderUpdate,
     PurchaseOrderResponse, PurchaseOrderListResponse,
@@ -76,6 +77,8 @@ async def update_purchase_order(
     current_user: dict = Depends(require_admin),
 ):
     """PO 수정 (상태 변경, 메모 등)"""
+    po = await po_service.get_purchase_order(db, po_id)
+    verify_company_modify(current_user, po.company_id)
     return await po_service.update_purchase_order(db, po_id, data)
 
 
@@ -86,6 +89,8 @@ async def delete_purchase_order(
     current_user: dict = Depends(require_admin),
 ):
     """PO 삭제 (OPEN/CANCELLED 상태만)"""
+    po = await po_service.get_purchase_order(db, po_id)
+    verify_company_modify(current_user, po.company_id)
     await po_service.delete_purchase_order(db, po_id)
 
 
@@ -98,6 +103,8 @@ async def add_po_line(
     current_user: dict = Depends(require_accountant_up),
 ):
     """PO에 라인 아이템 추가"""
+    po = await po_service.get_purchase_order(db, po_id)
+    verify_company_modify(current_user, po.company_id)
     return await po_service.add_po_line(db, po_id, data)
 
 
@@ -110,6 +117,8 @@ async def update_po_line(
     current_user: dict = Depends(require_accountant_up),
 ):
     """PO 라인 아이템 수정"""
+    po = await po_service.get_purchase_order(db, po_id)
+    verify_company_modify(current_user, po.company_id)
     return await po_service.update_po_line(db, line_id, data)
 
 
@@ -121,4 +130,6 @@ async def delete_po_line(
     current_user: dict = Depends(require_admin),
 ):
     """PO 라인 아이템 삭제"""
+    po = await po_service.get_purchase_order(db, po_id)
+    verify_company_modify(current_user, po.company_id)
     await po_service.delete_po_line(db, line_id)

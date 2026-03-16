@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import require_super_admin, require_admin, get_current_user, ROLE_SUPER_ADMIN
+from app.utils.company_access import verify_company_access, verify_company_modify
 from app.schemas.global_rule import GlobalRuleCreate, GlobalRuleUpdate, GlobalRuleResponse, GlobalRuleListResponse
 from app.services import global_rule_service
 
@@ -39,11 +40,15 @@ async def list_rules(
 
 @router.get("/{rule_id}", response_model=GlobalRuleResponse)
 async def get_rule(rule_id: UUID, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    return await global_rule_service.get_rule(db, rule_id)
+    rule = await global_rule_service.get_rule(db, rule_id)
+    verify_company_access(current_user, rule.company_id, allow_shared=True)
+    return rule
 
 
 @router.patch("/{rule_id}", response_model=GlobalRuleResponse)
 async def update_rule(rule_id: UUID, data: GlobalRuleUpdate, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_admin)):
+    rule = await global_rule_service.get_rule(db, rule_id)
+    verify_company_modify(current_user, rule.company_id)
     return await global_rule_service.update_rule(db, rule_id, data)
 
 

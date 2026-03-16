@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import require_super_admin, require_admin, get_current_user, ROLE_SUPER_ADMIN
+from app.utils.company_access import verify_company_access, verify_company_modify
 from app.schemas.tax_rate import (
     TaxRateCreate, TaxRateUpdate, TaxRateResponse, TaxRateListResponse,
 )
@@ -58,8 +59,10 @@ async def get_tax_rate(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """세율 상세 조회"""
-    return await tax_rate_service.get_tax_rate(db, tax_rate_id)
+    """세율 상세 조회 (자기 회사 + system default)"""
+    tax_rate = await tax_rate_service.get_tax_rate(db, tax_rate_id)
+    verify_company_access(current_user, tax_rate.company_id, allow_shared=True)
+    return tax_rate
 
 
 @router.patch("/{tax_rate_id}", response_model=TaxRateResponse)
@@ -69,7 +72,9 @@ async def update_tax_rate(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    """세율 수정"""
+    """세율 수정 (shared pool은 Super Admin만)"""
+    tax_rate = await tax_rate_service.get_tax_rate(db, tax_rate_id)
+    verify_company_modify(current_user, tax_rate.company_id)
     return await tax_rate_service.update_tax_rate(db, tax_rate_id, data)
 
 
@@ -79,5 +84,7 @@ async def delete_tax_rate(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    """세율 삭제"""
+    """세율 삭제 (shared pool은 Super Admin만)"""
+    tax_rate = await tax_rate_service.get_tax_rate(db, tax_rate_id)
+    verify_company_modify(current_user, tax_rate.company_id)
     await tax_rate_service.delete_tax_rate(db, tax_rate_id)

@@ -7,6 +7,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/error';
 import type { Vendor, VendorListResponse } from '@/types';
+import RequireRole from '@/components/common/RequireRole';
 
 interface LineItem {
   line_number: number;
@@ -121,6 +122,7 @@ export default function NewPurchaseOrderPage() {
       <div className="flex flex-1">
         <Sidebar />
         <main className="flex-1 bg-gray-50 p-6">
+          <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT']}>
           <div className="max-w-4xl">
             <h2 className="text-xl font-semibold text-gray-800 mb-6">New Purchase Order</h2>
 
@@ -227,6 +229,7 @@ export default function NewPurchaseOrderPage() {
               </div>
             </form>
           </div>
+          </RequireRole>
         </main>
       </div>
     </div>

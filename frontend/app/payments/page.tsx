@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/error';
+import RequireRole from '@/components/common/RequireRole';
 
 interface PaymentItem {
   id: string;
@@ -120,6 +121,7 @@ export default function PaymentsPage() {
       <div className="flex flex-1">
         <Sidebar />
         <main className="flex-1 bg-gray-50 p-6">
+          <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT']}>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-800">Payments</h2>
@@ -283,6 +285,7 @@ export default function PaymentsPage() {
               </table>
             )}
           </div>
+          </RequireRole>
         </main>
       </div>
     </div>

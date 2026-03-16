@@ -12,6 +12,7 @@ from app.core.security import (
     require_admin, require_accountant_up, get_current_user,
     ROLE_SUPER_ADMIN,
 )
+from app.utils.company_access import verify_company_access
 from app.schemas.invoice import (
     InvoiceCreate, InvoiceUpdate, InvoiceResponse,
     InvoiceListResponse, ValidationRunResponse,
@@ -44,9 +45,7 @@ async def create_invoice(
     current_user: dict = Depends(require_accountant_up),
 ):
     """인보이스 생성 (수동 입력)"""
-    if current_user["role"] != ROLE_SUPER_ADMIN:
-        if data.company_id != current_user["company_id"]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    verify_company_access(current_user, data.company_id)
     return await invoice_service.create_invoice(db, data, current_user["user_id"])
 
 
@@ -76,9 +75,7 @@ async def get_invoice(
 ):
     """인보이스 상세 조회 (라인 아이템 포함)"""
     invoice = await invoice_service.get_invoice(db, invoice_id)
-    if current_user["role"] != ROLE_SUPER_ADMIN:
-        if invoice.company_id != current_user["company_id"]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    verify_company_access(current_user, invoice.company_id)
     return invoice
 
 
@@ -90,6 +87,8 @@ async def update_invoice(
     current_user: dict = Depends(require_accountant_up),
 ):
     """인보이스 수정"""
+    invoice = await invoice_service.get_invoice(db, invoice_id)
+    verify_company_access(current_user, invoice.company_id)
     return await invoice_service.update_invoice(db, invoice_id, data)
 
 
@@ -100,6 +99,8 @@ async def delete_invoice(
     current_user: dict = Depends(require_admin),
 ):
     """인보이스 삭제 (초기 상태만)"""
+    invoice = await invoice_service.get_invoice(db, invoice_id)
+    verify_company_access(current_user, invoice.company_id)
     await invoice_service.delete_invoice(db, invoice_id)
 
 
@@ -110,6 +111,8 @@ async def run_validation(
     current_user: dict = Depends(require_accountant_up),
 ):
     """인보이스 validation 실행"""
+    invoice = await invoice_service.get_invoice(db, invoice_id)
+    verify_company_access(current_user, invoice.company_id)
     return await invoice_service.run_validation(db, invoice_id)
 
 
@@ -120,6 +123,8 @@ async def submit_invoice(
     current_user: dict = Depends(require_accountant_up),
 ):
     """인보이스 제출 (validation 실행 후 상태 변경)"""
+    invoice = await invoice_service.get_invoice(db, invoice_id)
+    verify_company_access(current_user, invoice.company_id)
     return await invoice_service.submit_invoice(db, invoice_id)
 
 
@@ -132,10 +137,7 @@ async def upload_invoice_file(
 ):
     """인보이스에 파일 첨부 (PDF/이미지 업로드)"""
     invoice = await invoice_service.get_invoice(db, invoice_id)
-
-    if current_user["role"] != ROLE_SUPER_ADMIN:
-        if invoice.company_id != current_user["company_id"]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    verify_company_access(current_user, invoice.company_id)
 
     # 회사 코드 조회
     from app.models.company import Company

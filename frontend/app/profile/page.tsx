@@ -79,29 +79,29 @@ export default function ProfilePage() {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 bg-gray-50 p-6">
+        <main className="flex-1 bg-surface-50 p-8">
           <div className="max-w-2xl">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">My Profile</h2>
+            <h2 className="page-title mb-6">My Profile</h2>
 
             {/* 기본 정보 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="card mb-6">
               <h3 className="text-sm font-semibold text-gray-700 mb-4">Profile Information</h3>
-              {error && <div className="bg-red-50 text-red-600 text-sm rounded-md p-3 mb-4">{error}</div>}
+              {error && <div className="alert-error">{error}</div>}
               <form onSubmit={handleProfileSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Email</label>
+                  <label className="label">Email</label>
                   <input value={user.email} disabled
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 text-gray-500" />
+                    className="input-disabled w-full" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Role</label>
+                  <label className="label">Role</label>
                   <input value={user.role} disabled
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 text-gray-500" />
+                    className="input-disabled w-full" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Full Name</label>
+                  <label className="label">Full Name</label>
                   <input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <div>
                   <label className="flex items-center gap-2 text-sm text-gray-600">
@@ -112,43 +112,43 @@ export default function ProfilePage() {
                   </label>
                 </div>
                 <button type="submit" disabled={saving}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm transition-colors">
+                  className="btn-primary disabled:opacity-50">
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </form>
             </div>
 
             {/* 비밀번호 변경 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="card">
               <h3 className="text-sm font-semibold text-gray-700 mb-4">Change Password</h3>
-              {pwError && <div className="bg-red-50 text-red-600 text-sm rounded-md p-3 mb-4">{pwError}</div>}
+              {pwError && <div className="alert-error">{pwError}</div>}
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Current Password</label>
+                  <label className="label">Current Password</label>
                   <input type="password" value={pwForm.current_password}
                     onChange={(e) => setPwForm({ ...pwForm, current_password: e.target.value })}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">New Password</label>
+                  <label className="label">New Password</label>
                   <input type="password" value={pwForm.new_password}
                     onChange={(e) => setPwForm({ ...pwForm, new_password: e.target.value })}
                     required minLength={8}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                   <p className="text-xs text-gray-400 mt-1">
                     Min 8 chars, must include uppercase, lowercase, digit, and special character
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Confirm New Password</label>
+                  <label className="label">Confirm New Password</label>
                   <input type="password" value={pwForm.confirm_password}
                     onChange={(e) => setPwForm({ ...pwForm, confirm_password: e.target.value })}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <button type="submit" disabled={changingPw}
-                  className="bg-orange-600 text-white px-6 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50 text-sm transition-colors">
+                  className="btn bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 focus:ring-amber-300 shadow-sm hover:shadow-md disabled:opacity-50">
                   {changingPw ? 'Changing...' : 'Change Password'}
                 </button>
               </form>

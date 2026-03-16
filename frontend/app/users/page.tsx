@@ -8,13 +8,14 @@ import { useUsers, useUpdateUser, useDeleteUser } from '@/hooks/useApi';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
 import { getErrorMessage } from '@/lib/error';
+import RequireRole from '@/components/common/RequireRole';
 
 const ROLE_COLORS: Record<string, string> = {
-  SUPER_ADMIN: 'bg-purple-50 text-purple-700',
-  COMPANY_ADMIN: 'bg-blue-50 text-blue-700',
-  ACCOUNTANT: 'bg-green-50 text-green-700',
-  APPROVER: 'bg-yellow-50 text-yellow-700',
-  VIEWER: 'bg-gray-100 text-gray-600',
+  SUPER_ADMIN: 'badge-purple',
+  COMPANY_ADMIN: 'badge-blue',
+  ACCOUNTANT: 'badge-green',
+  APPROVER: 'badge-yellow',
+  VIEWER: 'badge-gray',
 };
 
 export default function UsersPage() {
@@ -67,31 +68,32 @@ export default function UsersPage() {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 bg-gray-50 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <main className="flex-1 bg-surface-50 p-8">
+          <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN']}>
+          <div className="page-header flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800">Users</h2>
-              <p className="text-sm text-gray-500">{total} users total</p>
+              <h2 className="page-title">Users</h2>
+              <p className="page-subtitle">{total} users total</p>
             </div>
             <Link
               href="/users/new"
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm transition-colors"
+              className="btn-primary"
             >
               + New User
             </Link>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+          <div className="card filter-bar">
             <form onSubmit={handleSearch} className="flex gap-3">
               <input
                 type="text"
                 placeholder="Search by name or email..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input flex-1"
               />
               <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm">
+                className="input">
                 <option value="">All Roles</option>
                 <option value="SUPER_ADMIN">Super Admin</option>
                 <option value="COMPANY_ADMIN">Company Admin</option>
@@ -100,55 +102,53 @@ export default function UsersPage() {
                 <option value="VIEWER">Viewer</option>
               </select>
               <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm">
+                className="input">
                 <option value="">All Status</option>
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
               </select>
-              <button type="submit" className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm">
+              <button type="submit" className="btn-secondary">
                 Search
               </button>
             </form>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="card overflow-hidden">
             {isLoading ? (
-              <div className="p-8 text-center text-gray-500">Loading...</div>
+              <div className="loading-state">Loading...</div>
             ) : users.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No users found</div>
+              <div className="empty-state">No users found</div>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="table-header">
                   <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Email</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Last Login</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Actions</th>
+                    <th className="table-th text-left">Name</th>
+                    <th className="table-th text-left">Email</th>
+                    <th className="table-th text-left">Role</th>
+                    <th className="table-th text-left">Status</th>
+                    <th className="table-th text-left">Last Login</th>
+                    <th className="table-th text-left">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((u) => (
-                    <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-800">{u.full_name}</td>
-                      <td className="px-4 py-3 text-gray-600">{u.email}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${ROLE_COLORS[u.role] || ''}`}>
+                    <tr key={u.id} className="table-row">
+                      <td className="table-td font-medium text-gray-800">{u.full_name}</td>
+                      <td className="table-td text-gray-600">{u.email}</td>
+                      <td className="table-td">
+                        <span className={ROLE_COLORS[u.role] || ''}>
                           {u.role}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          u.is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                        }`}>
+                      <td className="table-td">
+                        <span className={u.is_active ? 'badge-green' : 'badge-red'}>
                           {u.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">
+                      <td className="table-td text-gray-500 text-xs">
                         {u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Never'}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="table-td">
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleToggleActive(u.id, u.is_active)}
@@ -172,6 +172,7 @@ export default function UsersPage() {
               </table>
             )}
           </div>
+          </RequireRole>
         </main>
       </div>
     </div>

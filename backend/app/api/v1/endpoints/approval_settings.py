@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import require_admin, ROLE_SUPER_ADMIN
+from app.utils.company_access import verify_company_access, verify_company_modify
 from app.schemas.approval_settings import (
     ApprovalSettingCreate, ApprovalSettingUpdate,
     ApprovalSettingResponse, ApprovalSettingListResponse,
@@ -53,9 +54,7 @@ async def get_approval_setting(
 ):
     """승인 설정 상세 조회"""
     setting = await approval_settings_service.get_setting(db, setting_id)
-    if current_user["role"] != ROLE_SUPER_ADMIN:
-        if setting.company_id != current_user["company_id"]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    verify_company_access(current_user, setting.company_id)
     return setting
 
 
@@ -68,9 +67,7 @@ async def update_approval_setting(
 ):
     """승인 설정 수정"""
     setting = await approval_settings_service.get_setting(db, setting_id)
-    if current_user["role"] != ROLE_SUPER_ADMIN:
-        if setting.company_id != current_user["company_id"]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    verify_company_modify(current_user, setting.company_id)
     return await approval_settings_service.update_setting(db, setting_id, data)
 
 
@@ -82,7 +79,5 @@ async def delete_approval_setting(
 ):
     """승인 설정 삭제"""
     setting = await approval_settings_service.get_setting(db, setting_id)
-    if current_user["role"] != ROLE_SUPER_ADMIN:
-        if setting.company_id != current_user["company_id"]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    verify_company_modify(current_user, setting.company_id)
     await approval_settings_service.delete_setting(db, setting_id)

@@ -8,6 +8,7 @@ import { useCreateUser, useCompanies } from '@/hooks/useApi';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
 import { getErrorMessage } from '@/lib/error';
+import RequireRole from '@/components/common/RequireRole';
 
 const ROLES = ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT', 'APPROVER', 'VIEWER'];
 
@@ -66,41 +67,42 @@ export default function NewUserPage() {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 bg-gray-50 p-6">
+        <main className="flex-1 bg-surface-50 p-8">
+          <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN']}>
           <div className="max-w-2xl">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">New User</h2>
+            <h2 className="page-title mb-6">New User</h2>
 
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm rounded-md p-3 mb-4">{error}</div>
+              <div className="alert-error">{error}</div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="card">
                 <h3 className="text-sm font-semibold text-gray-700 mb-4">User Information</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-sm text-gray-600 mb-1">Full Name *</label>
+                    <label className="label">Full Name *</label>
                     <input name="full_name" required value={form.full_name} onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="input w-full" />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm text-gray-600 mb-1">Email *</label>
+                    <label className="label">Email *</label>
                     <input name="email" type="email" required value={form.email} onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="input w-full" />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm text-gray-600 mb-1">Password *</label>
+                    <label className="label">Password *</label>
                     <input name="password" type="password" required value={form.password} onChange={handleChange}
                       minLength={8}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="input w-full" />
                     <p className="text-xs text-gray-400 mt-1">
                       Min 8 chars, must include uppercase, lowercase, digit, and special character
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Role *</label>
+                    <label className="label">Role *</label>
                     <select name="role" value={form.role} onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                      className="input w-full">
                       {availableRoles.map(r => (
                         <option key={r} value={r}>{r.replace('_', ' ')}</option>
                       ))}
@@ -108,10 +110,10 @@ export default function NewUserPage() {
                   </div>
                   {form.role !== 'SUPER_ADMIN' && (
                     <div>
-                      <label className="block text-sm text-gray-600 mb-1">Company *</label>
+                      <label className="label">Company *</label>
                       <select name="company_id" value={form.company_id} onChange={handleChange}
                         required={form.role !== 'SUPER_ADMIN'}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                        className="input w-full">
                         <option value="">Select company...</option>
                         {companies.map(c => (
                           <option key={c.id} value={c.id}>{c.company_name}</option>
@@ -131,16 +133,17 @@ export default function NewUserPage() {
 
               <div className="flex gap-3">
                 <button type="submit" disabled={createMutation.isPending}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm transition-colors">
+                  className="btn-primary disabled:opacity-50">
                   {createMutation.isPending ? 'Creating...' : 'Create User'}
                 </button>
                 <button type="button" onClick={() => router.push('/users')}
-                  className="bg-gray-100 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-200 text-sm transition-colors">
+                  className="btn-secondary">
                   Cancel
                 </button>
               </div>
             </form>
           </div>
+          </RequireRole>
         </main>
       </div>
     </div>

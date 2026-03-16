@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/error';
+import RequireRole from '@/components/common/RequireRole';
 
 interface InvoiceType {
   id: string;
@@ -96,65 +97,66 @@ export default function InvoiceTypesPage() {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 bg-gray-50 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <main className="flex-1 bg-surface-50 p-8">
+          <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN']}>
+          <div className="page-header flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800">Invoice Types</h2>
-              <p className="text-sm text-gray-500">{total} types</p>
+              <h2 className="page-title">Invoice Types</h2>
+              <p className="page-subtitle">{total} types</p>
             </div>
             <div className="flex gap-2">
               {total === 0 && (
                 <button onClick={handleSeedDefaults} disabled={seeding}
-                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 text-sm transition-colors">
+                  className="btn-success disabled:opacity-50">
                   {seeding ? 'Seeding...' : 'Seed 6 Defaults'}
                 </button>
               )}
               <button onClick={() => setShowForm(!showForm)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm transition-colors">
+                className="btn-primary">
                 {showForm ? 'Cancel' : '+ New Type'}
               </button>
             </div>
           </div>
 
           {showForm && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
-              {error && <div className="bg-red-50 text-red-600 text-sm rounded-md p-3 mb-4">{error}</div>}
+            <div className="card p-6 mb-4">
+              {error && <div className="alert-error mb-4">{error}</div>}
               <form onSubmit={handleSubmit} className="grid grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Code *</label>
+                  <label className="label">Code *</label>
                   <input name="type_code" required value={form.type_code} onChange={handleChange}
                     placeholder="e.g. PO"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Name *</label>
+                  <label className="label">Name *</label>
                   <input name="type_name" required value={form.type_name} onChange={handleChange}
                     placeholder="e.g. Purchase Order"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Sort Order</label>
+                  <label className="label">Sort Order</label>
                   <input name="sort_order" type="number" value={form.sort_order} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <div className="flex items-end gap-4">
                   <label className="flex items-center gap-1 text-sm text-gray-600">
                     <input name="requires_po" type="checkbox" checked={form.requires_po}
-                      onChange={handleChange} className="rounded" /> PO Required
+                      onChange={handleChange} className="accent-primary-500 rounded" /> PO Required
                   </label>
                   <label className="flex items-center gap-1 text-sm text-gray-600">
                     <input name="requires_approver" type="checkbox" checked={form.requires_approver}
-                      onChange={handleChange} className="rounded" /> Approver Required
+                      onChange={handleChange} className="accent-primary-500 rounded" /> Approver Required
                   </label>
                 </div>
                 <div className="col-span-3">
-                  <label className="block text-sm text-gray-600 mb-1">Description</label>
+                  <label className="label">Description</label>
                   <input name="description" value={form.description} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <div className="flex items-end">
                   <button type="submit"
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 text-sm transition-colors">
+                    className="btn-primary">
                     Create
                   </button>
                 </div>
@@ -162,43 +164,39 @@ export default function InvoiceTypesPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="card overflow-hidden">
             {loading ? (
-              <div className="p-8 text-center text-gray-500">Loading...</div>
+              <div className="loading-state">Loading...</div>
             ) : types.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No invoice types found. Click "Seed 6 Defaults" to create standard types.</div>
+              <div className="empty-state">No invoice types found. Click &quot;Seed 6 Defaults&quot; to create standard types.</div>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="table-header">
                   <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Code</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Description</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">PO Req</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">Approver Req</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Scope</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
+                    <th className="table-th text-left">Code</th>
+                    <th className="table-th text-left">Name</th>
+                    <th className="table-th text-left">Description</th>
+                    <th className="table-th text-center">PO Req</th>
+                    <th className="table-th text-center">Approver Req</th>
+                    <th className="table-th text-left">Scope</th>
+                    <th className="table-th text-left">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {types.map((t) => (
-                    <tr key={t.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono text-xs font-medium">{t.type_code}</td>
-                      <td className="px-4 py-3 font-medium text-gray-800">{t.type_name}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{t.description || '—'}</td>
-                      <td className="px-4 py-3 text-center">{t.requires_po ? '✓' : '—'}</td>
-                      <td className="px-4 py-3 text-center">{t.requires_approver ? '✓' : '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          t.company_id ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
-                        }`}>
+                    <tr key={t.id} className="table-row">
+                      <td className="table-td font-mono text-xs font-medium">{t.type_code}</td>
+                      <td className="table-td font-medium text-gray-800">{t.type_name}</td>
+                      <td className="table-td text-gray-600 text-xs">{t.description || '—'}</td>
+                      <td className="table-td text-center">{t.requires_po ? '✓' : '—'}</td>
+                      <td className="table-td text-center">{t.requires_approver ? '✓' : '—'}</td>
+                      <td className="table-td">
+                        <span className={t.company_id ? 'badge-blue' : 'badge-purple'}>
                           {t.company_id ? 'Company' : 'System'}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          t.is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                        }`}>
+                      <td className="table-td">
+                        <span className={t.is_active ? 'badge-green' : 'badge-red'}>
                           {t.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
@@ -208,6 +206,7 @@ export default function InvoiceTypesPage() {
               </table>
             )}
           </div>
+          </RequireRole>
         </main>
       </div>
     </div>

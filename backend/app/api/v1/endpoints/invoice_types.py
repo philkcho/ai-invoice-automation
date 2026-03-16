@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import require_super_admin, require_admin, get_current_user, ROLE_SUPER_ADMIN
+from app.utils.company_access import verify_company_access, verify_company_modify
 from app.schemas.invoice_type import (
     InvoiceTypeCreate, InvoiceTypeUpdate, InvoiceTypeResponse, InvoiceTypeListResponse,
 )
@@ -51,8 +52,10 @@ async def get_invoice_type(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """인보이스 타입 상세 조회"""
-    return await invoice_type_service.get_invoice_type(db, invoice_type_id)
+    """인보이스 타입 상세 조회 (자기 회사 + system default)"""
+    invoice_type = await invoice_type_service.get_invoice_type(db, invoice_type_id)
+    verify_company_access(current_user, invoice_type.company_id, allow_shared=True)
+    return invoice_type
 
 
 @router.patch("/{invoice_type_id}", response_model=InvoiceTypeResponse)
@@ -62,7 +65,9 @@ async def update_invoice_type(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    """인보이스 타입 수정"""
+    """인보이스 타입 수정 (shared pool은 Super Admin만)"""
+    invoice_type = await invoice_type_service.get_invoice_type(db, invoice_type_id)
+    verify_company_modify(current_user, invoice_type.company_id)
     return await invoice_type_service.update_invoice_type(db, invoice_type_id, data)
 
 

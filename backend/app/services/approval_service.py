@@ -310,7 +310,7 @@ async def list_pending_approvals(
 
     items = []
     for approval, invoice in result.all():
-        vendor_name = invoice.vendor.name if invoice.vendor else None
+        vendor_name = invoice.vendor.company_name if invoice.vendor else None
         items.append({
             "id": approval.id,
             "company_id": approval.company_id,

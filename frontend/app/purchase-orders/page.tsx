@@ -5,13 +5,14 @@ import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import { usePurchaseOrders } from '@/hooks/useApi';
+import RequireRole from '@/components/common/RequireRole';
 
 const STATUS_COLORS: Record<string, string> = {
-  OPEN: 'bg-blue-50 text-blue-700',
-  PARTIALLY_INVOICED: 'bg-yellow-50 text-yellow-700',
-  FULLY_INVOICED: 'bg-green-50 text-green-700',
-  CLOSED: 'bg-gray-100 text-gray-600',
-  CANCELLED: 'bg-red-50 text-red-700',
+  OPEN: 'badge-blue',
+  PARTIALLY_INVOICED: 'badge-yellow',
+  FULLY_INVOICED: 'badge-green',
+  CLOSED: 'badge-gray',
+  CANCELLED: 'badge-red',
 };
 
 export default function PurchaseOrdersPage() {
@@ -40,25 +41,26 @@ export default function PurchaseOrdersPage() {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 bg-gray-50 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <main className="flex-1 bg-surface-50 p-8">
+          <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT']}>
+          <div className="page-header">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800">Purchase Orders</h2>
-              <p className="text-sm text-gray-500">{total} POs total</p>
+              <h2 className="page-title">Purchase Orders</h2>
+              <p className="page-subtitle">{total} POs total</p>
             </div>
             <Link href="/purchase-orders/new"
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm transition-colors">
+              className="btn-primary">
               + New PO
             </Link>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+          <div className="filter-bar">
             <form onSubmit={handleSearch} className="flex gap-3">
               <input type="text" placeholder="Search by PO number..."
                 value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="input flex-1" />
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm">
+                className="input">
                 <option value="">All Status</option>
                 <option value="OPEN">Open</option>
                 <option value="PARTIALLY_INVOICED">Partially Invoiced</option>
@@ -66,41 +68,41 @@ export default function PurchaseOrdersPage() {
                 <option value="CLOSED">Closed</option>
                 <option value="CANCELLED">Cancelled</option>
               </select>
-              <button type="submit" className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm">
+              <button type="submit" className="btn-secondary">
                 Search
               </button>
             </form>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="card overflow-hidden">
             {isLoading ? (
-              <div className="p-8 text-center text-gray-500">Loading...</div>
+              <div className="loading-state">Loading...</div>
             ) : pos.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No purchase orders found</div>
+              <div className="empty-state">No purchase orders found</div>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="table-header">
                   <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">PO #</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Description</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-600">Total</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-600">Invoiced</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-600">Remaining</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
+                    <th className="table-th">PO #</th>
+                    <th className="table-th">Date</th>
+                    <th className="table-th">Description</th>
+                    <th className="table-th text-right">Total</th>
+                    <th className="table-th text-right">Invoiced</th>
+                    <th className="table-th text-right">Remaining</th>
+                    <th className="table-th">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pos.map((po) => (
-                    <tr key={po.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono text-xs font-medium">{po.po_number}</td>
-                      <td className="px-4 py-3 text-gray-600">{po.po_date}</td>
-                      <td className="px-4 py-3 text-gray-700">{po.description || '\u2014'}</td>
-                      <td className="px-4 py-3 text-right font-mono">{fmt(po.amount_total)}</td>
-                      <td className="px-4 py-3 text-right font-mono">{fmt(po.amount_invoiced)}</td>
-                      <td className="px-4 py-3 text-right font-mono">{fmt(po.amount_remaining)}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[po.status] || ''}`}>
+                    <tr key={po.id} className="table-row">
+                      <td className="table-td font-mono text-xs font-medium">{po.po_number}</td>
+                      <td className="table-td text-gray-600">{po.po_date}</td>
+                      <td className="table-td text-gray-700">{po.description || '\u2014'}</td>
+                      <td className="table-td text-right font-mono">{fmt(po.amount_total)}</td>
+                      <td className="table-td text-right font-mono">{fmt(po.amount_invoiced)}</td>
+                      <td className="table-td text-right font-mono">{fmt(po.amount_remaining)}</td>
+                      <td className="table-td">
+                        <span className={STATUS_COLORS[po.status] || ''}>
                           {po.status}
                         </span>
                       </td>
@@ -110,6 +112,7 @@ export default function PurchaseOrdersPage() {
               </table>
             )}
           </div>
+          </RequireRole>
         </main>
       </div>
     </div>

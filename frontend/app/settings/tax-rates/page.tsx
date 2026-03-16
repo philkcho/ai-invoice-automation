@@ -6,6 +6,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import { useTaxRates, useCreateTaxRate } from '@/hooks/useApi';
 import { getErrorMessage } from '@/lib/error';
 import { useToastStore } from '@/stores/toast';
+import RequireRole from '@/components/common/RequireRole';
 
 const TAX_TYPES = ['FEDERAL', 'STATE_SALES', 'STATE_USE', 'EXEMPT'];
 
@@ -64,62 +65,63 @@ export default function TaxRatesPage() {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 bg-gray-50 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <main className="flex-1 bg-surface-50 p-8">
+          <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN']}>
+          <div className="page-header flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800">Tax Rates</h2>
-              <p className="text-sm text-gray-500">{total} tax rates</p>
+              <h2 className="page-title">Tax Rates</h2>
+              <p className="page-subtitle">{total} tax rates</p>
             </div>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm transition-colors"
+              className="btn-primary"
             >
               {showForm ? 'Cancel' : '+ New Tax Rate'}
             </button>
           </div>
 
           {showForm && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
-              {error && <div className="bg-red-50 text-red-600 text-sm rounded-md p-3 mb-4">{error}</div>}
+            <div className="card p-6 mb-4">
+              {error && <div className="alert-error mb-4">{error}</div>}
               <form onSubmit={handleSubmit} className="grid grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Name *</label>
+                  <label className="label">Name *</label>
                   <input name="tax_name" required value={form.tax_name} onChange={handleChange}
                     placeholder="e.g. CA Sales Tax"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Type *</label>
+                  <label className="label">Type *</label>
                   <select name="tax_type" value={form.tax_type} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                    className="input w-full">
                     {TAX_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">State</label>
+                  <label className="label">State</label>
                   <input name="state_code" value={form.state_code} onChange={handleChange}
                     placeholder="CA" maxLength={5}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Rate (%) *</label>
+                  <label className="label">Rate (%) *</label>
                   <input name="rate_pct" type="number" step="0.0001" required value={form.rate_pct} onChange={handleChange}
                     placeholder="8.2500"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Effective Date *</label>
+                  <label className="label">Effective Date *</label>
                   <input name="effective_date" type="date" required value={form.effective_date} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Expiry Date</label>
+                  <label className="label">Expiry Date</label>
                   <input name="expiry_date" type="date" value={form.expiry_date} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="input w-full" />
                 </div>
                 <div className="col-span-2 flex items-end">
                   <button type="submit" disabled={createMutation.isPending}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm transition-colors">
+                    className="btn-primary disabled:opacity-50">
                     {createMutation.isPending ? 'Creating...' : 'Create'}
                   </button>
                 </div>
@@ -127,60 +129,56 @@ export default function TaxRatesPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
-            <div className="flex gap-3">
+          <div className="card p-4 mb-4">
+            <div className="filter-bar">
               <input
                 type="text"
                 placeholder="Filter by state code (e.g. CA)..."
                 value={stateFilter}
                 onChange={(e) => setStateFilter(e.target.value.toUpperCase())}
                 maxLength={5}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
+                className="input w-48"
               />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="card overflow-hidden">
             {isLoading ? (
-              <div className="p-8 text-center text-gray-500">Loading...</div>
+              <div className="loading-state">Loading...</div>
             ) : taxRates.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No tax rates found</div>
+              <div className="empty-state">No tax rates found</div>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="table-header">
                   <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Type</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">State</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-600">Rate (%)</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Effective</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Expiry</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Scope</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
+                    <th className="table-th text-left">Name</th>
+                    <th className="table-th text-left">Type</th>
+                    <th className="table-th text-left">State</th>
+                    <th className="table-th text-right">Rate (%)</th>
+                    <th className="table-th text-left">Effective</th>
+                    <th className="table-th text-left">Expiry</th>
+                    <th className="table-th text-left">Scope</th>
+                    <th className="table-th text-left">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {taxRates.map((t) => (
-                    <tr key={t.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-800">{t.tax_name}</td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{t.tax_type}</span>
+                    <tr key={t.id} className="table-row">
+                      <td className="table-td font-medium text-gray-800">{t.tax_name}</td>
+                      <td className="table-td">
+                        <span className="badge-gray">{t.tax_type}</span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{t.state_code || '\u2014'}</td>
-                      <td className="px-4 py-3 text-right font-mono">{Number(t.rate_pct).toFixed(4)}</td>
-                      <td className="px-4 py-3 text-gray-600">{t.effective_date}</td>
-                      <td className="px-4 py-3 text-gray-600">{t.expiry_date || '\u2014'}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          t.company_id ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
-                        }`}>
+                      <td className="table-td text-gray-600">{t.state_code || '\u2014'}</td>
+                      <td className="table-td text-right font-mono">{Number(t.rate_pct).toFixed(4)}</td>
+                      <td className="table-td text-gray-600">{t.effective_date}</td>
+                      <td className="table-td text-gray-600">{t.expiry_date || '\u2014'}</td>
+                      <td className="table-td">
+                        <span className={t.company_id ? 'badge-blue' : 'badge-purple'}>
                           {t.company_id ? 'Company' : 'System'}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          t.is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                        }`}>
+                      <td className="table-td">
+                        <span className={t.is_active ? 'badge-green' : 'badge-red'}>
                           {t.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
@@ -190,6 +188,7 @@ export default function TaxRatesPage() {
               </table>
             )}
           </div>
+          </RequireRole>
         </main>
       </div>
     </div>

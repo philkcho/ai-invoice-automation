@@ -81,6 +81,14 @@ async def delete_rule_set(db: AsyncSession, rule_set_id: UUID) -> None:
 
 
 # ── Conditions ───────────────────────────────────────
+async def get_condition(db: AsyncSession, condition_id: UUID) -> TypeRuleCondition:
+    result = await db.execute(select(TypeRuleCondition).where(TypeRuleCondition.id == condition_id))
+    condition = result.scalar_one_or_none()
+    if not condition:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Condition not found")
+    return condition
+
+
 async def add_condition(db: AsyncSession, rule_set_id: UUID, data: ConditionCreate) -> TypeRuleCondition:
     await get_rule_set(db, rule_set_id)  # 존재 확인
     condition = TypeRuleCondition(rule_set_id=rule_set_id, **data.model_dump())
