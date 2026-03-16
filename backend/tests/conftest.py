@@ -7,16 +7,19 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 
 from app.core.config import settings
 from app.core.database import Base, get_db
-from app.core.security import hash_password, create_access_token
+from app.core.security import hash_password, create_access_token, _get_db
 from app.main import app
 from app.models.company import Company
 from app.models.user import User
 
+# 테스트 전용 DB URL (운영 DB 보호)
+TEST_DB_URL = settings.DATABASE_URL.replace("/invoice_db", "/invoice_db_test")
 
-# ── 테스트 DB 엔진 (매 테스트 함수마다 테이블 재생성) ──
+
+# ── 테스트 DB 엔진 (매 테스트마다 테이블 재생성) ────
 @pytest_asyncio.fixture
 async def test_engine():
-    engine = create_async_engine(settings.DATABASE_URL, echo=False)
+    engine = create_async_engine(TEST_DB_URL, echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
@@ -44,6 +47,7 @@ async def client(db_session):
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[_get_db] = override_get_db
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

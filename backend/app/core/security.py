@@ -7,11 +7,21 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.config import settings
 from app.core.context import set_company_context
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer()
+
+
+# get_db 지연 임포트 (순환 임포트 방지)
+async def _get_db():
+    from app.core.database import get_db
+    async for session in get_db():
+        yield session
 
 
 # ── 비밀번호 ─────────────────────────────────────────
@@ -68,8 +78,9 @@ def decode_token(token: str) -> dict:
 # ── FastAPI 의존성 ─────────────────────────────────────
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: AsyncSession = Depends(_get_db),
 ) -> dict:
-    """JWT 검증 + company 컨텍스트 주입"""
+    """JWT 검증 + DB에서 사용자 활성 상태 확인 + company 컨텍스트 주입"""
     payload = decode_token(credentials.credentials)
 
     if payload.get("type") != "access":
@@ -79,13 +90,22 @@ async def get_current_user(
         )
 
     user_id = UUID(payload["sub"])
-    company_id = UUID(payload["company_id"]) if payload.get("company_id") else None
-    role = payload["role"]
 
-    # 컨텍스트 변수에 저장 (미들웨어 역할)
-    set_company_context(company_id, user_id, role)
+    # DB에서 사용자 존재 여부 및 활성 상태 확인
+    from app.models.user import User
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
 
-    return {"user_id": user_id, "company_id": company_id, "role": role}
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or deactivated",
+        )
+
+    # DB의 최신 정보로 컨텍스트 설정 (토큰 발급 후 역할/회사 변경 대응)
+    set_company_context(user.company_id, user.id, user.role)
+
+    return {"user_id": user.id, "company_id": user.company_id, "role": user.role}
 
 
 def require_roles(*roles: str):
