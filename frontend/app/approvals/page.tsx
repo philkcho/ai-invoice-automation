@@ -21,7 +21,7 @@ interface ApprovalItem {
   created_at: string;
   invoice_number: string | null;
   vendor_name: string | null;
-  amount_total: number;
+  amount_total: number | null;
   invoice_status: string;
 }
 
@@ -133,7 +133,7 @@ export default function ApprovalsPage() {
                       </td>
                       <td className="px-4 py-3 text-gray-600">{a.vendor_name || '—'}</td>
                       <td className="px-4 py-3 text-right font-mono text-xs">
-                        ${a.amount_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        ${(a.amount_total ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">

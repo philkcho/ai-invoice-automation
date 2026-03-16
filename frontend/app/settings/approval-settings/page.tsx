@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/error';
+import { useAuthStore } from '@/stores/auth';
 
 interface InvoiceType {
   id: string;
@@ -25,6 +26,7 @@ interface ApprovalSetting {
 }
 
 export default function ApprovalSettingsPage() {
+  const user = useAuthStore((s) => s.user);
   const [settings, setSettings] = useState<ApprovalSetting[]>([]);
   const [invoiceTypes, setInvoiceTypes] = useState<InvoiceType[]>([]);
   const [total, setTotal] = useState(0);
@@ -85,7 +87,7 @@ export default function ApprovalSettingsPage() {
     e.preventDefault();
     setError('');
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         invoice_type_id: form.invoice_type_id || null,
         amount_threshold_min: parseFloat(form.amount_threshold_min) || 0,
         amount_threshold_max: form.amount_threshold_max ? parseFloat(form.amount_threshold_max) : null,
@@ -93,6 +95,11 @@ export default function ApprovalSettingsPage() {
         step_approver_role: form.step_approver_role,
         is_active: form.is_active,
       };
+
+      // 신규 생성 시 company_id 필수
+      if (!editingId) {
+        payload.company_id = user?.company_id;
+      }
 
       if (editingId) {
         await api.patch(`/api/v1/approval-settings/${editingId}`, payload);

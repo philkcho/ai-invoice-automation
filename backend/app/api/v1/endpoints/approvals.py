@@ -15,8 +15,16 @@ from app.schemas.approval import (
     ApprovalListResponse, ApprovalHistoryResponse,
 )
 from app.services import approval_service
+from app.services.invoice_service import get_invoice
 
 router = APIRouter()
+
+
+def _check_company_access(current_user: dict, company_id: UUID) -> None:
+    """회사 격리 검증 (SUPER_ADMIN 제외)"""
+    if current_user["role"] != ROLE_SUPER_ADMIN:
+        if company_id != current_user["company_id"]:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
 
 @router.get("", response_model=ApprovalListResponse)
@@ -54,6 +62,7 @@ async def process_approval(
         approval_id=approval_id,
         user_id=current_user["user_id"],
         user_role=current_user["role"],
+        company_id=current_user.get("company_id"),
         action=data.action,
         comments=data.comments,
         rejection_reason=data.rejection_reason,
@@ -67,6 +76,8 @@ async def get_invoice_approval_history(
     current_user: dict = Depends(get_current_user),
 ):
     """인보이스 승인 이력 조회"""
+    invoice = await get_invoice(db, invoice_id)
+    _check_company_access(current_user, invoice.company_id)
     items = await approval_service.get_approval_history(db, invoice_id)
     return ApprovalHistoryResponse(items=items, total=len(items))
 
@@ -79,6 +90,8 @@ async def resubmit_invoice(
     current_user: dict = Depends(require_accountant_up),
 ):
     """거절된 인보이스 재제출"""
+    invoice = await get_invoice(db, invoice_id)
+    _check_company_access(current_user, invoice.company_id)
     invoice = await approval_service.resubmit_invoice(db, invoice_id, data.notes)
     return {
         "invoice_id": str(invoice.id),

@@ -170,16 +170,21 @@ async def void_payment(
             detail="Payment is already voided",
         )
 
+    prev_status = payment.payment_status
     payment.payment_status = "VOID"
     if notes:
         payment.notes = notes
 
-    # 인보이스 상태 → VOID
+    # 인보이스 상태 결정: PAID 상태였으면 VOID, 아직 미결제면 APPROVED로 롤백
     inv_result = await db.execute(
         select(Invoice).where(Invoice.id == payment.invoice_id)
     )
     invoice = inv_result.scalar_one()
-    invoice.status = "VOID"
+    if prev_status == "PAID":
+        invoice.status = "VOID"
+    else:
+        # SCHEDULED/PROCESSING/FAILED → APPROVED로 롤백 (재스케줄 가능)
+        invoice.status = "APPROVED"
 
     await db.flush()
     await db.refresh(payment)

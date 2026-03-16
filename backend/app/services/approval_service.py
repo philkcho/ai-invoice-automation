@@ -85,6 +85,7 @@ async def process_approval_action(
     user_id: UUID,
     user_role: str,
     action: str,
+    company_id: UUID | None = None,
     comments: Optional[str] = None,
     rejection_reason: Optional[str] = None,
 ) -> InvoiceApproval:
@@ -95,6 +96,10 @@ async def process_approval_action(
     approval = result.scalar_one_or_none()
     if not approval:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Approval not found")
+
+    # 회사 격리 검증
+    if user_role != "SUPER_ADMIN" and company_id and approval.company_id != company_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     if approval.status != "PENDING":
         raise HTTPException(
@@ -242,12 +247,14 @@ async def resubmit_invoice(
             detail=f"Only rejected invoices can be resubmitted (current: {invoice.status})",
         )
 
-    # 이전 라운드 승인 기록 → CANCELLED
+    # 이전 라운드에서 아직 PENDING인 승인 기록만 CANCELLED로 변경
+    # APPROVED/REJECTED 기록은 감사 추적을 위해 보존
     await db.execute(
         update(InvoiceApproval)
         .where(
             InvoiceApproval.invoice_id == invoice.id,
             InvoiceApproval.submission_round == invoice.submission_round,
+            InvoiceApproval.status == "PENDING",
         )
         .values(status="CANCELLED")
     )

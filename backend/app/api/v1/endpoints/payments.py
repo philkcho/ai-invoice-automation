@@ -19,6 +19,16 @@ from app.services import payment_service
 router = APIRouter()
 
 
+async def _check_payment_company(
+    db, payment_id: UUID, current_user: dict
+) -> None:
+    """결제 레코드의 회사 격리 검증"""
+    payment = await payment_service.get_payment(db, payment_id)
+    if current_user["role"] != ROLE_SUPER_ADMIN:
+        if payment.company_id != current_user["company_id"]:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+
 @router.post("", response_model=PaymentResponse, status_code=201)
 async def schedule_payment(
     data: PaymentScheduleRequest,
@@ -26,6 +36,13 @@ async def schedule_payment(
     current_user: dict = Depends(require_accountant_up),
 ):
     """결제 스케줄 등록"""
+    # 인보이스의 회사 격리 검증
+    from app.services.invoice_service import get_invoice
+    invoice = await get_invoice(db, data.invoice_id)
+    if current_user["role"] != ROLE_SUPER_ADMIN:
+        if invoice.company_id != current_user["company_id"]:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
     return await payment_service.schedule_payment(
         db,
         invoice_id=data.invoice_id,
@@ -77,6 +94,7 @@ async def process_payment(
     current_user: dict = Depends(require_accountant_up),
 ):
     """결제 처리 시작 (SCHEDULED → PROCESSING)"""
+    await _check_payment_company(db, payment_id, current_user)
     return await payment_service.process_payment(db, payment_id, data.transaction_ref)
 
 
@@ -88,6 +106,7 @@ async def complete_payment(
     current_user: dict = Depends(require_accountant_up),
 ):
     """결제 완료 (→ PAID)"""
+    await _check_payment_company(db, payment_id, current_user)
     return await payment_service.complete_payment(
         db, payment_id, data.paid_date, data.transaction_ref
     )
@@ -100,6 +119,7 @@ async def fail_payment(
     current_user: dict = Depends(require_admin),
 ):
     """결제 실패 처리 (PROCESSING → FAILED)"""
+    await _check_payment_company(db, payment_id, current_user)
     return await payment_service.fail_payment(db, payment_id)
 
 
@@ -111,4 +131,5 @@ async def void_payment(
     current_user: dict = Depends(require_admin),
 ):
     """결제 무효화 (→ VOID)"""
+    await _check_payment_company(db, payment_id, current_user)
     return await payment_service.void_payment(db, payment_id, data.notes)

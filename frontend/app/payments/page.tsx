@@ -21,7 +21,7 @@ interface PaymentItem {
   created_at: string;
   invoice_number: string | null;
   vendor_name: string | null;
-  invoice_amount_total: number;
+  invoice_amount_total: number | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -102,7 +102,12 @@ export default function PaymentsPage() {
     if (!confirm(confirmMsg[action] || 'Are you sure?')) return;
 
     try {
-      await api.post(`/api/v1/payments/${paymentId}/${action}`);
+      // complete 시 오늘 날짜를 paid_date로 전송
+      const body: Record<string, unknown> = {};
+      if (action === 'complete') {
+        body.paid_date = new Date().toISOString().split('T')[0];
+      }
+      await api.post(`/api/v1/payments/${paymentId}/${action}`, body);
       fetchPayments();
     } catch (err: unknown) {
       alert(getErrorMessage(err));
