@@ -1532,13 +1532,13 @@ frontend/
 - [x] Vendor registration & list UI
 - [x] ACH encryption
 
-### Phase 4 — Tax Rates & PO Master
-- [ ] DB 모델 정의: tax_rates, purchase_orders, purchase_order_lines 테이블
-- [ ] Alembic 마이그레이션
-- [ ] Tax rate management API + UI (State별)
-- [ ] PO master API + UI
-- [ ] PO line items management
-- [ ] PO ↔ Invoice matching logic + 초과 청구 감지
+### Phase 4 — Tax Rates & PO Master ✅ 완료
+- [x] DB 모델 정의: tax_rates, purchase_orders, purchase_order_lines 테이블
+- [x] Alembic 마이그레이션
+- [x] Tax rate management API + UI (State별)
+- [x] PO master API + UI
+- [x] PO line items management
+- [ ] PO ↔ Invoice matching logic + 초과 청구 감지 (→ Phase 5~6에서 Invoice 모델과 함께 구현)
 
 ### Phase 5 — Invoice Type & Rule Engine
 - [ ] DB 모델 정의: invoice_types, global_validation_rules, type_rule_sets, type_rule_conditions 테이블
