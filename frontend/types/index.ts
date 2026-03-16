@@ -112,3 +112,61 @@ export interface VendorCreateResponse {
   vendor: Vendor;
   warnings: DuplicateWarning[];
 }
+
+// ── Invoice ──────────────────────────────────────────
+export interface InvoiceLineItem {
+  id: string;
+  invoice_id: string;
+  line_number: number;
+  description: string | null;
+  quantity: number;
+  unit_price: number;
+  amount: number;
+  category: string | null;
+  tax_amount: number;
+}
+
+export interface Invoice {
+  id: string;
+  company_id: string;
+  vendor_id: string;
+  invoice_type_id: string;
+  invoice_number: string | null;
+  invoice_date: string | null;
+  due_date: string | null;
+  amount_subtotal: number;
+  amount_tax: number;
+  amount_total: number;
+  currency_original: string;
+  source_channel: string;
+  ocr_status: string | null;
+  status: string;
+  validation_status: string | null;
+  file_path: string | null;
+  po_number: string | null;
+  notes: string | null;
+  created_at: string;
+  line_items: InvoiceLineItem[];
+}
+
+export interface InvoiceListItem {
+  id: string;
+  company_id: string;
+  vendor_id: string;
+  invoice_type_id: string;
+  invoice_number: string | null;
+  invoice_date: string | null;
+  due_date: string | null;
+  amount_total: number;
+  currency_original: string;
+  source_channel: string;
+  ocr_status: string | null;
+  status: string;
+  validation_status: string | null;
+  created_at: string;
+}
+
+export interface InvoiceListResponse {
+  items: InvoiceListItem[];
+  total: number;
+}
