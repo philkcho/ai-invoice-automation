@@ -1540,14 +1540,14 @@ frontend/
 - [x] PO line items management
 - [ ] PO ↔ Invoice matching logic + 초과 청구 감지 (→ Phase 5~6에서 Invoice 모델과 함께 구현)
 
-### Phase 5 — Invoice Type & Rule Engine
-- [ ] DB 모델 정의: invoice_types, global_validation_rules, type_rule_sets, type_rule_conditions 테이블
-- [ ] Alembic 마이그레이션
-- [ ] Invoice type master
-- [ ] Global rules management
-- [ ] Type rule sets + conditions
-- [ ] Vendor contract rules
-- [ ] 3-layer validation engine (incl. PO match + tax check)
+### Phase 5 — Invoice Type & Rule Engine ✅ 완료
+- [x] DB 모델 정의: invoice_types, global_validation_rules, type_rule_sets, type_rule_conditions 테이블
+- [x] Alembic 마이그레이션
+- [x] Invoice type master (기본 6종 시딩 포함)
+- [x] Global rules management (CRUD API)
+- [x] Type rule sets + conditions (CRUD API)
+- [x] Vendor contract rules (CRUD API)
+- [x] 3-layer validation engine (Global → Type → Contract, Phase 6에서 Invoice 연동)
 
 ### Phase 6 — Invoice Upload, OCR, Manual Entry
 - [ ] S3 file upload
