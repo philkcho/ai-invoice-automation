@@ -19,27 +19,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # ── ENUM 타입 생성 ────────────────────────────────
-    approver_role_type = sa.Enum('APPROVER', 'COMPANY_ADMIN', name='approver_role_type')
-    approver_role_type.create(op.get_bind(), checkfirst=True)
-
-    approval_status = sa.Enum('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', name='approval_status')
-    approval_status.create(op.get_bind(), checkfirst=True)
-
-    payment_method_type = sa.Enum('ACH', 'CHECK', 'WIRE', 'CREDIT_CARD', name='payment_method_type')
-    payment_method_type.create(op.get_bind(), checkfirst=True)
-
-    payment_status_type = sa.Enum('SCHEDULED', 'PROCESSING', 'PAID', 'FAILED', 'VOID', name='payment_status_type')
-    payment_status_type.create(op.get_bind(), checkfirst=True)
-
-    notification_type = sa.Enum(
-        'APPROVAL_REQUEST', 'INVOICE_APPROVED', 'INVOICE_REJECTED',
-        'VALIDATION_FAIL', 'VALIDATION_OVERRIDDEN', 'CONTRACT_EXPIRY',
-        'PAYMENT_DUE', 'EMAIL_RECEIVED', 'OCR_REVIEW_NEEDED',
-        'OCR_FAILED', 'PO_OVER_BUDGET', 'TAX_EXEMPT_EXPIRED',
-        name='notification_type',
-    )
-    notification_type.create(op.get_bind(), checkfirst=True)
+    # ── ENUM 타입 생성 (IF NOT EXISTS) ─────────────────
+    conn = op.get_bind()
+    conn.execute(sa.text("DO $$ BEGIN CREATE TYPE approver_role_type AS ENUM ('APPROVER', 'COMPANY_ADMIN'); EXCEPTION WHEN duplicate_object THEN null; END $$;"))
+    conn.execute(sa.text("DO $$ BEGIN CREATE TYPE approval_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'); EXCEPTION WHEN duplicate_object THEN null; END $$;"))
+    conn.execute(sa.text("DO $$ BEGIN CREATE TYPE payment_method_type AS ENUM ('ACH', 'CHECK', 'WIRE', 'CREDIT_CARD'); EXCEPTION WHEN duplicate_object THEN null; END $$;"))
+    conn.execute(sa.text("DO $$ BEGIN CREATE TYPE payment_status_type AS ENUM ('SCHEDULED', 'PROCESSING', 'PAID', 'FAILED', 'VOID'); EXCEPTION WHEN duplicate_object THEN null; END $$;"))
+    conn.execute(sa.text("DO $$ BEGIN CREATE TYPE notification_type AS ENUM ('APPROVAL_REQUEST', 'INVOICE_APPROVED', 'INVOICE_REJECTED', 'VALIDATION_FAIL', 'VALIDATION_OVERRIDDEN', 'CONTRACT_EXPIRY', 'PAYMENT_DUE', 'EMAIL_RECEIVED', 'OCR_REVIEW_NEEDED', 'OCR_FAILED', 'PO_OVER_BUDGET', 'TAX_EXEMPT_EXPIRED'); EXCEPTION WHEN duplicate_object THEN null; END $$;"))
 
     # ── approval_settings ─────────────────────────────
     op.create_table('approval_settings',
@@ -49,7 +35,7 @@ def upgrade() -> None:
         sa.Column('amount_threshold_min', sa.Numeric(precision=12, scale=2), server_default='0', nullable=False),
         sa.Column('amount_threshold_max', sa.Numeric(precision=12, scale=2), nullable=True, comment='NULL = 무제한'),
         sa.Column('step', sa.Integer(), nullable=False, comment='승인 단계 번호 (1, 2, 3...)'),
-        sa.Column('step_approver_role', sa.Enum('APPROVER', 'COMPANY_ADMIN', name='approver_role_type', create_type=False), nullable=False),
+        sa.Column('step_approver_role', sa.VARCHAR(20), nullable=False),
         sa.Column('is_active', sa.Boolean(), server_default='true', nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -67,9 +53,9 @@ def upgrade() -> None:
         sa.Column('invoice_id', sa.UUID(), nullable=False),
         sa.Column('submission_round', sa.Integer(), server_default='1', nullable=False, comment='제출 회차 (validation_results와 동일 기준)'),
         sa.Column('step', sa.Integer(), nullable=False, comment='승인 단계 (1, 2, 3...)'),
-        sa.Column('approver_role', sa.Enum('APPROVER', 'COMPANY_ADMIN', name='approver_role_type', create_type=False), nullable=False, comment='배정 기준 역할'),
+        sa.Column('approver_role', sa.VARCHAR(20), nullable=False, comment='배정 기준 역할'),
         sa.Column('approver_id', sa.UUID(), nullable=True, comment='NULL=미지정, 액션 시 업데이트'),
-        sa.Column('status', sa.Enum('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', name='approval_status', create_type=False), server_default='PENDING', nullable=False),
+        sa.Column('status', sa.VARCHAR(20), server_default='PENDING', nullable=False),
         sa.Column('action_at', sa.DateTime(timezone=True), nullable=True, comment='승인/거절 처리 시각'),
         sa.Column('comments', sa.Text(), nullable=True),
         sa.Column('rejection_reason', sa.Text(), nullable=True),
@@ -89,8 +75,8 @@ def upgrade() -> None:
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('company_id', sa.UUID(), nullable=False),
         sa.Column('invoice_id', sa.UUID(), nullable=False),
-        sa.Column('payment_method', sa.Enum('ACH', 'CHECK', 'WIRE', 'CREDIT_CARD', name='payment_method_type', create_type=False), nullable=False),
-        sa.Column('payment_status', sa.Enum('SCHEDULED', 'PROCESSING', 'PAID', 'FAILED', 'VOID', name='payment_status_type', create_type=False), server_default='SCHEDULED', nullable=False),
+        sa.Column('payment_method', sa.VARCHAR(20), nullable=False),
+        sa.Column('payment_status', sa.VARCHAR(20), server_default='SCHEDULED', nullable=False),
         sa.Column('scheduled_date', sa.Date(), nullable=True),
         sa.Column('paid_date', sa.Date(), nullable=True),
         sa.Column('amount_paid', sa.Numeric(precision=12, scale=2), nullable=False),
@@ -113,13 +99,7 @@ def upgrade() -> None:
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('company_id', sa.UUID(), nullable=False),
         sa.Column('user_id', sa.UUID(), nullable=False),
-        sa.Column('type', sa.Enum(
-            'APPROVAL_REQUEST', 'INVOICE_APPROVED', 'INVOICE_REJECTED',
-            'VALIDATION_FAIL', 'VALIDATION_OVERRIDDEN', 'CONTRACT_EXPIRY',
-            'PAYMENT_DUE', 'EMAIL_RECEIVED', 'OCR_REVIEW_NEEDED',
-            'OCR_FAILED', 'PO_OVER_BUDGET', 'TAX_EXEMPT_EXPIRED',
-            name='notification_type', create_type=False,
-        ), nullable=False),
+        sa.Column('type', sa.VARCHAR(30), nullable=False),
         sa.Column('title', sa.String(length=255), nullable=False),
         sa.Column('message', sa.Text(), nullable=True),
         sa.Column('entity_type', sa.String(length=50), nullable=True, comment='관련 엔티티 종류 (invoice, vendor 등)'),

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import RequireRole from '@/components/common/RequireRole';
@@ -31,6 +31,7 @@ export default function EmailSettingsPage() {
   const [configs, setConfigs] = useState<EmailConfig[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [polling, setPolling] = useState<string | null>(null);
@@ -43,22 +44,37 @@ export default function EmailSettingsPage() {
     is_active: true,
   });
 
-  const fetchConfigs = async () => {
+  const fetchConfigs = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data } = await api.get('/api/v1/email-configurations');
       setConfigs(data.items);
       setTotal(data.total);
     } catch (err) {
+      setConfigs([]);
+      setTotal(0);
       addToast('error', getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     fetchConfigs();
-  }, []);
+  }, [fetchConfigs]);
+
+  // OAuth 팝업에서 성공 메시지 수신
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'OAUTH_SUCCESS') {
+        addToast('success', 'Email account connected successfully!');
+        fetchConfigs();
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [addToast, fetchConfigs]);
 
   const resetForm = () => {
     setForm({
@@ -74,6 +90,24 @@ export default function EmailSettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    // company_id 검증
+    if (!user?.company_id) {
+      addToast('error', 'You must belong to a company to configure email integration.');
+      return;
+    }
+
+    // 중복 이메일 체크
+    const isDuplicate = configs.some(
+      (c) => c.email_address === form.email_address && c.id !== editingId
+    );
+    if (isDuplicate) {
+      addToast('error', 'This email address is already configured.');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       if (editingId) {
         await api.put(`/api/v1/email-configurations/${editingId}`, {
@@ -84,7 +118,7 @@ export default function EmailSettingsPage() {
         addToast('success', 'Email configuration updated');
       } else {
         await api.post('/api/v1/email-configurations', {
-          company_id: user?.company_id,
+          company_id: user.company_id,
           email_provider: form.email_provider,
           email_address: form.email_address,
           filter_keywords: form.filter_keywords || null,
@@ -94,9 +128,11 @@ export default function EmailSettingsPage() {
         addToast('success', 'Email configuration created');
       }
       resetForm();
-      fetchConfigs();
+      await fetchConfigs();
     } catch (err) {
       addToast('error', getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -126,7 +162,10 @@ export default function EmailSettingsPage() {
   const handleOAuthConnect = async (id: string) => {
     try {
       const { data } = await api.post(`/api/v1/email-configurations/${id}/oauth/connect`);
-      window.open(data.auth_url, '_blank', 'width=600,height=700');
+      const popup = window.open(data.auth_url, 'EmailOAuth', 'width=600,height=700');
+      if (!popup) {
+        addToast('error', 'Popup was blocked. Please allow popups for this site.');
+      }
     } catch (err) {
       addToast('error', getErrorMessage(err));
     }
@@ -250,8 +289,12 @@ export default function EmailSettingsPage() {
                   <label htmlFor="is_active" className="text-sm text-gray-700">Active (enable polling)</label>
                 </div>
                 <div className="col-span-1 md:col-span-2 flex gap-3">
-                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                    {editingId ? 'Update' : 'Create'}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Saving...' : editingId ? 'Update' : 'Create'}
                   </button>
                   <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">
                     Cancel
@@ -324,6 +367,7 @@ export default function EmailSettingsPage() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleOAuthConnect(config.id)}
+                            aria-label={`Connect OAuth for ${config.email_address}`}
                             className="text-xs text-purple-600 hover:text-purple-800"
                           >
                             Connect
@@ -331,6 +375,7 @@ export default function EmailSettingsPage() {
                           <button
                             onClick={() => handleTestPoll(config.id)}
                             disabled={polling === config.id}
+                            aria-label={`Test poll for ${config.email_address}`}
                             className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
                           >
                             {polling === config.id ? 'Polling...' : 'Test Poll'}

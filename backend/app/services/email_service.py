@@ -50,7 +50,9 @@ async def exchange_gmail_code(code: str) -> dict:
             "redirect_uri": settings.GMAIL_REDIRECT_URI,
         })
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+        _validate_token_response(data)
+        return data
 
 
 async def refresh_gmail_token(refresh_token: str) -> dict:
@@ -219,7 +221,9 @@ async def exchange_outlook_code(code: str) -> dict:
             "scope": MS_SCOPES,
         })
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+        _validate_token_response(data)
+        return data
 
 
 async def refresh_outlook_token(refresh_token: str) -> dict:
@@ -287,10 +291,17 @@ async def fetch_outlook_messages(
         data = resp.json()
 
         messages = data.get("value", [])
-        if not messages and filter_keywords:
-            # Graph API의 $search로 키워드 검색 (OData filter와 병행 불가)
-            # 키워드가 있으면 후처리로 필터링
-            pass
+
+        # Graph API는 $filter와 $search를 동시에 사용할 수 없으므로
+        # 키워드 필터링은 후처리로 적용
+        if messages and filter_keywords:
+            messages = [
+                m for m in messages
+                if any(
+                    kw.lower() in (m.get("subject") or "").lower()
+                    for kw in filter_keywords
+                )
+            ]
 
         return messages
 
@@ -333,3 +344,16 @@ def parse_outlook_message(message: dict) -> dict:
         "from": message.get("from", {}).get("emailAddress", {}).get("address", ""),
         "date": message.get("receivedDateTime", ""),
     }
+
+
+# ══════════════════════════════════════════════════════
+#  공통 유틸
+# ══════════════════════════════════════════════════════
+
+def _validate_token_response(data: dict) -> None:
+    """OAuth 토큰 응답 필수 필드 검증"""
+    if "access_token" not in data:
+        raise ValueError(
+            f"OAuth token response missing 'access_token'. "
+            f"Keys received: {list(data.keys())}"
+        )

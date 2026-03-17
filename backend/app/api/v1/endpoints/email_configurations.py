@@ -1,4 +1,5 @@
 """이메일 설정 API — OAuth 연결, CRUD, 테스트 폴링"""
+import secrets
 import uuid
 from typing import Optional
 
@@ -16,6 +17,9 @@ from app.schemas.email_configuration import (
 from app.services import email_configuration_service, email_service
 
 router = APIRouter()
+
+# OAuth state 임시 저장 (프로덕션에서는 Redis 사용 권장)
+_oauth_states: dict[str, str] = {}
 
 
 # ── CRUD ─────────────────────────────────────────────
@@ -113,7 +117,10 @@ async def get_oauth_url(
     config = await email_configuration_service.get_email_config(db, config_id)
     verify_company_access(current_user, config.company_id)
 
-    state = f"{config_id}"
+    # CSRF 방지: 랜덤 nonce + config_id 바인딩
+    nonce = secrets.token_urlsafe(32)
+    state = f"{config_id}:{nonce}"
+    _oauth_states[state] = str(config_id)
 
     if config.email_provider == "GMAIL":
         auth_url = email_service.get_gmail_auth_url(state)
@@ -134,10 +141,26 @@ async def oauth_callback(
     config = await email_configuration_service.get_email_config(db, config_id)
     verify_company_access(current_user, config.company_id)
 
+    # state 검증 (CSRF 방지)
+    if data.state:
+        stored_config_id = _oauth_states.pop(data.state, None)
+        if stored_config_id != str(config_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid OAuth state. Please reconnect.",
+            )
+
     if config.email_provider == "GMAIL":
         credentials = await email_service.exchange_gmail_code(data.code)
     else:
         credentials = await email_service.exchange_outlook_code(data.code)
+
+    # 자격증명 필수 필드 검증
+    if "access_token" not in credentials:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="OAuth provider did not return an access token.",
+        )
 
     updated = await email_configuration_service.save_oauth_credentials(
         db, config_id, credentials
@@ -164,10 +187,11 @@ async def test_poll(
             detail="OAuth credentials not configured. Connect your email first.",
         )
 
-    from app.tasks.email_tasks import _poll_single_account
+    from app.tasks.email_tasks import poll_single_account
     try:
-        fetched, created = await _poll_single_account(db, config)
+        fetched, created = await poll_single_account(db, config)
         await db.commit()
         return {"emails_fetched": fetched, "invoices_created": created, "errors": []}
     except Exception as e:
+        await db.rollback()
         return {"emails_fetched": 0, "invoices_created": 0, "errors": [str(e)]}

@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import uuid
+from collections import deque
 from datetime import datetime, timezone
 
 from app.tasks.celery_app import celery_app
@@ -14,6 +15,9 @@ from app.tasks.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 MAX_PROCESSED_IDS = 500  # FIFO 최대 보관 수
+MAX_ATTACHMENTS_PER_MESSAGE = 10  # 메시지당 최대 첨부파일 수
+MAX_ATTACHMENT_SIZE = 50 * 1024 * 1024  # 50MB
+MAX_CONSECUTIVE_ERRORS = 10  # 연속 에러 초과 시 자동 비활성화
 
 
 @celery_app.task(
@@ -51,19 +55,30 @@ async def _poll_all() -> dict:
 
         for config in configs:
             try:
-                fetched, created = await _poll_single_account(db, config)
+                fetched, created = await poll_single_account(db, config)
                 total_fetched += fetched
                 total_created += created
+                # 계정별 커밋 (한 계정 실패가 다른 계정에 영향 없도록)
+                await db.commit()
             except Exception as e:
-                error_msg = f"{config.email_address}: {str(e)}"
+                await db.rollback()
+                error_msg = f"{config.email_address}: {type(e).__name__}"
                 logger.error("Poll failed for %s: %s", config.email_address, e)
                 errors.append(error_msg)
-                # 에러 카운트 증가
-                config.poll_error_count += 1
-                config.last_error_message = str(e)[:500]
-                await db.flush()
-
-        await db.commit()
+                # 에러 카운트 증가 (별도 트랜잭션)
+                try:
+                    config.poll_error_count += 1
+                    config.last_error_message = _sanitize_error(str(e))
+                    # 연속 에러 초과 시 자동 비활성화
+                    if config.poll_error_count >= MAX_CONSECUTIVE_ERRORS:
+                        config.is_active = False
+                        logger.critical(
+                            "Auto-disabled email config %s after %d consecutive errors",
+                            config.email_address, config.poll_error_count,
+                        )
+                    await db.commit()
+                except Exception:
+                    await db.rollback()
 
     return {
         "status": "COMPLETED",
@@ -74,8 +89,8 @@ async def _poll_all() -> dict:
     }
 
 
-async def _poll_single_account(db, config) -> tuple[int, int]:
-    """단일 이메일 계정 폴링"""
+async def poll_single_account(db, config) -> tuple[int, int]:
+    """단일 이메일 계정 폴링 (test-poll에서도 호출)"""
     from app.services.email_configuration_service import get_decrypted_credentials
     from app.services import email_service
 
@@ -88,6 +103,8 @@ async def _poll_single_account(db, config) -> tuple[int, int]:
 
     if not access_token:
         raise ValueError("No access token in credentials")
+    if not refresh_token:
+        raise ValueError("No refresh token in credentials")
 
     # 토큰 갱신 시도
     try:
@@ -107,13 +124,16 @@ async def _poll_single_account(db, config) -> tuple[int, int]:
     filter_keywords = [k.strip() for k in (config.filter_keywords or "").split(",") if k.strip()] or None
     filter_senders = [s.strip() for s in (config.filter_senders or "").split(",") if s.strip()] or None
 
-    # 이전 처리 ID 로드
-    processed_ids = set()
+    # 이전 처리 ID 로드 (순서 보존을 위해 list 유지)
+    processed_id_list = []
     if config.processed_message_ids:
         try:
-            processed_ids = set(json.loads(config.processed_message_ids))
+            processed_id_list = json.loads(config.processed_message_ids)
+            if not isinstance(processed_id_list, list):
+                processed_id_list = []
         except json.JSONDecodeError:
-            processed_ids = set()
+            processed_id_list = []
+    processed_id_set = set(processed_id_list)
 
     # 메시지 조회
     if config.email_provider == "GMAIL":
@@ -134,31 +154,35 @@ async def _poll_single_account(db, config) -> tuple[int, int]:
         parsed_messages = [email_service.parse_outlook_message(m) for m in messages]
 
     # 중복 제거
-    new_messages = [m for m in parsed_messages if m["message_id"] not in processed_ids]
+    new_messages = [m for m in parsed_messages if m["message_id"] not in processed_id_set]
     logger.info(
         "%s: %d messages fetched, %d new",
         config.email_address, len(parsed_messages), len(new_messages),
     )
 
     created_count = 0
+    successfully_processed = []
     for msg in new_messages:
         try:
             created = await _process_email_message(db, config, msg, access_token)
             if created:
                 created_count += 1
-            processed_ids.add(msg["message_id"])
+            successfully_processed.append(msg["message_id"])
         except Exception as e:
             logger.error("Failed to process message %s: %s", msg["message_id"], e)
+            # 처리 실패한 메시지는 processed에 추가하지 않아 다음 폴링에서 재시도
 
-    # 처리 ID 목록 업데이트 (FIFO, 최대 500개)
-    id_list = list(processed_ids)
-    if len(id_list) > MAX_PROCESSED_IDS:
-        id_list = id_list[-MAX_PROCESSED_IDS:]
+    # 처리 ID 목록 업데이트 (순서 보존 FIFO)
+    processed_id_list.extend(successfully_processed)
+    if len(processed_id_list) > MAX_PROCESSED_IDS:
+        processed_id_list = processed_id_list[-MAX_PROCESSED_IDS:]
 
-    config.processed_message_ids = json.dumps(id_list)
-    config.last_polled_at = datetime.now(timezone.utc)
-    if new_messages:
-        config.last_message_id = new_messages[-1]["message_id"]
+    config.processed_message_ids = json.dumps(processed_id_list)
+    # 새 메시지가 있었을 때만 last_polled_at 업데이트 (실패 시 재시도 가능)
+    if successfully_processed or not new_messages:
+        config.last_polled_at = datetime.now(timezone.utc)
+    if successfully_processed:
+        config.last_message_id = successfully_processed[-1]
     config.poll_error_count = 0  # 성공 시 에러 카운트 리셋
     config.last_error_message = None
     await db.flush()
@@ -183,8 +207,27 @@ async def _process_email_message(db, config, message: dict, access_token: str) -
     if not attachments:
         return False
 
+    # 첨부파일 수 제한
+    if len(attachments) > MAX_ATTACHMENTS_PER_MESSAGE:
+        logger.warning(
+            "Message %s has %d attachments, processing first %d only",
+            message["message_id"], len(attachments), MAX_ATTACHMENTS_PER_MESSAGE,
+        )
+        attachments = attachments[:MAX_ATTACHMENTS_PER_MESSAGE]
+
     created = False
     for att in attachments:
+        # 첨부파일 크기 검증
+        att_size = att.get("size", 0)
+        if att_size > MAX_ATTACHMENT_SIZE:
+            logger.warning(
+                "Skipping attachment %s (%.1fMB > %.1fMB limit)",
+                att.get("filename", "unknown"),
+                att_size / (1024 * 1024),
+                MAX_ATTACHMENT_SIZE / (1024 * 1024),
+            )
+            continue
+
         # 첨부파일 다운로드
         if config.email_provider == "GMAIL":
             file_content = await email_service.download_gmail_attachment(
@@ -196,8 +239,17 @@ async def _process_email_message(db, config, message: dict, access_token: str) -
             if not file_content:
                 continue
 
-        # 파일 저장
-        filename = att.get("filename", f"attachment_{uuid.uuid4().hex[:8]}")
+        # 다운로드 후 실제 크기 재검증
+        if len(file_content) > MAX_ATTACHMENT_SIZE:
+            logger.warning("Attachment content exceeds size limit after download, skipping")
+            continue
+
+        # 파일 저장 (파일명 sanitize로 directory traversal 방지)
+        raw_filename = att.get("filename", f"attachment_{uuid.uuid4().hex[:8]}")
+        filename = os.path.basename(raw_filename)  # ../../../ 등 경로 제거
+        if not filename:
+            filename = f"attachment_{uuid.uuid4().hex[:8]}"
+
         file_ext = os.path.splitext(filename)[1].lower()
         if file_ext not in (".pdf", ".jpg", ".jpeg", ".png"):
             continue
@@ -245,3 +297,13 @@ async def _process_email_message(db, config, message: dict, access_token: str) -
         logger.info("Invoice created from email: %s (invoice=%s)", filename, invoice.id)
 
     return created
+
+
+def _sanitize_error(error_msg: str) -> str:
+    """에러 메시지에서 민감 정보 제거"""
+    import re
+    # OAuth 토큰, API 키 등 마스킹
+    sanitized = re.sub(r'(Bearer\s+)\S+', r'\1[REDACTED]', error_msg)
+    sanitized = re.sub(r'(access_token["\s:=]+)\S+', r'\1[REDACTED]', sanitized)
+    sanitized = re.sub(r'(refresh_token["\s:=]+)\S+', r'\1[REDACTED]', sanitized)
+    return sanitized[:500]
