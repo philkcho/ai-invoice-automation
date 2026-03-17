@@ -146,6 +146,7 @@ from app.api.v1.endpoints import (
     purchase_orders, invoice_types, global_rules, type_rules, vendor_contracts,
     invoices, exchange_rates, notifications,
     approval_settings, approvals, payments,
+    email_configurations,
 )
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(companies.router, prefix="/api/v1/companies", tags=["Companies"])
@@ -163,6 +164,7 @@ app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["
 app.include_router(approval_settings.router, prefix="/api/v1/approval-settings", tags=["Approval Settings"])
 app.include_router(approvals.router, prefix="/api/v1/approvals", tags=["Approvals"])
 app.include_router(payments.router, prefix="/api/v1/payments", tags=["Payments"])
+app.include_router(email_configurations.router, prefix="/api/v1/email-configurations", tags=["Email Configurations"])
 
 
 # ── 헬스 체크 ─────────────────────────────────────────

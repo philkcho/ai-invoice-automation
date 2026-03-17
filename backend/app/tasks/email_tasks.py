@@ -1,0 +1,247 @@
+"""
+이메일 폴링 Celery Task — Gmail/Outlook에서 인보이스 이메일 자동 수집
+5분마다 실행, 첨부파일 추출 → OCR 파이프라인 연결.
+"""
+import asyncio
+import json
+import logging
+import os
+import uuid
+from datetime import datetime, timezone
+
+from app.tasks.celery_app import celery_app
+
+logger = logging.getLogger(__name__)
+
+MAX_PROCESSED_IDS = 500  # FIFO 최대 보관 수
+
+
+@celery_app.task(
+    bind=True,
+    max_retries=1,
+    default_retry_delay=120,
+    name="app.tasks.email_tasks.poll_all_email_accounts",
+)
+def poll_all_email_accounts(self):
+    """활성 이메일 설정 전체 폴링 (Celery Beat에서 5분마다 실행)"""
+    logger.info("Starting email polling for all active accounts")
+    try:
+        result = asyncio.run(_poll_all())
+        logger.info("Email polling completed: %s", result)
+        return result
+    except Exception as exc:
+        logger.error("Email polling failed: %s", exc)
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=exc, countdown=120)
+        return {"status": "FAILED", "error": str(exc)}
+
+
+async def _poll_all() -> dict:
+    """모든 활성 이메일 설정에 대해 폴링 수행"""
+    from app.core.database import AsyncSessionLocal
+    from app.services.email_configuration_service import get_active_configs
+
+    total_fetched = 0
+    total_created = 0
+    errors = []
+
+    async with AsyncSessionLocal() as db:
+        configs = await get_active_configs(db)
+        logger.info("Found %d active email configurations", len(configs))
+
+        for config in configs:
+            try:
+                fetched, created = await _poll_single_account(db, config)
+                total_fetched += fetched
+                total_created += created
+            except Exception as e:
+                error_msg = f"{config.email_address}: {str(e)}"
+                logger.error("Poll failed for %s: %s", config.email_address, e)
+                errors.append(error_msg)
+                # 에러 카운트 증가
+                config.poll_error_count += 1
+                config.last_error_message = str(e)[:500]
+                await db.flush()
+
+        await db.commit()
+
+    return {
+        "status": "COMPLETED",
+        "accounts_polled": len(configs),
+        "emails_fetched": total_fetched,
+        "invoices_created": total_created,
+        "errors": errors,
+    }
+
+
+async def _poll_single_account(db, config) -> tuple[int, int]:
+    """단일 이메일 계정 폴링"""
+    from app.services.email_configuration_service import get_decrypted_credentials
+    from app.services import email_service
+
+    credentials = get_decrypted_credentials(config)
+    if not credentials:
+        raise ValueError("No OAuth credentials configured")
+
+    access_token = credentials.get("access_token")
+    refresh_token = credentials.get("refresh_token")
+
+    if not access_token:
+        raise ValueError("No access token in credentials")
+
+    # 토큰 갱신 시도
+    try:
+        if config.email_provider == "GMAIL":
+            new_creds = await email_service.refresh_gmail_token(refresh_token)
+        else:
+            new_creds = await email_service.refresh_outlook_token(refresh_token)
+
+        access_token = new_creds["access_token"]
+        # 갱신된 토큰 저장
+        from app.services.email_configuration_service import save_oauth_credentials
+        await save_oauth_credentials(db, config.id, new_creds)
+    except Exception as e:
+        logger.warning("Token refresh failed for %s, trying existing token: %s", config.email_address, e)
+
+    # 필터 파싱
+    filter_keywords = [k.strip() for k in (config.filter_keywords or "").split(",") if k.strip()] or None
+    filter_senders = [s.strip() for s in (config.filter_senders or "").split(",") if s.strip()] or None
+
+    # 이전 처리 ID 로드
+    processed_ids = set()
+    if config.processed_message_ids:
+        try:
+            processed_ids = set(json.loads(config.processed_message_ids))
+        except json.JSONDecodeError:
+            processed_ids = set()
+
+    # 메시지 조회
+    if config.email_provider == "GMAIL":
+        messages = await email_service.fetch_gmail_messages(
+            access_token=access_token,
+            after_timestamp=config.last_polled_at,
+            filter_keywords=filter_keywords,
+            filter_senders=filter_senders,
+        )
+        parsed_messages = [email_service.parse_gmail_message(m) for m in messages]
+    else:
+        messages = await email_service.fetch_outlook_messages(
+            access_token=access_token,
+            after_timestamp=config.last_polled_at,
+            filter_keywords=filter_keywords,
+            filter_senders=filter_senders,
+        )
+        parsed_messages = [email_service.parse_outlook_message(m) for m in messages]
+
+    # 중복 제거
+    new_messages = [m for m in parsed_messages if m["message_id"] not in processed_ids]
+    logger.info(
+        "%s: %d messages fetched, %d new",
+        config.email_address, len(parsed_messages), len(new_messages),
+    )
+
+    created_count = 0
+    for msg in new_messages:
+        try:
+            created = await _process_email_message(db, config, msg, access_token)
+            if created:
+                created_count += 1
+            processed_ids.add(msg["message_id"])
+        except Exception as e:
+            logger.error("Failed to process message %s: %s", msg["message_id"], e)
+
+    # 처리 ID 목록 업데이트 (FIFO, 최대 500개)
+    id_list = list(processed_ids)
+    if len(id_list) > MAX_PROCESSED_IDS:
+        id_list = id_list[-MAX_PROCESSED_IDS:]
+
+    config.processed_message_ids = json.dumps(id_list)
+    config.last_polled_at = datetime.now(timezone.utc)
+    if new_messages:
+        config.last_message_id = new_messages[-1]["message_id"]
+    config.poll_error_count = 0  # 성공 시 에러 카운트 리셋
+    config.last_error_message = None
+    await db.flush()
+
+    return len(new_messages), created_count
+
+
+async def _process_email_message(db, config, message: dict, access_token: str) -> bool:
+    """이메일 메시지에서 첨부파일 추출 → 인보이스 생성 → OCR 큐잉"""
+    from app.services import email_service
+    from app.models.invoice import Invoice
+    from app.services import notification_service
+
+    # 첨부파일 조회
+    if config.email_provider == "GMAIL":
+        attachments = message.get("attachments", [])
+    else:
+        attachments = await email_service.fetch_outlook_attachments(
+            access_token, message["message_id"]
+        )
+
+    if not attachments:
+        return False
+
+    created = False
+    for att in attachments:
+        # 첨부파일 다운로드
+        if config.email_provider == "GMAIL":
+            file_content = await email_service.download_gmail_attachment(
+                access_token, message["message_id"], att["attachment_id"]
+            )
+        else:
+            import base64
+            file_content = base64.b64decode(att["content_bytes"]) if att.get("content_bytes") else None
+            if not file_content:
+                continue
+
+        # 파일 저장
+        filename = att.get("filename", f"attachment_{uuid.uuid4().hex[:8]}")
+        file_ext = os.path.splitext(filename)[1].lower()
+        if file_ext not in (".pdf", ".jpg", ".jpeg", ".png"):
+            continue
+
+        unique_name = f"{uuid.uuid4().hex[:12]}_{filename}"
+        relative_path = f"email_attachments/{config.company_id}/{unique_name}"
+        full_path = os.path.join("/app/media", relative_path)
+
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "wb") as f:
+            f.write(file_content)
+
+        # 인보이스 생성
+        source_channel = "GMAIL" if config.email_provider == "GMAIL" else "OUTLOOK"
+        invoice = Invoice(
+            company_id=config.company_id,
+            source_channel=source_channel,
+            source_email=message.get("from", ""),
+            file_path=relative_path,
+            status="RECEIVED",
+            ocr_status="PENDING",
+            notes=f"Email subject: {message.get('subject', '')}",
+        )
+        db.add(invoice)
+        await db.flush()
+        await db.refresh(invoice)
+
+        # OCR 태스크 큐잉
+        from app.tasks.ocr_tasks import process_invoice_ocr
+        process_invoice_ocr.delay(str(invoice.id), relative_path)
+
+        # 알림 생성
+        await notification_service.create_role_notifications(
+            db,
+            company_id=config.company_id,
+            role="ACCOUNTANT",
+            type="EMAIL_RECEIVED",
+            title=f"이메일 인보이스 수신: {message.get('subject', 'No Subject')}",
+            message=f"발신자: {message.get('from', 'Unknown')} — OCR 처리 중",
+            entity_type="invoice",
+            entity_id=invoice.id,
+        )
+
+        created = True
+        logger.info("Invoice created from email: %s (invoice=%s)", filename, invoice.id)
+
+    return created

@@ -18,3 +18,4 @@ from app.models.approval_setting import ApprovalSetting  # noqa: F401
 from app.models.invoice_approval import InvoiceApproval  # noqa: F401
 from app.models.invoice_payment import InvoicePayment  # noqa: F401
 from app.models.notification import Notification  # noqa: F401
+from app.models.email_configuration import EmailConfiguration  # noqa: F401

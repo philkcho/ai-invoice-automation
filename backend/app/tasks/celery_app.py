@@ -10,11 +10,11 @@ celery_app = Celery(
         "app.tasks.ocr_tasks",           # Phase 6
         "app.tasks.notification_tasks",  # Phase 7
         "app.tasks.scheduled_tasks",     # Phase 7
+        "app.tasks.email_tasks",         # Phase 8
     ],
     # 향후 추가:
     # "app.tasks.validation_tasks",    # Phase 5
     # "app.tasks.export_tasks",        # Phase 9
-    # "app.tasks.email_tasks",         # Phase 8
     # "app.tasks.exchange_rate_tasks", # Phase 4
 )
 
@@ -30,11 +30,11 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
-    # 이메일 폴링 — 매 5분 (Phase 8, 미구현)
-    # "email-poll": {
-    #     "task": "app.tasks.email_tasks.poll_all_email_accounts",
-    #     "schedule": crontab(minute="*/5"),
-    # },
+    # 이메일 폴링 — 매 5분
+    "email-poll": {
+        "task": "app.tasks.email_tasks.poll_all_email_accounts",
+        "schedule": crontab(minute="*/5"),
+    },
     # 환율 업데이트 — 매일 자정 UTC (Phase 4, 미구현)
     # "exchange-rate-update": {
     #     "task": "app.tasks.exchange_rate_tasks.update_exchange_rates",
