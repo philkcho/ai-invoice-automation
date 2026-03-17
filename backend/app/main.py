@@ -147,6 +147,7 @@ from app.api.v1.endpoints import (
     invoices, exchange_rates, notifications,
     approval_settings, approvals, payments,
     email_configurations, dashboard, reports,
+    company_type_settings, recurring_amounts, linkage_details,
 )
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(companies.router, prefix="/api/v1/companies", tags=["Companies"])
@@ -167,6 +168,9 @@ app.include_router(payments.router, prefix="/api/v1/payments", tags=["Payments"]
 app.include_router(email_configurations.router, prefix="/api/v1/email-configurations", tags=["Email Configurations"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["Reports"])
+app.include_router(company_type_settings.router, prefix="/api/v1/company-type-settings", tags=["Company Type Settings"])
+app.include_router(recurring_amounts.router, prefix="/api/v1/recurring-amounts", tags=["Recurring Amounts"])
+app.include_router(linkage_details.router, prefix="/api/v1/linkage-details", tags=["Linkage Details"])
 
 
 # ── 헬스 체크 ─────────────────────────────────────────
