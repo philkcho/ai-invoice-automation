@@ -17,7 +17,7 @@ export default function Header() {
             </svg>
           </div>
           <h1 className="text-lg font-semibold bg-gradient-to-r from-primary-700 to-primary-500 bg-clip-text text-transparent">
-            Invoice System
+            AI Invoice Automation
           </h1>
         </div>
         <CompanySwitcher />

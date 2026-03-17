@@ -121,32 +121,32 @@ export default function NewPurchaseOrderPage() {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 bg-gray-50 p-6">
+        <main className="flex-1 bg-surface-50 p-8">
           <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT']}>
           <div className="max-w-4xl">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">New Purchase Order</h2>
+            <h2 className="page-title mb-6">New Purchase Order</h2>
 
-            {error && <div className="bg-red-50 text-red-600 text-sm rounded-md p-3 mb-4">{error}</div>}
+            {error && <div className="alert-error">{error}</div>}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Header */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="card p-6">
                 <h3 className="text-sm font-semibold text-gray-700 mb-4">PO Header</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">PO Number *</label>
+                    <label className="label">PO Number *</label>
                     <input name="po_number" required value={form.po_number} onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="input w-full" />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">PO Date *</label>
+                    <label className="label">PO Date *</label>
                     <input name="po_date" type="date" required value={form.po_date} onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="input w-full" />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Vendor *</label>
+                    <label className="label">Vendor *</label>
                     <select name="vendor_id" required value={form.vendor_id} onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                      className="input w-full">
                       <option value="">Select vendor...</option>
                       {vendors.map(v => (
                         <option key={v.id} value={v.id}>{v.company_name} ({v.vendor_code})</option>
@@ -154,15 +154,15 @@ export default function NewPurchaseOrderPage() {
                     </select>
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm text-gray-600 mb-1">Description</label>
+                    <label className="label">Description</label>
                     <input name="description" value={form.description} onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="input w-full" />
                   </div>
                 </div>
               </div>
 
               {/* Line Items */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-gray-700">Line Items</h3>
                   <button type="button" onClick={addLine}
@@ -185,17 +185,17 @@ export default function NewPurchaseOrderPage() {
                         <td className="py-2 text-gray-500">{line.line_number}</td>
                         <td className="py-2 pr-2">
                           <input value={line.description} onChange={(e) => handleLineChange(i, 'description', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm" />
+                            className="input w-full" />
                         </td>
                         <td className="py-2 pr-2">
                           <input type="number" step="0.01" min="0.01" value={line.quantity}
                             onChange={(e) => handleLineChange(i, 'quantity', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-right" />
+                            className="input w-full text-right" />
                         </td>
                         <td className="py-2 pr-2">
                           <input type="number" step="0.01" min="0" value={line.unit_price}
                             onChange={(e) => handleLineChange(i, 'unit_price', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-right" />
+                            className="input w-full text-right" />
                         </td>
                         <td className="py-2 text-right font-mono">{fmt(lineTotal(line))}</td>
                         <td className="py-2 text-center">
@@ -219,11 +219,11 @@ export default function NewPurchaseOrderPage() {
 
               <div className="flex gap-3">
                 <button type="submit" disabled={loading}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm transition-colors">
+                  className="btn-primary disabled:opacity-50">
                   {loading ? 'Creating...' : 'Create PO'}
                 </button>
                 <button type="button" onClick={() => router.push('/purchase-orders')}
-                  className="bg-gray-100 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-200 text-sm transition-colors">
+                  className="btn-secondary">
                   Cancel
                 </button>
               </div>

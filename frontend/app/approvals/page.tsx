@@ -27,10 +27,10 @@ interface ApprovalItem {
 }
 
 const statusColors: Record<string, string> = {
-  PENDING: 'bg-yellow-50 text-yellow-700',
-  APPROVED: 'bg-green-50 text-green-700',
-  REJECTED: 'bg-red-50 text-red-700',
-  CANCELLED: 'bg-gray-100 text-gray-500',
+  PENDING: 'badge-yellow',
+  APPROVED: 'badge-green',
+  REJECTED: 'badge-red',
+  CANCELLED: 'badge-gray',
 };
 
 export default function ApprovalsPage() {
@@ -83,23 +83,19 @@ export default function ApprovalsPage() {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 bg-gray-50 p-6">
+        <main className="flex-1 bg-surface-50 p-8">
           <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN', 'APPROVER']}>
-          <div className="flex items-center justify-between mb-6">
+          <div className="page-header flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800">Approvals</h2>
-              <p className="text-sm text-gray-500">{total} items</p>
+              <h2 className="page-title">Approvals</h2>
+              <p className="page-subtitle">{total} items</p>
             </div>
             <div className="flex gap-2">
               {['PENDING', 'APPROVED', 'REJECTED', ''].map((s) => (
                 <button
                   key={s}
                   onClick={() => setStatusFilter(s)}
-                  className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                    statusFilter === s
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className={statusFilter === s ? 'btn-primary' : 'btn-secondary'}
                 >
                   {s || 'All'}
                 </button>
@@ -107,71 +103,71 @@ export default function ApprovalsPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="card overflow-hidden">
             {loading ? (
-              <div className="p-8 text-center text-gray-500">Loading...</div>
+              <div className="loading-state">Loading...</div>
             ) : approvals.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No approval items found.</div>
+              <div className="empty-state">No approval items found.</div>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="table-header">
                   <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Invoice #</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Vendor</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-600">Amount</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">Step</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">Round</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">Status</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">Actions</th>
+                    <th className="table-th text-left">Invoice #</th>
+                    <th className="table-th text-left">Vendor</th>
+                    <th className="table-th text-right">Amount</th>
+                    <th className="table-th text-center">Step</th>
+                    <th className="table-th text-left">Role</th>
+                    <th className="table-th text-center">Round</th>
+                    <th className="table-th text-center">Status</th>
+                    <th className="table-th text-left">Date</th>
+                    <th className="table-th text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {approvals.map((a) => (
-                    <tr key={a.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-blue-600">
+                    <tr key={a.id} className="table-row">
+                      <td className="table-td font-medium text-blue-600">
                         {a.invoice_number || a.invoice_id.slice(0, 8)}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{a.vendor_name || '—'}</td>
-                      <td className="px-4 py-3 text-right font-mono text-xs">
+                      <td className="table-td text-gray-600">{a.vendor_name || '—'}</td>
+                      <td className="table-td text-right font-mono text-xs">
                         ${(a.amount_total ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                      <td className="table-td text-center">
+                        <span className="badge-blue">
                           Step {a.step}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      <td className="table-td">
+                        <span className={
                           a.approver_role === 'COMPANY_ADMIN'
-                            ? 'bg-purple-50 text-purple-700'
-                            : 'bg-orange-50 text-orange-700'
-                        }`}>
+                            ? 'badge-purple'
+                            : 'badge-orange'
+                        }>
                           {a.approver_role}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center text-xs text-gray-500">#{a.submission_round}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[a.status] || ''}`}>
+                      <td className="table-td text-center text-xs text-gray-500">#{a.submission_round}</td>
+                      <td className="table-td text-center">
+                        <span className={statusColors[a.status] || ''}>
                           {a.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">
+                      <td className="table-td text-xs text-gray-500">
                         {new Date(a.created_at).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="table-td text-center">
                         {a.status === 'PENDING' && (
                           <div className="flex gap-1 justify-center">
                             <button
                               onClick={() => setActionModal({ id: a.id, action: 'APPROVED' })}
-                              className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition-colors"
+                              className="btn-success text-xs !px-3 !py-1"
                             >
                               Approve
                             </button>
                             <button
                               onClick={() => setActionModal({ id: a.id, action: 'REJECTED' })}
-                              className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors"
+                              className="btn-danger text-xs !px-3 !py-1"
                             >
                               Reject
                             </button>
@@ -192,31 +188,31 @@ export default function ApprovalsPage() {
 
           {/* Action Modal */}
           {actionModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div className="modal-overlay">
+              <div className="modal-content max-w-md">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
                   {actionModal.action === 'APPROVED' ? 'Approve Invoice' : 'Reject Invoice'}
                 </h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Comments</label>
+                    <label className="label">Comments</label>
                     <textarea
                       value={actionForm.comments}
                       onChange={(e) => setActionForm({ ...actionForm, comments: e.target.value })}
                       rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="input w-full"
                       placeholder="Optional comments..."
                     />
                   </div>
                   {actionModal.action === 'REJECTED' && (
                     <div>
-                      <label className="block text-sm text-gray-600 mb-1">Rejection Reason *</label>
+                      <label className="label">Rejection Reason *</label>
                       <textarea
                         value={actionForm.rejection_reason}
                         onChange={(e) => setActionForm({ ...actionForm, rejection_reason: e.target.value })}
                         rows={3}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="input w-full"
                         placeholder="Please provide a reason for rejection..."
                       />
                     </div>
@@ -225,18 +221,16 @@ export default function ApprovalsPage() {
                 <div className="flex justify-end gap-2 mt-6">
                   <button
                     onClick={() => { setActionModal(null); setActionForm({ comments: '', rejection_reason: '' }); }}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50"
+                    className="btn-secondary"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAction}
                     disabled={processing || (actionModal.action === 'REJECTED' && !actionForm.rejection_reason)}
-                    className={`px-4 py-2 rounded-md text-sm text-white transition-colors disabled:opacity-50 ${
-                      actionModal.action === 'APPROVED'
-                        ? 'bg-green-600 hover:bg-green-700'
-                        : 'bg-red-600 hover:bg-red-700'
-                    }`}
+                    className={`${
+                      actionModal.action === 'APPROVED' ? 'btn-success' : 'btn-danger'
+                    } disabled:opacity-50`}
                   >
                     {processing ? 'Processing...' : actionModal.action === 'APPROVED' ? 'Approve' : 'Reject'}
                   </button>

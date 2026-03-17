@@ -26,11 +26,11 @@ interface PaymentItem {
 }
 
 const statusColors: Record<string, string> = {
-  SCHEDULED: 'bg-blue-50 text-blue-700',
-  PROCESSING: 'bg-yellow-50 text-yellow-700',
-  PAID: 'bg-green-50 text-green-700',
-  FAILED: 'bg-red-50 text-red-700',
-  VOID: 'bg-gray-100 text-gray-500',
+  SCHEDULED: 'badge-blue',
+  PROCESSING: 'badge-yellow',
+  PAID: 'badge-green',
+  FAILED: 'badge-red',
+  VOID: 'badge-gray',
 };
 
 const methodLabels: Record<string, string> = {
@@ -120,30 +120,26 @@ export default function PaymentsPage() {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 bg-gray-50 p-6">
+        <main className="flex-1 bg-surface-50 p-8">
           <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT']}>
-          <div className="flex items-center justify-between mb-6">
+          <div className="page-header flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800">Payments</h2>
-              <p className="text-sm text-gray-500">{total} payments</p>
+              <h2 className="page-title">Payments</h2>
+              <p className="page-subtitle">{total} payments</p>
             </div>
             <div className="flex gap-2">
               {['', 'SCHEDULED', 'PROCESSING', 'PAID', 'FAILED', 'VOID'].map((s) => (
                 <button
                   key={s}
                   onClick={() => setStatusFilter(s)}
-                  className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                    statusFilter === s
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className={statusFilter === s ? 'btn-primary' : 'btn-secondary'}
                 >
                   {s || 'All'}
                 </button>
               ))}
               <button
                 onClick={() => setShowSchedule(!showSchedule)}
-                className="bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-700 text-sm transition-colors ml-2"
+                className="btn-primary ml-2"
               >
                 {showSchedule ? 'Cancel' : '+ Schedule'}
               </button>
@@ -151,25 +147,25 @@ export default function PaymentsPage() {
           </div>
 
           {showSchedule && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+            <div className="card mb-4">
               <h3 className="text-sm font-medium text-gray-700 mb-4">Schedule Payment</h3>
-              {error && <div className="bg-red-50 text-red-600 text-sm rounded-md p-3 mb-4">{error}</div>}
+              {error && <div className="alert-error">{error}</div>}
               <form onSubmit={handleSchedule} className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Invoice ID *</label>
+                  <label className="label">Invoice ID *</label>
                   <input
                     required value={scheduleForm.invoice_id}
                     onChange={(e) => setScheduleForm({ ...scheduleForm, invoice_id: e.target.value })}
                     placeholder="Paste approved invoice ID"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Payment Method *</label>
+                  <label className="label">Payment Method *</label>
                   <select
                     value={scheduleForm.payment_method}
                     onChange={(e) => setScheduleForm({ ...scheduleForm, payment_method: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input w-full"
                   >
                     <option value="ACH">ACH</option>
                     <option value="CHECK">Check</option>
@@ -178,33 +174,33 @@ export default function PaymentsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Scheduled Date *</label>
+                  <label className="label">Scheduled Date *</label>
                   <input
                     type="date" required value={scheduleForm.scheduled_date}
                     onChange={(e) => setScheduleForm({ ...scheduleForm, scheduled_date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Amount ($) *</label>
+                  <label className="label">Amount ($) *</label>
                   <input
                     type="number" step="0.01" min="0.01" required
                     value={scheduleForm.amount_paid}
                     onChange={(e) => setScheduleForm({ ...scheduleForm, amount_paid: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Bank Name</label>
+                  <label className="label">Bank Name</label>
                   <input
                     value={scheduleForm.bank_name}
                     onChange={(e) => setScheduleForm({ ...scheduleForm, bank_name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input w-full"
                   />
                 </div>
                 <div className="flex items-end">
                   <button type="submit"
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 text-sm transition-colors">
+                    className="btn-primary">
                     Schedule
                   </button>
                 </div>
@@ -212,50 +208,50 @@ export default function PaymentsPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="card overflow-hidden">
             {loading ? (
-              <div className="p-8 text-center text-gray-500">Loading...</div>
+              <div className="loading-state">Loading...</div>
             ) : payments.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No payments found.</div>
+              <div className="empty-state">No payments found.</div>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="table-header">
                   <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Invoice #</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Vendor</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Method</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-600">Amount</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Scheduled</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Paid</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Ref</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">Status</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">Actions</th>
+                    <th className="table-th text-left">Invoice #</th>
+                    <th className="table-th text-left">Vendor</th>
+                    <th className="table-th text-left">Method</th>
+                    <th className="table-th text-right">Amount</th>
+                    <th className="table-th text-left">Scheduled</th>
+                    <th className="table-th text-left">Paid</th>
+                    <th className="table-th text-left">Ref</th>
+                    <th className="table-th text-center">Status</th>
+                    <th className="table-th text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {payments.map((p) => (
-                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-blue-600">
+                    <tr key={p.id} className="table-row">
+                      <td className="table-td font-medium text-blue-600">
                         {p.invoice_number || p.invoice_id.slice(0, 8)}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{p.vendor_name || '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                      <td className="table-td text-gray-600">{p.vendor_name || '—'}</td>
+                      <td className="table-td">
+                        <span className="badge-gray">
                           {methodLabels[p.payment_method] || p.payment_method}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-xs">
+                      <td className="table-td text-right font-mono text-xs">
                         ${p.amount_paid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{p.scheduled_date || '—'}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{p.paid_date || '—'}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500 font-mono">{p.transaction_ref || '—'}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[p.payment_status] || ''}`}>
+                      <td className="table-td text-xs text-gray-500">{p.scheduled_date || '—'}</td>
+                      <td className="table-td text-xs text-gray-500">{p.paid_date || '—'}</td>
+                      <td className="table-td text-xs text-gray-500 font-mono">{p.transaction_ref || '—'}</td>
+                      <td className="table-td text-center">
+                        <span className={statusColors[p.payment_status] || ''}>
                           {p.payment_status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="table-td text-center">
                         <div className="flex gap-1 justify-center flex-wrap">
                           {p.payment_status === 'SCHEDULED' && (
                             <>
