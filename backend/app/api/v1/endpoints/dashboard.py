@@ -1,0 +1,80 @@
+"""대시보드 API — KPI 통계, 트렌드, 차트 데이터"""
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.security import require_any, require_super_admin, ROLE_SUPER_ADMIN
+from app.services import dashboard_service
+
+router = APIRouter()
+
+
+@router.get("/summary")
+async def get_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any),
+):
+    """회사 KPI 요약 카드"""
+    if current_user["role"] == ROLE_SUPER_ADMIN and not current_user.get("company_id"):
+        return await dashboard_service.get_super_admin_summary(db)
+    return await dashboard_service.get_company_summary(db, current_user["company_id"])
+
+
+@router.get("/super-admin")
+async def get_super_admin_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_super_admin),
+):
+    """전체 시스템 요약 (SUPER_ADMIN 전용)"""
+    return await dashboard_service.get_super_admin_summary(db)
+
+
+@router.get("/invoice-trend")
+async def get_invoice_trend(
+    months: int = Query(12, ge=1, le=24),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any),
+):
+    """월별 인보이스 트렌드"""
+    company_id = current_user.get("company_id")
+    if not company_id:
+        return []
+    return await dashboard_service.get_invoice_trend(db, company_id, months)
+
+
+@router.get("/spend-by-type")
+async def get_spend_by_type(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any),
+):
+    """인보이스 타입별 지출 (파이 차트)"""
+    company_id = current_user.get("company_id")
+    if not company_id:
+        return []
+    return await dashboard_service.get_spend_by_type(db, company_id)
+
+
+@router.get("/top-vendors")
+async def get_top_vendors(
+    limit: int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any),
+):
+    """Top N 벤더별 지출"""
+    company_id = current_user.get("company_id")
+    if not company_id:
+        return []
+    return await dashboard_service.get_top_vendors(db, company_id, limit)
+
+
+@router.get("/recent-activity")
+async def get_recent_activity(
+    limit: int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any),
+):
+    """최근 인보이스 활동"""
+    company_id = current_user.get("company_id")
+    if not company_id:
+        return []
+    return await dashboard_service.get_recent_activity(db, company_id, limit)
