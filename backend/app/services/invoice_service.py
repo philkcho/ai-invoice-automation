@@ -22,6 +22,20 @@ async def create_invoice(
     db: AsyncSession, data: InvoiceCreate, created_by: UUID | None
 ) -> Invoice:
     """인보이스 생성 (수동 입력 또는 OCR 후 생성)"""
+    # 동일 회사 내 Invoice # 중복 체크
+    if data.invoice_number:
+        dup_result = await db.execute(
+            select(Invoice).where(
+                Invoice.company_id == data.company_id,
+                Invoice.invoice_number == data.invoice_number,
+            ).limit(1)
+        )
+        if dup_result.scalars().first():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Invoice number '{data.invoice_number}' already exists",
+            )
+
     # 라인 금액 계산
     lines_data = data.lines
     amount_subtotal = sum(round(l.quantity * l.unit_price, 2) for l in lines_data)

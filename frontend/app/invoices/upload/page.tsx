@@ -291,7 +291,7 @@ export default function InvoiceUploadPage() {
                       <input name="due_date" type="date" value={form.due_date} onChange={handleChange} className="input w-full" />
                     </div>
                     <div>
-                      <label className="label">PO #</label>
+                      <label className="label">Linkage No</label>
                       <input name="po_number" value={form.po_number} onChange={handleChange} className="input w-full" />
                     </div>
                   </div>

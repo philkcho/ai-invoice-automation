@@ -16,6 +16,22 @@ interface LineItem {
   unit_price: string;
 }
 
+interface LinkageItem {
+  id: string;
+  linkage_no: string;
+  vendor_id: string | null;
+  amount: number;
+  amount_invoiced: number;
+  amount_remaining: number;
+}
+
+interface CompanyTypeSetting {
+  id: string;
+  company_id: string;
+  invoice_type_id: string;
+  link_enabled: boolean;
+}
+
 export default function NewInvoicePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -24,6 +40,8 @@ export default function NewInvoicePage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [invoiceTypes, setInvoiceTypes] = useState<{ id: string; type_code: string; type_name: string }[]>([]);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [linkageItems, setLinkageItems] = useState<LinkageItem[]>([]);
+  const [isLinked, setIsLinked] = useState(false);
 
   const [form, setForm] = useState({
     vendor_id: '',
@@ -46,6 +64,32 @@ export default function NewInvoicePage() {
     api.get('/api/v1/invoice-types', { params: { limit: 100 } })
       .then(({ data }) => setInvoiceTypes(data.items)).catch(() => {});
   }, []);
+
+  // Invoice Type 변경 시 linkage 확인
+  const handleTypeChange = async (typeId: string) => {
+    setForm(prev => ({ ...prev, invoice_type_id: typeId, po_number: '' }));
+    setLinkageItems([]);
+    setIsLinked(false);
+
+    if (!typeId) return;
+
+    try {
+      // CompanyTypeSetting에서 link_enabled 확인
+      const { data: settings } = await api.get('/api/v1/company-type-settings', {
+        params: { invoice_type_id: typeId, limit: 100 },
+      });
+      const setting = (settings.items as CompanyTypeSetting[]).find((s: CompanyTypeSetting) => s.invoice_type_id === typeId);
+
+      if (setting?.link_enabled) {
+        setIsLinked(true);
+        // LinkageDetail 목록 조회
+        const { data: linkages } = await api.get(`/api/v1/linkage-details/${typeId}`);
+        setLinkageItems(linkages.items || []);
+      }
+    } catch {
+      // linkage 정보 없으면 일반 입력
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -81,6 +125,17 @@ export default function NewInvoicePage() {
       setError('');
     }
   };
+
+  // PO# 선택 시 vendor 자동 선택
+  const handlePoSelect = (linkageNo: string) => {
+    setForm(prev => ({ ...prev, po_number: linkageNo }));
+    const linkage = linkageItems.find(l => l.linkage_no === linkageNo);
+    if (linkage?.vendor_id && !form.vendor_id) {
+      setForm(prev => ({ ...prev, po_number: linkageNo, vendor_id: linkage.vendor_id! }));
+    }
+  };
+
+  const selectedLinkage = linkageItems.find(l => l.linkage_no === form.po_number);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,7 +214,8 @@ export default function NewInvoicePage() {
                   </div>
                   <div>
                     <label className="label">Invoice Type *</label>
-                    <select name="invoice_type_id" required value={form.invoice_type_id} onChange={handleChange}
+                    <select name="invoice_type_id" required value={form.invoice_type_id}
+                      onChange={(e) => handleTypeChange(e.target.value)}
                       className="input w-full">
                       <option value="">Select type...</option>
                       {invoiceTypes.map(t => <option key={t.id} value={t.id}>{t.type_name} ({t.type_code})</option>)}
@@ -181,9 +237,26 @@ export default function NewInvoicePage() {
                       className="input w-full" />
                   </div>
                   <div>
-                    <label className="label">PO #</label>
-                    <input name="po_number" value={form.po_number} onChange={handleChange}
-                      className="input w-full" />
+                    <label className="label">Linkage No{isLinked && <span className="text-xs text-primary-500 ml-1">(Linked)</span>}</label>
+                    {isLinked && linkageItems.length > 0 ? (
+                      <select value={form.po_number} onChange={(e) => handlePoSelect(e.target.value)}
+                        className="input w-full">
+                        <option value="">Select PO...</option>
+                        {linkageItems.map(l => (
+                          <option key={l.id} value={l.linkage_no}>
+                            {l.linkage_no} (Remaining: {fmt(l.amount_remaining)})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input name="po_number" value={form.po_number} onChange={handleChange}
+                        className="input w-full" />
+                    )}
+                    {selectedLinkage && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Budget: {fmt(selectedLinkage.amount)} | Invoiced: {fmt(selectedLinkage.amount_invoiced)} | Remaining: {fmt(selectedLinkage.amount_remaining)}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

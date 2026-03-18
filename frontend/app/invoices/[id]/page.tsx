@@ -238,7 +238,7 @@ export default function InvoiceDetailPage() {
                 <div className="grid grid-cols-4 gap-4 text-sm">
                   <div><span className="text-gray-500">Date:</span> <span className="font-medium">{invoice.invoice_date || '—'}</span></div>
                   <div><span className="text-gray-500">Due:</span> <span className="font-medium">{invoice.due_date || '—'}</span></div>
-                  <div><span className="text-gray-500">PO #:</span> <span className="font-medium">{invoice.po_number || '—'}</span></div>
+                  <div><span className="text-gray-500">Linkage No:</span> <span className="font-medium">{invoice.po_number || '—'}</span></div>
                   <div><span className="text-gray-500">Source:</span> <span className="font-medium">{invoice.source_channel}</span></div>
                   <div><span className="text-gray-500">Subtotal:</span> <span className="font-mono">{fmt(invoice.amount_subtotal)}</span></div>
                   <div><span className="text-gray-500">Tax:</span> <span className="font-mono">{fmt(invoice.amount_tax)}</span></div>
@@ -271,7 +271,7 @@ export default function InvoiceDetailPage() {
                       className="input w-full" />
                   </div>
                   <div>
-                    <label className="label">PO #</label>
+                    <label className="label">Linkage No</label>
                     <input value={editForm.po_number}
                       onChange={(e) => setEditForm({ ...editForm, po_number: e.target.value })}
                       className="input w-full" />
