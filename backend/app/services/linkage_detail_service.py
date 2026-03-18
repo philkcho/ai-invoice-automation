@@ -29,6 +29,14 @@ async def bulk_save(
     details: list[LinkageDetailCreate],
 ) -> list[LinkageDetail]:
     """기존 내역 삭제 후 새로 일괄 저장"""
+    # linkage_no 중복 검증
+    linkage_nos = [d.linkage_no for d in details]
+    if len(linkage_nos) != len(set(linkage_nos)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Duplicate linkage_no found",
+        )
+
     # 기존 삭제
     await db.execute(
         delete(LinkageDetail).where(

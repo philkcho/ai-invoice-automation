@@ -16,6 +16,7 @@ from app.models import (  # noqa: F401
     InvoiceType, GlobalValidationRule, TypeRuleSet, TypeRuleCondition,
     Invoice, InvoiceLineItem, ExchangeRate, OcrCorrection, ValidationResult,
     EmailConfiguration, CompanyTypeSetting, RecurringAmount, LinkageDetail,
+    CompanyPolicy,
 )
 
 config = context.config

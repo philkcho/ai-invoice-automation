@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func, delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
@@ -87,6 +87,13 @@ async def update_invoice_type(
 
 async def delete_invoice_type(db: AsyncSession, invoice_type_id: UUID) -> None:
     invoice_type = await get_invoice_type(db, invoice_type_id)
+
+    # 연관 데이터 먼저 삭제 (FK RESTRICT 대응)
+    from app.models.linkage_detail import LinkageDetail
+    from app.models.company_type_setting import CompanyTypeSetting
+    await db.execute(delete(LinkageDetail).where(LinkageDetail.invoice_type_id == invoice_type_id))
+    await db.execute(delete(CompanyTypeSetting).where(CompanyTypeSetting.invoice_type_id == invoice_type_id))
+
     await db.delete(invoice_type)
     await db.flush()
 

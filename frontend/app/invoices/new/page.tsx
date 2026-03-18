@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
@@ -14,15 +14,16 @@ interface LineItem {
   description: string;
   quantity: string;
   unit_price: string;
-  tax_amount: string;
 }
 
 export default function NewInvoicePage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [invoiceTypes, setInvoiceTypes] = useState<{ id: string; type_code: string; type_name: string }[]>([]);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
   const [form, setForm] = useState({
     vendor_id: '',
@@ -36,7 +37,7 @@ export default function NewInvoicePage() {
   });
 
   const [lines, setLines] = useState<LineItem[]>([
-    { line_number: 1, description: '', quantity: '1', unit_price: '0', tax_amount: '0' },
+    { line_number: 1, description: '', quantity: '1', unit_price: '0' },
   ]);
 
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function NewInvoicePage() {
   };
 
   const addLine = () => {
-    setLines([...lines, { line_number: lines.length + 1, description: '', quantity: '1', unit_price: '0', tax_amount: '0' }]);
+    setLines([...lines, { line_number: lines.length + 1, description: '', quantity: '1', unit_price: '0' }]);
   };
 
   const removeLine = (index: number) => {
@@ -66,8 +67,20 @@ export default function NewInvoicePage() {
   };
 
   const lineTotal = (l: LineItem) => (parseFloat(l.quantity) || 0) * (parseFloat(l.unit_price) || 0);
-  const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
-  const taxTotal = lines.reduce((sum, l) => sum + (parseFloat(l.tax_amount) || 0), 0);
+  const total = lines.reduce((sum, l) => sum + lineTotal(l), 0);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      if (!['.pdf', '.jpg', '.jpeg', '.png'].includes(ext)) {
+        setError(`Unsupported file type: ${ext}. Allowed: PDF, JPG, PNG`);
+        return;
+      }
+      setAttachedFile(file);
+      setError('');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +95,7 @@ export default function NewInvoicePage() {
         companyId = compRes.data.items[0].id;
       }
 
-      await api.post('/api/v1/invoices', {
+      const invoiceRes = await api.post('/api/v1/invoices', {
         company_id: companyId,
         vendor_id: form.vendor_id,
         invoice_type_id: form.invoice_type_id,
@@ -98,9 +111,19 @@ export default function NewInvoicePage() {
           description: l.description || null,
           quantity: parseFloat(l.quantity),
           unit_price: parseFloat(l.unit_price),
-          tax_amount: parseFloat(l.tax_amount) || 0,
+          tax_amount: 0,
         })),
       });
+
+      // 파일 첨부
+      if (attachedFile && invoiceRes.data.id) {
+        const formData = new FormData();
+        formData.append('file', attachedFile);
+        await api.post(`/api/v1/invoices/${invoiceRes.data.id}/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+
       router.push('/invoices');
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -143,8 +166,8 @@ export default function NewInvoicePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="label">Invoice #</label>
-                    <input name="invoice_number" value={form.invoice_number} onChange={handleChange}
+                    <label className="label">Invoice # *</label>
+                    <input name="invoice_number" required value={form.invoice_number} onChange={handleChange}
                       className="input w-full" />
                   </div>
                   <div>
@@ -177,7 +200,6 @@ export default function NewInvoicePage() {
                       <th className="text-left py-2">Description</th>
                       <th className="text-right py-2 w-20">Qty</th>
                       <th className="text-right py-2 w-28">Unit Price</th>
-                      <th className="text-right py-2 w-24">Tax</th>
                       <th className="text-right py-2 w-28">Amount</th>
                       <th className="w-8"></th>
                     </tr>
@@ -200,11 +222,6 @@ export default function NewInvoicePage() {
                             onChange={(e) => handleLineChange(i, 'unit_price', e.target.value)}
                             className="input w-full py-1 text-right" />
                         </td>
-                        <td className="py-2 pr-2">
-                          <input type="number" step="0.01" min="0" value={line.tax_amount}
-                            onChange={(e) => handleLineChange(i, 'tax_amount', e.target.value)}
-                            className="input w-full py-1 text-right" />
-                        </td>
                         <td className="py-2 text-right font-mono">{fmt(lineTotal(line))}</td>
                         <td className="py-2 text-center">
                           {lines.length > 1 && (
@@ -216,24 +233,49 @@ export default function NewInvoicePage() {
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 border-primary-100/40">
-                      <td colSpan={4} className="py-2 text-right text-gray-600">Subtotal:</td>
-                      <td className="py-2 text-right text-gray-600 font-mono">{fmt(subtotal)}</td>
-                      <td></td>
-                      <td></td>
-                    </tr>
-                    <tr>
-                      <td colSpan={4} className="py-1 text-right text-gray-600">Tax:</td>
-                      <td className="py-1 text-right text-gray-600 font-mono">{fmt(taxTotal)}</td>
-                      <td></td>
-                      <td></td>
-                    </tr>
-                    <tr>
-                      <td colSpan={5} className="py-1 text-right font-semibold text-gray-700">Total:</td>
-                      <td className="py-1 text-right font-mono font-bold text-lg">{fmt(subtotal + taxTotal)}</td>
+                      <td colSpan={4} className="py-2 text-right font-semibold text-gray-700">Total:</td>
+                      <td className="py-2 text-right font-mono font-bold text-lg">{fmt(total)}</td>
                       <td></td>
                     </tr>
                   </tfoot>
                 </table>
+              </div>
+
+              {/* 파일 첨부 */}
+              <div className="card p-6">
+                <h3 className="text-sm font-semibold text-gray-700 mb-4">Attachment</h3>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn-secondary text-sm"
+                  >
+                    {attachedFile ? 'Change File' : 'Attach Invoice File'}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  {attachedFile ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                      </svg>
+                      <span className="text-gray-700">{attachedFile.name}</span>
+                      <span className="text-gray-400">({(attachedFile.size / 1024).toFixed(0)} KB)</span>
+                      <button
+                        type="button"
+                        onClick={() => { setAttachedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                        className="text-red-400 hover:text-red-600 text-xs ml-1"
+                      >Remove</button>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-400">PDF, JPG, PNG (max 20MB)</span>
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-3">

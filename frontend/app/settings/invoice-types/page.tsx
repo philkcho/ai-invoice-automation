@@ -112,6 +112,12 @@ export default function InvoiceTypesPage() {
     fetchVendors();
   }, [fetchLinkSettings, fetchVendors]);
 
+  useEffect(() => {
+    const handleReset = () => resetForm();
+    window.addEventListener('sidebar-nav-reset', handleReset);
+    return () => window.removeEventListener('sidebar-nav-reset', handleReset);
+  });
+
   const getLinkSetting = (invoiceTypeId: string): CompanyTypeSetting | undefined => {
     return linkSettings.find((ls) => ls.invoice_type_id === invoiceTypeId);
   };
@@ -188,11 +194,19 @@ export default function InvoiceTypesPage() {
   const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
   const totalAmount = details.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
 
+  const isDuplicateLinkageNo = (index: number): boolean => {
+    const no = details[index].linkage_no.trim();
+    if (!no) return false;
+    return details.some((d, i) => i !== index && d.linkage_no.trim() === no);
+  };
+  const hasDuplicateLinkageNo = details.some((_, i) => isDuplicateLinkageNo(i));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSaving(true);
     try {
+      let targetId: string | undefined = editingId ?? undefined;
       if (editingId) {
         await api.patch(`/api/v1/invoice-types/${editingId}`, {
           type_name: form.type_name,
@@ -206,16 +220,26 @@ export default function InvoiceTypesPage() {
           });
         }
       } else {
-        await api.post('/api/v1/invoice-types', {
+        const { data: newType } = await api.post('/api/v1/invoice-types', {
           type_code: form.type_code,
           type_name: form.type_name,
           description: form.description || null,
           requires_approver: form.requires_approver,
         });
+        targetId = newType.id;
+
+        // 신규 타입: company_type_settings에 누락분 추가 후 link_enabled 설정
+        await api.post('/api/v1/company-type-settings/initialize');
+        const freshSettings = (await api.get('/api/v1/company-type-settings')).data.items;
+        const newSetting = freshSettings.find((s: CompanyTypeSetting) => s.invoice_type_id === targetId);
+        if (newSetting && form.link_enabled) {
+          await api.put(`/api/v1/company-type-settings/${newSetting.id}`, {
+            link_enabled: true,
+          });
+        }
       }
 
       // 상세 내역 저장
-      const targetId = editingId || types.find(t => t.type_code === form.type_code)?.id;
       if (form.link_enabled && details.length > 0 && targetId) {
         await api.post('/api/v1/linkage-details', {
           invoice_type_id: targetId,
@@ -241,6 +265,20 @@ export default function InvoiceTypesPage() {
       setError(getErrorMessage(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async (t: InvoiceType) => {
+    if (!confirm(`Delete "${t.type_code} - ${t.type_name}"?`)) return;
+    try {
+      // 연계 상세 삭제
+      try { await api.delete(`/api/v1/linkage-details/${t.id}`); } catch { /* 없으면 무시 */ }
+      // 회사 설정 삭제는 cascade 또는 무시
+      await api.delete(`/api/v1/invoice-types/${t.id}`);
+      await fetchTypes();
+      await fetchLinkSettings();
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 
@@ -375,7 +413,10 @@ export default function InvoiceTypesPage() {
                                 <input value={d.linkage_no}
                                   onChange={(e) => updateDetail(i, 'linkage_no', e.target.value)}
                                   placeholder="e.g. PO-2026-001"
-                                  className="input w-full" />
+                                  className={`input w-full ${isDuplicateLinkageNo(i) ? 'border-red-500 bg-red-50' : ''}`} />
+                                {isDuplicateLinkageNo(i) && (
+                                  <span className="text-xs text-red-500">Duplicate</span>
+                                )}
                               </td>
                               <td className="py-2 pr-2">
                                 <select value={d.vendor_id}
@@ -421,7 +462,7 @@ export default function InvoiceTypesPage() {
 
                 {/* Save 버튼 */}
                 <div className="flex justify-end">
-                  <button type="submit" disabled={saving} className="btn-primary disabled:opacity-50">
+                  <button type="submit" disabled={saving || hasDuplicateLinkageNo} className="btn-primary disabled:opacity-50">
                     {saving ? 'Saving...' : 'Save'}
                   </button>
                 </div>
@@ -438,12 +479,13 @@ export default function InvoiceTypesPage() {
                 <table className="w-full text-sm">
                   <thead className="table-header">
                     <tr>
+                      <th className="table-th text-center w-16"></th>
                       <th className="table-th text-left">Code</th>
                       <th className="table-th text-left">Name</th>
                       <th className="table-th text-left">Description</th>
                       <th className="table-th text-center">Data Linkage</th>
                       <th className="table-th text-center">Approver Req</th>
-                      <th className="table-th text-center w-20"></th>
+                      <th className="table-th text-center w-16"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -453,6 +495,10 @@ export default function InvoiceTypesPage() {
 
                       return (
                         <tr key={t.id} className="table-row">
+                          <td className="table-td text-center">
+                            <button onClick={() => openEditForm(t)}
+                              className="text-xs text-primary-600 hover:text-primary-700 font-medium">Edit</button>
+                          </td>
                           <td className="table-td font-mono text-xs font-medium">{t.type_code}</td>
                           <td className="table-td font-medium text-gray-800">{t.type_name}</td>
                           <td className="table-td text-gray-600 text-xs">{t.description || '—'}</td>
@@ -465,8 +511,8 @@ export default function InvoiceTypesPage() {
                           </td>
                           <td className="table-td text-center">{t.requires_approver ? '✓' : '—'}</td>
                           <td className="table-td text-center">
-                            <button onClick={() => openEditForm(t)}
-                              className="text-xs text-primary-600 hover:text-primary-700">Edit</button>
+                            <button onClick={() => handleDelete(t)}
+                              className="text-xs text-red-400 hover:text-red-600">Delete</button>
                           </td>
                         </tr>
                       );

@@ -8,6 +8,8 @@ from fastapi import HTTPException, status
 
 from app.models.invoice import Invoice
 from app.models.invoice_line_item import InvoiceLineItem
+from app.models.purchase_order import PurchaseOrder
+from app.models.linkage_detail import LinkageDetail
 from app.models.validation_result import ValidationResult as VResult
 from app.schemas.invoice import InvoiceCreate, InvoiceUpdate
 from app.services.validation_service import validate_invoice
@@ -34,6 +36,31 @@ async def create_invoice(
         initial_status = "RECEIVED"
         ocr_status = "PENDING"
 
+    # PO 번호로 PurchaseOrder 자동 연결
+    po_id = data.po_id
+    if not po_id and data.po_number:
+        po_result = await db.execute(
+            select(PurchaseOrder).where(
+                PurchaseOrder.company_id == data.company_id,
+                PurchaseOrder.po_number == data.po_number,
+            )
+        )
+        matched_po = po_result.scalar_one_or_none()
+        if matched_po:
+            po_id = matched_po.id
+
+    # PO 번호로 LinkageDetail 자동 연결
+    matched_linkage = None
+    if data.po_number:
+        linkage_result = await db.execute(
+            select(LinkageDetail).where(
+                LinkageDetail.company_id == data.company_id,
+                LinkageDetail.linkage_no == data.po_number,
+                LinkageDetail.invoice_type_id == data.invoice_type_id,
+            )
+        )
+        matched_linkage = linkage_result.scalar_one_or_none()
+
     invoice = Invoice(
         company_id=data.company_id,
         vendor_id=data.vendor_id,
@@ -47,7 +74,7 @@ async def create_invoice(
         currency_original=data.currency_original,
         amount_original=data.amount_original,
         po_number=data.po_number,
-        po_id=data.po_id,
+        po_id=po_id,
         source_channel=data.source_channel,
         ocr_status=ocr_status,
         status=initial_status,
@@ -56,6 +83,27 @@ async def create_invoice(
     )
     db.add(invoice)
     await db.flush()
+
+    # PO 금액 업데이트
+    if po_id:
+        po = await db.execute(
+            select(PurchaseOrder).where(PurchaseOrder.id == po_id)
+        )
+        po_obj = po.scalar_one_or_none()
+        if po_obj:
+            po_obj.amount_invoiced = float(po_obj.amount_invoiced) + amount_total
+            po_obj.amount_remaining = float(po_obj.amount_total) - float(po_obj.amount_invoiced)
+            if po_obj.amount_remaining <= 0:
+                po_obj.status = "FULLY_INVOICED"
+            else:
+                po_obj.status = "PARTIALLY_INVOICED"
+            await db.flush()
+
+    # LinkageDetail 금액 업데이트
+    if matched_linkage:
+        matched_linkage.amount_invoiced = float(matched_linkage.amount_invoiced) + amount_total
+        matched_linkage.amount_remaining = float(matched_linkage.amount) - float(matched_linkage.amount_invoiced)
+        await db.flush()
 
     # 라인 아이템 생성
     for line_data in lines_data:
@@ -79,7 +127,10 @@ async def create_invoice(
     # 수동 입력이면 자동 validation 실행
     if data.source_channel == "MANUAL" and lines_data:
         await _run_and_save_validation(db, invoice)
+        await db.flush()
 
+    await db.refresh(invoice)
+    await db.refresh(invoice, ["line_items"])
     return invoice
 
 
@@ -128,20 +179,95 @@ async def list_invoices(
 
 async def update_invoice(db: AsyncSession, invoice_id: UUID, data: InvoiceUpdate) -> Invoice:
     invoice = await get_invoice(db, invoice_id)
-    for field, value in data.model_dump(exclude_unset=True).items():
+    update_data = data.model_dump(exclude_unset=True)
+
+    # lines를 별도 처리
+    new_lines = update_data.pop("lines", None)
+
+    for field, value in update_data.items():
         setattr(invoice, field, value)
+
+    # Line items 교체
+    old_total = float(invoice.amount_total)
+    if new_lines is not None:
+        # 기존 line items 삭제
+        for li in list(invoice.line_items):
+            await db.delete(li)
+        await db.flush()
+
+        # 새 line items 생성
+        amount_subtotal = 0.0
+        amount_tax = 0.0
+        for line_data in new_lines:
+            line = InvoiceLineItem(
+                invoice_id=invoice.id,
+                line_number=line_data["line_number"],
+                description=line_data.get("description"),
+                quantity=line_data["quantity"],
+                unit_price=line_data["unit_price"],
+                amount=round(line_data["quantity"] * line_data["unit_price"], 2),
+                tax_amount=line_data.get("tax_amount", 0),
+            )
+            db.add(line)
+            amount_subtotal += line.amount
+            amount_tax += line.tax_amount
+
+        # 금액 재계산
+        invoice.amount_subtotal = amount_subtotal
+        invoice.amount_tax = amount_tax
+        invoice.amount_total = amount_subtotal + amount_tax
+
     await db.flush()
+
+    # LinkageDetail 금액 업데이트 (금액 변경 시)
+    new_total = float(invoice.amount_total)
+    diff = new_total - old_total
+    if diff != 0 and invoice.po_number:
+        linkage_result = await db.execute(
+            select(LinkageDetail).where(
+                LinkageDetail.company_id == invoice.company_id,
+                LinkageDetail.linkage_no == invoice.po_number,
+                LinkageDetail.invoice_type_id == invoice.invoice_type_id,
+            )
+        )
+        linkage = linkage_result.scalar_one_or_none()
+        if linkage:
+            linkage.amount_invoiced = float(linkage.amount_invoiced) + diff
+            linkage.amount_remaining = float(linkage.amount) - float(linkage.amount_invoiced)
+            await db.flush()
+
+    await db.refresh(invoice)
     await db.refresh(invoice, ["line_items"])
     return invoice
 
 
 async def delete_invoice(db: AsyncSession, invoice_id: UUID) -> None:
     invoice = await get_invoice(db, invoice_id)
-    if invoice.status not in ("RECEIVED", "OCR_REVIEW", "PENDING", "REVIEW_NEEDED"):
+    if invoice.status not in ("RECEIVED", "OCR_REVIEW", "PENDING", "REVIEW_NEEDED", "REJECTED"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot delete invoice with status '{invoice.status}'",
         )
+
+    # LinkageDetail 금액 복구
+    if invoice.po_number and float(invoice.amount_total) > 0:
+        linkage_result = await db.execute(
+            select(LinkageDetail).where(
+                LinkageDetail.company_id == invoice.company_id,
+                LinkageDetail.linkage_no == invoice.po_number,
+                LinkageDetail.invoice_type_id == invoice.invoice_type_id,
+            )
+        )
+        linkage = linkage_result.scalar_one_or_none()
+        if linkage:
+            linkage.amount_invoiced = max(0, float(linkage.amount_invoiced) - float(invoice.amount_total))
+            linkage.amount_remaining = float(linkage.amount) - float(linkage.amount_invoiced)
+            await db.flush()
+
+    # line items 먼저 삭제
+    for li in list(invoice.line_items):
+        await db.delete(li)
+    await db.flush()
     await db.delete(invoice)
     await db.flush()
 
@@ -156,7 +282,7 @@ async def submit_invoice(db: AsyncSession, invoice_id: UUID) -> Invoice:
     """인보이스 제출 (PENDING → SUBMITTED 또는 REVIEW_NEEDED)"""
     invoice = await get_invoice(db, invoice_id)
 
-    if invoice.status not in ("PENDING", "REVIEW_NEEDED"):
+    if invoice.status not in ("PENDING", "REVIEW_NEEDED", "REJECTED"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot submit invoice with status '{invoice.status}'",

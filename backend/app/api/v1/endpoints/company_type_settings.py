@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -16,13 +16,23 @@ from app.utils.company_access import verify_company_access
 router = APIRouter()
 
 
+def _get_company_id(current_user: dict) -> UUID:
+    company_id = current_user["company_id"]
+    if company_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Company context required for type settings",
+        )
+    return company_id
+
+
 @router.get("", response_model=CompanyTypeSettingListResponse)
 async def list_settings(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """회사의 인보이스 타입별 연계 설정 목록"""
-    company_id = current_user["company_id"]
+    company_id = _get_company_id(current_user)
     items = await company_type_setting_service.list_settings(db, company_id)
     return CompanyTypeSettingListResponse(items=items, total=len(items))
 
@@ -56,7 +66,7 @@ async def initialize_settings(
     current_user: dict = Depends(require_admin),
 ):
     """회사 초기 설정 (인보이스 타입별 일괄 생성)"""
-    company_id = current_user["company_id"]
+    company_id = _get_company_id(current_user)
     created = await company_type_setting_service.initialize_settings(db, company_id)
     items = await company_type_setting_service.list_settings(db, company_id)
     return CompanyTypeSettingListResponse(items=items, total=len(items))

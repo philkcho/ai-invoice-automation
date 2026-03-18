@@ -40,7 +40,7 @@ class InvoiceCreate(BaseModel):
     company_id: UUID
     vendor_id: UUID
     invoice_type_id: UUID
-    invoice_number: Optional[str] = Field(None, max_length=100)
+    invoice_number: str = Field(..., min_length=1, max_length=100)
     invoice_date: Optional[date] = None
     due_date: Optional[date] = None
     currency_original: str = "USD"
@@ -62,6 +62,7 @@ class InvoiceUpdate(BaseModel):
     po_id: Optional[UUID] = None
     notes: Optional[str] = None
     status: Optional[str] = None
+    lines: Optional[list[InvoiceLineCreate]] = None
 
 
 class InvoiceResponse(BaseModel):

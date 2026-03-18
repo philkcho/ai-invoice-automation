@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    String, Numeric, DateTime, ForeignKey, func,
+    String, Numeric, DateTime, ForeignKey, UniqueConstraint, func,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -12,6 +12,9 @@ from app.core.database import Base
 
 class LinkageDetail(Base):
     __tablename__ = "linkage_details"
+    __table_args__ = (
+        UniqueConstraint("company_id", "linkage_no", name="uq_linkage_details_company_linkage_no"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

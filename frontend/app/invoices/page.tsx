@@ -65,9 +65,6 @@ export default function InvoicesPage() {
               <h2 className="page-title">Invoices</h2>
               <p className="page-subtitle">{total} invoices</p>
             </div>
-            <Link href="/invoices/new" className="btn-primary">
-              + New Invoice
-            </Link>
           </div>
 
           <div className="filter-bar">

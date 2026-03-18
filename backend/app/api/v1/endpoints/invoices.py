@@ -38,6 +38,83 @@ async def serve_media(file_path: str):
     return FileResponse(full_path)
 
 
+@router.get("/check-duplicate")
+async def check_duplicate_invoice(
+    invoice_number: str = Query(...),
+    vendor_id: Optional[UUID] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_accountant_up),
+):
+    """인보이스 번호 중복 체크"""
+    from app.models.invoice import Invoice
+
+    query = select(Invoice).where(Invoice.invoice_number == invoice_number)
+    company_id = current_user.get("company_id")
+    if company_id:
+        query = query.where(Invoice.company_id == company_id)
+    if vendor_id:
+        query = query.where(Invoice.vendor_id == vendor_id)
+
+    result = await db.execute(query.limit(1))
+    existing = result.scalar_one_or_none()
+    return {
+        "duplicate": existing is not None,
+        "existing_id": str(existing.id) if existing else None,
+        "existing_status": existing.status if existing else None,
+    }
+
+
+@router.post("/extract", status_code=200)
+async def extract_invoice_from_file(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_accountant_up),
+):
+    """파일 업로드 후 AI로 인보이스 데이터 추출 (인보이스 생성 전 미리보기)"""
+    from app.models.company import Company
+    from app.services.ocr_service import extract_invoice_data
+
+    # 회사 코드 조회
+    company_id = current_user.get("company_id")
+    if not company_id:
+        result = await db.execute(select(Company).limit(1))
+        company = result.scalar_one_or_none()
+        if not company:
+            raise HTTPException(status_code=400, detail="No company found")
+        company_code = company.company_code
+    else:
+        result = await db.execute(select(Company).where(Company.id == company_id))
+        company = result.scalar_one()
+        company_code = company.company_code
+
+    # 파일 저장
+    try:
+        file_content = await file.read()
+        file_path = await save_file(
+            file_content=file_content,
+            filename=file.filename or "upload",
+            company_code=company_code,
+            category="invoices",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # AI OCR 추출 (동기적 실행)
+    try:
+        extracted = await extract_invoice_data(file_path)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI extraction failed: {str(e)}",
+        )
+
+    return {
+        "file_path": file_path,
+        "file_url": get_file_url(file_path),
+        "extracted": extracted,
+    }
+
+
 @router.post("", response_model=InvoiceResponse, status_code=201)
 async def create_invoice(
     data: InvoiceCreate,
@@ -87,6 +164,7 @@ async def update_invoice(
     current_user: dict = Depends(require_accountant_up),
 ):
     """인보이스 수정"""
+    print(f"*** PATCH invoice {invoice_id} with data: {data.model_dump(exclude_unset=True)}", flush=True)
     invoice = await invoice_service.get_invoice(db, invoice_id)
     verify_company_access(current_user, invoice.company_id)
     return await invoice_service.update_invoice(db, invoice_id, data)

@@ -64,17 +64,13 @@ async def initialize_settings(
     db: AsyncSession,
     company_id: UUID,
 ) -> list[CompanyTypeSetting]:
-    """회사의 인보이스 타입별 설정 초기화 (6개 타입 일괄 생성)"""
-    # 이미 설정이 있는지 확인
-    existing = await db.execute(
-        select(func.count()).select_from(CompanyTypeSetting)
+    """회사의 인보이스 타입별 설정 초기화 (누락된 타입만 추가)"""
+    # 이미 설정된 invoice_type_id 조회
+    existing_result = await db.execute(
+        select(CompanyTypeSetting.invoice_type_id)
         .where(CompanyTypeSetting.company_id == company_id)
     )
-    if existing.scalar() > 0:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Settings already initialized for this company",
-        )
+    existing_type_ids = set(existing_result.scalars().all())
 
     # 회사에 해당하는 인보이스 타입 + system default 조회
     type_result = await db.execute(
@@ -98,15 +94,17 @@ async def initialize_settings(
 
     created = []
     for it in invoice_types:
-        setting = CompanyTypeSetting(
-            company_id=company_id,
-            invoice_type_id=it.id,
-            link_enabled=False,
-        )
-        db.add(setting)
-        created.append(setting)
+        if it.id not in existing_type_ids:
+            setting = CompanyTypeSetting(
+                company_id=company_id,
+                invoice_type_id=it.id,
+                link_enabled=False,
+            )
+            db.add(setting)
+            created.append(setting)
 
-    await db.flush()
-    for s in created:
-        await db.refresh(s)
+    if created:
+        await db.flush()
+        for s in created:
+            await db.refresh(s)
     return created

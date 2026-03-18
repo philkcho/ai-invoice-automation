@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -13,13 +13,23 @@ from app.services import linkage_detail_service
 router = APIRouter()
 
 
+def _get_company_id(current_user: dict) -> UUID:
+    company_id = current_user["company_id"]
+    if company_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Company context required for linkage details",
+        )
+    return company_id
+
+
 @router.get("/{invoice_type_id}", response_model=LinkageDetailListResponse)
 async def list_details(
     invoice_type_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    company_id = current_user["company_id"]
+    company_id = _get_company_id(current_user)
     items = await linkage_detail_service.list_by_type(db, company_id, invoice_type_id)
     return LinkageDetailListResponse(items=items, total=len(items))
 
@@ -30,7 +40,7 @@ async def bulk_save(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    company_id = current_user["company_id"]
+    company_id = _get_company_id(current_user)
     items = await linkage_detail_service.bulk_save(
         db, company_id, data.invoice_type_id, data.details,
     )
@@ -43,5 +53,5 @@ async def delete_details(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    company_id = current_user["company_id"]
+    company_id = _get_company_id(current_user)
     await linkage_detail_service.delete_by_type(db, company_id, invoice_type_id)
