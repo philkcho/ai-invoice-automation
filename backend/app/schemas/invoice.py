@@ -54,6 +54,8 @@ class InvoiceCreate(BaseModel):
 
 
 class InvoiceUpdate(BaseModel):
+    vendor_id: Optional[UUID] = None
+    invoice_type_id: Optional[UUID] = None
     invoice_number: Optional[str] = Field(None, max_length=100)
     invoice_date: Optional[date] = None
     due_date: Optional[date] = None

@@ -6,7 +6,7 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/error';
-import type { Invoice } from '@/types';
+import type { Invoice, Vendor, VendorListResponse } from '@/types';
 import RequireRole from '@/components/common/RequireRole';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -37,11 +37,17 @@ export default function InvoiceDetailPage() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editSalesTax, setEditSalesTax] = useState('0');
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [invoiceTypes, setInvoiceTypes] = useState<{ id: string; type_code: string; type_name: string }[]>([]);
+  const [linkageItems, setLinkageItems] = useState<{ id: string; linkage_no: string; vendor_id: string | null; amount: number; amount_invoiced: number; amount_remaining: number }[]>([]);
+  const [isLinked, setIsLinked] = useState(false);
   const [validationResult, setValidationResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState('');
 
   // Edit form state
   const [editForm, setEditForm] = useState({
+    vendor_id: '',
+    invoice_type_id: '',
     invoice_number: '',
     invoice_date: '',
     due_date: '',
@@ -61,11 +67,34 @@ export default function InvoiceDetailPage() {
     }
   };
 
-  useEffect(() => { fetchInvoice(); }, [id]);
+  useEffect(() => {
+    fetchInvoice();
+    api.get<VendorListResponse>('/api/v1/vendors', { params: { limit: 100, status: 'ACTIVE' } })
+      .then(({ data }) => setVendors(data.items)).catch(() => {});
+    api.get('/api/v1/invoice-types', { params: { limit: 100 } })
+      .then(({ data }) => setInvoiceTypes(data.items)).catch(() => {});
+  }, [id]);
 
-  const startEditing = () => {
+  const loadLinkage = async (typeId: string) => {
+    setLinkageItems([]);
+    setIsLinked(false);
+    if (!typeId) return;
+    try {
+      const { data: settings } = await api.get('/api/v1/company-type-settings', { params: { invoice_type_id: typeId, limit: 100 } });
+      const setting = (settings.items as { invoice_type_id: string; link_enabled: boolean }[]).find(s => s.invoice_type_id === typeId);
+      if (setting?.link_enabled) {
+        setIsLinked(true);
+        const { data: linkages } = await api.get(`/api/v1/linkage-details/${typeId}`);
+        setLinkageItems(linkages.items || []);
+      }
+    } catch { /* ignore */ }
+  };
+
+  const startEditing = async () => {
     if (!invoice) return;
     setEditForm({
+      vendor_id: invoice.vendor_id,
+      invoice_type_id: invoice.invoice_type_id,
       invoice_number: invoice.invoice_number || '',
       invoice_date: invoice.invoice_date || '',
       due_date: invoice.due_date || '',
@@ -79,6 +108,7 @@ export default function InvoiceDetailPage() {
       unit_price: String(li.unit_price),
     })));
     setEditSalesTax(String(invoice.amount_tax || 0));
+    await loadLinkage(invoice.invoice_type_id);
     setEditing(true);
     setError('');
   };
@@ -94,6 +124,8 @@ export default function InvoiceDetailPage() {
     setError('');
     try {
       await api.patch(`/api/v1/invoices/${id}`, {
+        vendor_id: editForm.vendor_id || null,
+        invoice_type_id: editForm.invoice_type_id || null,
         invoice_number: editForm.invoice_number,
         invoice_date: editForm.invoice_date || null,
         due_date: editForm.due_date || null,
@@ -259,6 +291,27 @@ export default function InvoiceDetailPage() {
                 <h3 className="text-sm font-semibold text-gray-700 mb-4">Invoice Header</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
+                    <label className="label">Vendor *</label>
+                    <select value={editForm.vendor_id}
+                      onChange={(e) => setEditForm({ ...editForm, vendor_id: e.target.value })}
+                      className="input w-full">
+                      <option value="">Select vendor...</option>
+                      {vendors.map(v => <option key={v.id} value={v.id}>{v.company_name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Invoice Type *</label>
+                    <select value={editForm.invoice_type_id}
+                      onChange={(e) => {
+                        setEditForm({ ...editForm, invoice_type_id: e.target.value, po_number: '' });
+                        loadLinkage(e.target.value);
+                      }}
+                      className="input w-full">
+                      <option value="">Select type...</option>
+                      {invoiceTypes.map(t => <option key={t.id} value={t.id}>{t.type_name} ({t.type_code})</option>)}
+                    </select>
+                  </div>
+                  <div>
                     <label className="label">Invoice # *</label>
                     <input value={editForm.invoice_number}
                       onChange={(e) => setEditForm({ ...editForm, invoice_number: e.target.value })}
@@ -277,12 +330,32 @@ export default function InvoiceDetailPage() {
                       className="input w-full" />
                   </div>
                   <div>
-                    <label className="label">Linkage No</label>
-                    <input value={editForm.po_number}
-                      onChange={(e) => setEditForm({ ...editForm, po_number: e.target.value })}
-                      className="input w-full" />
+                    <label className="label">Linkage No{isLinked && <span className="text-xs text-primary-500 ml-1">(Linked)</span>}</label>
+                    {isLinked && linkageItems.length > 0 ? (
+                      <select value={editForm.po_number}
+                        onChange={(e) => setEditForm({ ...editForm, po_number: e.target.value })}
+                        className="input w-full">
+                        <option value="">Select Linkage...</option>
+                        {linkageItems.map(l => (
+                          <option key={l.id} value={l.linkage_no}>
+                            {l.linkage_no} (Remaining: ${l.amount_remaining.toLocaleString()})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input value={editForm.po_number}
+                        onChange={(e) => setEditForm({ ...editForm, po_number: e.target.value })}
+                        className="input w-full" />
+                    )}
+                    {isLinked && linkageItems.find(l => l.linkage_no === editForm.po_number) && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Budget: ${linkageItems.find(l => l.linkage_no === editForm.po_number)!.amount.toLocaleString()} |
+                        Invoiced: ${linkageItems.find(l => l.linkage_no === editForm.po_number)!.amount_invoiced.toLocaleString()} |
+                        Remaining: ${linkageItems.find(l => l.linkage_no === editForm.po_number)!.amount_remaining.toLocaleString()}
+                      </div>
+                    )}
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-3">
                     <label className="label">Notes</label>
                     <input value={editForm.notes}
                       onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
