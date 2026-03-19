@@ -35,6 +35,14 @@ export default function EmailSettingsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [polling, setPolling] = useState<string | null>(null);
+  const [showProcessed, setShowProcessed] = useState<string | null>(null);
+  const [processedMessages, setProcessedMessages] = useState<{
+    message_id: string; subject: string; from: string; date: string;
+    snippet: string; attachments: number;
+    invoice_number: string | null; invoice_amount: number | null; invoice_status: string | null;
+  }[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [processedLoading, setProcessedLoading] = useState(false);
 
   const [form, setForm] = useState({
     email_provider: 'GMAIL',
@@ -157,6 +165,60 @@ export default function EmailSettingsPage() {
     } catch (err) {
       addToast('error', getErrorMessage(err));
     }
+  };
+
+  const handleResetProcessed = async (id: string) => {
+    if (!confirm('Reset ALL processed messages? This will allow re-polling of all emails.')) return;
+    try {
+      await api.delete(`/api/v1/email-configurations/${id}/processed-messages`);
+      addToast('success', 'Processed messages reset. You can now re-poll.');
+      setShowProcessed(null);
+      fetchConfigs();
+    } catch (err) {
+      addToast('error', getErrorMessage(err));
+    }
+  };
+
+  const handleShowProcessed = async (id: string) => {
+    setProcessedLoading(true);
+    try {
+      const { data } = await api.get(`/api/v1/email-configurations/${id}/processed-messages`);
+      setProcessedMessages(data.messages || []);
+      setSelectedIds(new Set());
+      setShowProcessed(id);
+    } catch (err) {
+      addToast('error', getErrorMessage(err));
+    } finally {
+      setProcessedLoading(false);
+    }
+  };
+
+  const handleRemoveSelected = async () => {
+    if (!showProcessed || selectedIds.size === 0) return;
+    try {
+      await api.post(`/api/v1/email-configurations/${showProcessed}/processed-messages/remove`, {
+        message_ids: Array.from(selectedIds),
+      });
+      addToast('success', `${selectedIds.size} messages removed. They will be re-polled.`);
+      handleShowProcessed(showProcessed);
+      fetchConfigs();
+    } catch (err) {
+      addToast('error', getErrorMessage(err));
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === processedMessages.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(processedMessages.map(m => m.message_id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedIds(next);
   };
 
   const handleOAuthConnect = async (id: string) => {
@@ -387,6 +449,12 @@ export default function EmailSettingsPage() {
                             Edit
                           </button>
                           <button
+                            onClick={() => handleShowProcessed(config.id)}
+                            className="text-xs text-orange-600 hover:text-orange-800"
+                          >
+                            Processed
+                          </button>
+                          <button
                             onClick={() => handleDelete(config.id)}
                             className="text-xs text-red-600 hover:text-red-800"
                           >
@@ -400,6 +468,80 @@ export default function EmailSettingsPage() {
               </table>
             )}
           </div>
+          {/* Processed Messages Modal */}
+          {showProcessed && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[80vh] flex flex-col">
+                <div className="p-6 border-b flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Processed Messages ({processedMessages.length})</h3>
+                  <button onClick={() => setShowProcessed(null)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+                </div>
+                <div className="p-4 flex gap-2">
+                  <button onClick={handleRemoveSelected} disabled={selectedIds.size === 0}
+                    className="btn-primary text-sm disabled:opacity-50">
+                    Remove Selected ({selectedIds.size})
+                  </button>
+                  <button onClick={() => handleResetProcessed(showProcessed)}
+                    className="btn-secondary text-sm text-red-500">
+                    Reset All
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4 pb-4">
+                  {processedLoading ? (
+                    <div className="text-center py-8 text-gray-500">Loading...</div>
+                  ) : processedMessages.length === 0 ? (
+                    <div className="text-center py-8 text-gray-400">No processed messages</div>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="py-2 w-8">
+                            <input type="checkbox"
+                              checked={selectedIds.size === processedMessages.length && processedMessages.length > 0}
+                              onChange={toggleSelectAll}
+                              className="accent-primary-500 rounded" />
+                          </th>
+                          <th className="py-2 text-left w-8">#</th>
+                          <th className="py-2 text-left">Subject</th>
+                          <th className="py-2 text-left">From</th>
+                          <th className="py-2 text-left">Date</th>
+                          <th className="py-2 text-center">Files</th>
+                          <th className="py-2 text-left">Invoice #</th>
+                          <th className="py-2 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {processedMessages.map((msg, i) => (
+                          <tr key={msg.message_id} className="border-b hover:bg-gray-50">
+                            <td className="py-2">
+                              <input type="checkbox"
+                                checked={selectedIds.has(msg.message_id)}
+                                onChange={() => toggleSelect(msg.message_id)}
+                                className="accent-primary-500 rounded" />
+                            </td>
+                            <td className="py-2 text-gray-500">{i + 1}</td>
+                            <td className="py-2 whitespace-nowrap font-medium">{msg.subject || '(no subject)'}</td>
+                            <td className="py-2 whitespace-nowrap text-gray-600 text-xs">{msg.from.replace(/^"?([^"<]+)"?\s*<.*>$/, '$1').trim()}</td>
+                            <td className="py-2 whitespace-nowrap text-gray-500 text-xs">{msg.date.replace(/\s[+-]\d{4}$/, '')}</td>
+                            <td className="py-2 text-center text-xs whitespace-nowrap">{msg.attachments > 0 ? msg.attachments : '-'}</td>
+                            <td className="py-2 text-xs font-mono whitespace-nowrap">
+                              {msg.invoice_number ? (
+                                <span className="text-primary-600">{msg.invoice_number}</span>
+                              ) : <span className="text-gray-400">-</span>}
+                            </td>
+                            <td className="py-2 text-right text-xs font-mono whitespace-nowrap">
+                              {msg.invoice_amount != null ? `$${msg.invoice_amount.toLocaleString()}` : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           </RequireRole>
         </main>
       </div>

@@ -9,6 +9,8 @@ import { getErrorMessage } from '@/lib/error';
 import type { Invoice } from '@/types';
 import RequireRole from '@/components/common/RequireRole';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 const STATUS_COLORS: Record<string, string> = {
   RECEIVED: 'badge-gray',
   OCR_REVIEW: 'badge-yellow',
@@ -34,6 +36,7 @@ export default function InvoiceDetailPage() {
   const [validating, setValidating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [editSalesTax, setEditSalesTax] = useState('0');
   const [validationResult, setValidationResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState('');
 
@@ -75,6 +78,7 @@ export default function InvoiceDetailPage() {
       quantity: String(li.quantity),
       unit_price: String(li.unit_price),
     })));
+    setEditSalesTax(String(invoice.amount_tax || 0));
     setEditing(true);
     setError('');
   };
@@ -95,12 +99,12 @@ export default function InvoiceDetailPage() {
         due_date: editForm.due_date || null,
         po_number: editForm.po_number || null,
         notes: editForm.notes || null,
-        lines: editLines.map(l => ({
+        lines: editLines.map((l, i) => ({
           line_number: l.line_number,
           description: l.description || null,
           quantity: parseFloat(l.quantity) || 1,
           unit_price: parseFloat(l.unit_price) || 0,
-          tax_amount: 0,
+          tax_amount: i === 0 ? editTaxAmount : 0,
         })),
       });
 
@@ -167,7 +171,9 @@ export default function InvoiceDetailPage() {
 
   const editLineTotal = (l: { quantity: string; unit_price: string }) =>
     (parseFloat(l.quantity) || 0) * (parseFloat(l.unit_price) || 0);
-  const editTotal = editLines.reduce((sum, l) => sum + editLineTotal(l), 0);
+  const editSubtotal = editLines.reduce((sum, l) => sum + editLineTotal(l), 0);
+  const editTaxAmount = parseFloat(editSalesTax) || 0;
+  const editTotal = editSubtotal + editTaxAmount;
 
   if (loading) return <div className="loading-state min-h-screen flex items-center justify-center">Loading...</div>;
   if (!invoice) return <div className="min-h-screen flex items-center justify-center text-red-500">{error || 'Invoice not found'}</div>;
@@ -375,8 +381,23 @@ export default function InvoiceDetailPage() {
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 border-primary-100/40">
-                      <td colSpan={4} className="py-2 text-right font-semibold text-gray-700">Total:</td>
-                      <td className="py-2 text-right font-mono font-bold text-lg">{fmt(editTotal)}</td>
+                      <td colSpan={4} className="py-2 text-right text-gray-600">Subtotal:</td>
+                      <td className="py-2 text-right font-mono">{fmt(editSubtotal)}</td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td colSpan={3} className="py-1 text-right text-gray-600">Sales Tax:</td>
+                      <td className="py-1">
+                        <input type="number" step="0.01" min="0" value={editSalesTax}
+                          onChange={(e) => setEditSalesTax(e.target.value)}
+                          className="input w-full py-1 text-right" />
+                      </td>
+                      <td className="py-1 text-right font-mono">{fmt(editTaxAmount)}</td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td colSpan={4} className="py-1 text-right font-semibold text-gray-700">Total:</td>
+                      <td className="py-1 text-right font-mono font-bold text-lg">{fmt(editTotal)}</td>
                       <td></td>
                     </tr>
                   </tfoot>
@@ -404,7 +425,7 @@ export default function InvoiceDetailPage() {
                       const res = await api.get(`/api/v1/invoices/media/${invoice.file_path}`, { responseType: 'blob' });
                       const url = URL.createObjectURL(res.data);
                       window.open(url, '_blank');
-                    } catch { window.open(`http://localhost:8000/api/v1/invoices/media/${invoice.file_path}`, '_blank'); }
+                    } catch { window.open(`${API_BASE_URL}/api/v1/invoices/media/${invoice.file_path}`, '_blank'); }
                   }}
                   className="text-sm text-primary-600 hover:text-primary-700 font-medium underline cursor-pointer"
                 >

@@ -41,7 +41,6 @@ async def create_email_config(
         filter_senders=data.filter_senders,
         is_active=data.is_active,
     )
-    await db.commit()
     return config
 
 
@@ -88,7 +87,6 @@ async def update_email_config(
     updated = await email_configuration_service.update_email_config(
         db, config_id, **data.model_dump(exclude_unset=True)
     )
-    await db.commit()
     return updated
 
 
@@ -102,7 +100,6 @@ async def delete_email_config(
     config = await email_configuration_service.get_email_config(db, config_id)
     verify_company_access(current_user, config.company_id)
     await email_configuration_service.delete_email_config(db, config_id)
-    await db.commit()
 
 
 # ── OAuth ────────────────────────────────────────────
@@ -165,7 +162,6 @@ async def oauth_callback(
     updated = await email_configuration_service.save_oauth_credentials(
         db, config_id, credentials
     )
-    await db.commit()
     return updated
 
 
@@ -195,3 +191,147 @@ async def test_poll(
     except Exception as e:
         await db.rollback()
         return {"emails_fetched": 0, "invoices_created": 0, "errors": [str(e)]}
+
+
+@router.get("/{config_id}/processed-messages")
+async def get_processed_messages(
+    config_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    """처리된 메시지 ID 목록 + 제목/발신자 조회"""
+    import json as json_mod
+    config = await email_configuration_service.get_email_config(db, config_id)
+    verify_company_access(current_user, config.company_id)
+    try:
+        ids = json_mod.loads(config.processed_message_ids or "[]")
+    except Exception:
+        ids = []
+
+    # Gmail/Outlook API로 메시지 상세 조회
+    messages = []
+    if ids:
+        try:
+            from app.services.email_configuration_service import get_decrypted_credentials
+            creds = get_decrypted_credentials(config)
+            access_token = creds.get("access_token", "")
+
+            # 토큰 갱신
+            try:
+                if config.email_provider == "GMAIL":
+                    new_creds = await email_service.refresh_gmail_token(creds.get("refresh_token", ""))
+                else:
+                    new_creds = await email_service.refresh_outlook_token(creds.get("refresh_token", ""))
+                access_token = new_creds["access_token"]
+            except Exception:
+                pass
+
+            import httpx
+            async with httpx.AsyncClient() as client:
+                for mid in ids:
+                    try:
+                        if config.email_provider == "GMAIL":
+                            resp = await client.get(
+                                f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{mid}",
+                                headers={"Authorization": f"Bearer {access_token}"},
+                                params={"format": "metadata", "metadataHeaders": ["Subject", "From", "Date"]},
+                            )
+                            if resp.status_code == 200:
+                                data = resp.json()
+                                headers_map = {h["name"].lower(): h["value"] for h in data.get("payload", {}).get("headers", [])}
+                                # 첨부파일 수 확인
+                                att_count = 0
+                                def _count_atts(part):
+                                    nonlocal att_count
+                                    if part.get("filename") and part.get("body", {}).get("attachmentId"):
+                                        att_count += 1
+                                    for sub in part.get("parts", []):
+                                        _count_atts(sub)
+                                _count_atts(data.get("payload", {}))
+
+                                messages.append({
+                                    "message_id": mid,
+                                    "subject": headers_map.get("subject", ""),
+                                    "from": headers_map.get("from", ""),
+                                    "date": headers_map.get("date", ""),
+                                    "snippet": data.get("snippet", ""),
+                                    "attachments": att_count,
+                                })
+                            else:
+                                messages.append({"message_id": mid, "subject": "(unavailable)", "from": "", "date": "", "snippet": "", "attachments": 0})
+                        else:
+                            messages.append({"message_id": mid, "subject": "(Outlook)", "from": "", "date": "", "snippet": "", "attachments": 0})
+                    except Exception:
+                        messages.append({"message_id": mid, "subject": "(error)", "from": "", "date": "", "snippet": "", "attachments": 0})
+        except Exception:
+            messages = [{"message_id": mid, "subject": "(unable to fetch)", "from": "", "date": "", "snippet": "", "attachments": 0} for mid in ids]
+
+    # DB에서 이메일로 생성된 인보이스 매칭 (notes에 subject 포함)
+    from sqlalchemy import select
+    from app.models.invoice import Invoice
+    invoices_result = await db.execute(
+        select(Invoice).where(
+            Invoice.company_id == config.company_id,
+            Invoice.source_channel == ("GMAIL" if config.email_provider == "GMAIL" else "OUTLOOK"),
+        ).order_by(Invoice.created_at.desc())
+    )
+    invoices_list = invoices_result.scalars().all()
+
+    # subject로 매칭 시도
+    for msg in messages:
+        msg["invoice_number"] = None
+        msg["invoice_amount"] = None
+        msg["invoice_status"] = None
+        for inv in invoices_list:
+            if inv.notes and msg.get("subject") and msg["subject"] in (inv.notes or ""):
+                msg["invoice_number"] = inv.invoice_number
+                msg["invoice_amount"] = float(inv.amount_total)
+                msg["invoice_status"] = inv.status
+                break
+
+    return {
+        "config_id": str(config_id),
+        "processed_count": len(ids),
+        "messages": messages,
+        "last_polled_at": str(config.last_polled_at) if config.last_polled_at else None,
+    }
+
+
+@router.delete("/{config_id}/processed-messages", status_code=200)
+async def reset_processed_messages(
+    config_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    """처리된 메시지 ID 전체 초기화 (재폴링 가능)"""
+    config = await email_configuration_service.get_email_config(db, config_id)
+    verify_company_access(current_user, config.company_id)
+    config.processed_message_ids = "[]"
+    config.last_polled_at = None
+    await db.flush()
+    return {"message": "Processed messages reset successfully"}
+
+
+@router.post("/{config_id}/processed-messages/remove", status_code=200)
+async def remove_processed_messages(
+    config_id: uuid.UUID,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    """선택한 메시지 ID만 제거 (해당 메시지 재폴링 가능)"""
+    import json as json_mod
+    config = await email_configuration_service.get_email_config(db, config_id)
+    verify_company_access(current_user, config.company_id)
+
+    ids_to_remove = set(body.get("message_ids", []))
+    try:
+        current_ids = json_mod.loads(config.processed_message_ids or "[]")
+    except Exception:
+        current_ids = []
+
+    new_ids = [mid for mid in current_ids if mid not in ids_to_remove]
+    config.processed_message_ids = json_mod.dumps(new_ids)
+    config.last_polled_at = None  # 재폴링을 위해 타임스탬프도 리셋
+    await db.flush()
+    return {"removed": len(ids_to_remove), "remaining": len(new_ids)}

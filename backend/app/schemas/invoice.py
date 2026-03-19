@@ -48,6 +48,7 @@ class InvoiceCreate(BaseModel):
     po_number: Optional[str] = Field(None, max_length=100)
     po_id: Optional[UUID] = None
     source_channel: str = Field("MANUAL", pattern=r"^(UPLOAD|GMAIL|OUTLOOK|MANUAL)$")
+    file_path: Optional[str] = Field(None, max_length=500)
     notes: Optional[str] = None
     lines: list[InvoiceLineCreate] = []
 
@@ -62,6 +63,7 @@ class InvoiceUpdate(BaseModel):
     po_id: Optional[UUID] = None
     notes: Optional[str] = None
     status: Optional[str] = None
+    file_path: Optional[str] = Field(None, max_length=500)
     lines: Optional[list[InvoiceLineCreate]] = None
 
 

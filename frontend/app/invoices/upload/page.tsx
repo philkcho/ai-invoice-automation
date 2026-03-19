@@ -9,6 +9,8 @@ import { getErrorMessage } from '@/lib/error';
 import type { Vendor, VendorListResponse } from '@/types';
 import RequireRole from '@/components/common/RequireRole';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 interface LineItem {
   line_number: number;
   description: string;
@@ -28,6 +30,9 @@ export default function InvoiceUploadPage() {
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [extracted, setExtracted] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [salesTax, setSalesTax] = useState('0');
+  const [linkageItems, setLinkageItems] = useState<{ id: string; linkage_no: string; vendor_id: string | null; amount: number; amount_invoiced: number; amount_remaining: number }[]>([]);
+  const [isLinked, setIsLinked] = useState(false);
 
   const [form, setForm] = useState({
     vendor_id: '',
@@ -99,6 +104,11 @@ export default function InvoiceUploadPage() {
         })));
       }
 
+      // Set sales tax from extracted data
+      if (extracted.tax_amount) {
+        setSalesTax(String(extracted.tax_amount));
+      }
+
       setExtracted(true);
 
       // Duplicate check
@@ -126,6 +136,32 @@ export default function InvoiceUploadPage() {
     if (file) handleFileSelect(file);
   };
 
+  const handleTypeChange = async (typeId: string) => {
+    setForm(prev => ({ ...prev, invoice_type_id: typeId, po_number: '' }));
+    setLinkageItems([]);
+    setIsLinked(false);
+    if (!typeId) return;
+    try {
+      const { data: settings } = await api.get('/api/v1/company-type-settings', { params: { invoice_type_id: typeId, limit: 100 } });
+      const setting = (settings.items as { invoice_type_id: string; link_enabled: boolean }[]).find(s => s.invoice_type_id === typeId);
+      if (setting?.link_enabled) {
+        setIsLinked(true);
+        const { data: linkages } = await api.get(`/api/v1/linkage-details/${typeId}`);
+        setLinkageItems(linkages.items || []);
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handlePoSelect = (linkageNo: string) => {
+    setForm(prev => ({ ...prev, po_number: linkageNo }));
+    const linkage = linkageItems.find(l => l.linkage_no === linkageNo);
+    if (linkage?.vendor_id && !form.vendor_id) {
+      setForm(prev => ({ ...prev, po_number: linkageNo, vendor_id: linkage.vendor_id! }));
+    }
+  };
+
+  const selectedLinkage = linkageItems.find(l => l.linkage_no === form.po_number);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -146,7 +182,9 @@ export default function InvoiceUploadPage() {
   };
 
   const lineTotal = (l: LineItem) => (parseFloat(l.quantity) || 0) * (parseFloat(l.unit_price) || 0);
-  const total = lines.reduce((sum, l) => sum + lineTotal(l), 0);
+  const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
+  const taxAmount = parseFloat(salesTax) || 0;
+  const total = subtotal + taxAmount;
   const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,21 +210,17 @@ export default function InvoiceUploadPage() {
         po_number: form.po_number || null,
         currency_original: form.currency_original,
         source_channel: 'UPLOAD',
+        file_path: uploadedFilePath || null,
         notes: form.notes || null,
-        lines: lines.map(l => ({
+        lines: lines.map((l, i) => ({
           line_number: l.line_number,
           description: l.description || null,
           quantity: parseFloat(l.quantity),
           unit_price: parseFloat(l.unit_price),
-          tax_amount: 0,
+          tax_amount: i === 0 ? taxAmount : 0,
         })),
       });
 
-      if (uploadedFilePath) {
-        await api.patch(`/api/v1/invoices/${invoiceRes.data.id}`, {
-          notes: form.notes ? `${form.notes}\n[File: ${uploadedFileName}]` : `[File: ${uploadedFileName}]`,
-        });
-      }
 
       router.push('/invoices');
     } catch (err: unknown) {
@@ -273,7 +307,7 @@ export default function InvoiceUploadPage() {
                     </div>
                     <div>
                       <label className="label">Invoice Type *</label>
-                      <select name="invoice_type_id" required value={form.invoice_type_id} onChange={handleChange} className="input w-full">
+                      <select name="invoice_type_id" required value={form.invoice_type_id} onChange={(e) => handleTypeChange(e.target.value)} className="input w-full">
                         <option value="">Select type...</option>
                         {invoiceTypes.map(t => <option key={t.id} value={t.id}>{t.type_name} ({t.type_code})</option>)}
                       </select>
@@ -291,8 +325,24 @@ export default function InvoiceUploadPage() {
                       <input name="due_date" type="date" value={form.due_date} onChange={handleChange} className="input w-full" />
                     </div>
                     <div>
-                      <label className="label">Linkage No</label>
-                      <input name="po_number" value={form.po_number} onChange={handleChange} className="input w-full" />
+                      <label className="label">Linkage No{isLinked && <span className="text-xs text-primary-500 ml-1">(Linked)</span>}</label>
+                      {isLinked && linkageItems.length > 0 ? (
+                        <select value={form.po_number} onChange={(e) => handlePoSelect(e.target.value)} className="input w-full">
+                          <option value="">Select Linkage...</option>
+                          {linkageItems.map(l => (
+                            <option key={l.id} value={l.linkage_no}>
+                              {l.linkage_no} (Remaining: ${l.amount_remaining.toLocaleString()})
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input name="po_number" value={form.po_number} onChange={handleChange} className="input w-full" />
+                      )}
+                      {selectedLinkage && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Budget: ${selectedLinkage.amount.toLocaleString()} | Invoiced: ${selectedLinkage.amount_invoiced.toLocaleString()} | Remaining: ${selectedLinkage.amount_remaining.toLocaleString()}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -337,13 +387,49 @@ export default function InvoiceUploadPage() {
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 border-primary-100/40">
-                        <td colSpan={4} className="py-2 text-right font-semibold text-gray-700">Total:</td>
-                        <td className="py-2 text-right font-mono font-bold text-lg">{fmt(total)}</td>
+                        <td colSpan={4} className="py-2 text-right text-gray-600">Subtotal:</td>
+                        <td className="py-2 text-right font-mono">{fmt(subtotal)}</td>
+                        <td></td>
+                      </tr>
+                      <tr>
+                        <td colSpan={3} className="py-1 text-right text-gray-600">Sales Tax:</td>
+                        <td className="py-1">
+                          <input type="number" step="0.01" min="0" value={salesTax}
+                            onChange={(e) => setSalesTax(e.target.value)}
+                            className="input w-full py-1 text-right" />
+                        </td>
+                        <td className="py-1 text-right font-mono">{fmt(taxAmount)}</td>
+                        <td></td>
+                      </tr>
+                      <tr>
+                        <td colSpan={4} className="py-1 text-right font-semibold text-gray-700">Total:</td>
+                        <td className="py-1 text-right font-mono font-bold text-lg">{fmt(total)}</td>
                         <td></td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
+
+                {/* Uploaded File */}
+                {uploadedFileName && (
+                  <div className="card p-4 flex items-center gap-3">
+                    <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                    </svg>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (uploadedFilePath) {
+                          window.open(`${API_BASE_URL}/api/v1/invoices/media/${uploadedFilePath}`, '_blank');
+                        }
+                      }}
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium underline cursor-pointer"
+                    >
+                      {uploadedFileName}
+                    </button>
+                    <span className="text-xs text-gray-400 font-mono">{uploadedFilePath}</span>
+                  </div>
+                )}
 
                 <div className="flex gap-3">
                   <button type="submit" disabled={loading} className="btn-primary disabled:opacity-50">

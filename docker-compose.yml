@@ -43,6 +43,7 @@
     volumes:
       - ./backend:/app
       - media_files:/app/media
+      - ./backend/credentials:/app/credentials:ro
     ports:
       - "8000:8000"
     depends_on:
@@ -64,6 +65,7 @@
     volumes:
       - ./backend:/app
       - media_files:/app/media
+      - ./backend/credentials:/app/credentials:ro
     depends_on:
       db:
         condition: service_healthy

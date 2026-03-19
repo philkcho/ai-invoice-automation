@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     # Claude API
     ANTHROPIC_API_KEY: str
 
+    # Google Document AI
+    GOOGLE_PROJECT_ID: Optional[str] = None
+    GOOGLE_LOCATION: str = "us"
+    GOOGLE_PROCESSOR_ID: Optional[str] = None
+    GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None
+
     # Gmail
     GMAIL_CLIENT_ID: Optional[str] = None
     GMAIL_CLIENT_SECRET: Optional[str] = None

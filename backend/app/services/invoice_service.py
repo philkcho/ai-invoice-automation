@@ -90,6 +90,7 @@ async def create_invoice(
         po_number=data.po_number,
         po_id=po_id,
         source_channel=data.source_channel,
+        file_path=data.file_path,
         ocr_status=ocr_status,
         status=initial_status,
         notes=data.notes,
@@ -113,9 +114,9 @@ async def create_invoice(
                 po_obj.status = "PARTIALLY_INVOICED"
             await db.flush()
 
-    # LinkageDetail 금액 업데이트
+    # LinkageDetail 금액 업데이트 (Subtotal만, Sales Tax 제외)
     if matched_linkage:
-        matched_linkage.amount_invoiced = float(matched_linkage.amount_invoiced) + amount_total
+        matched_linkage.amount_invoiced = float(matched_linkage.amount_invoiced) + amount_subtotal
         matched_linkage.amount_remaining = float(matched_linkage.amount) - float(matched_linkage.amount_invoiced)
         await db.flush()
 
@@ -136,7 +137,6 @@ async def create_invoice(
         db.add(line)
 
     await db.flush()
-    await db.refresh(invoice, ["line_items"])
 
     # 수동 입력이면 자동 validation 실행
     if data.source_channel == "MANUAL" and lines_data:
@@ -202,7 +202,7 @@ async def update_invoice(db: AsyncSession, invoice_id: UUID, data: InvoiceUpdate
         setattr(invoice, field, value)
 
     # Line items 교체
-    old_total = float(invoice.amount_total)
+    old_subtotal = float(invoice.amount_subtotal)
     if new_lines is not None:
         # 기존 line items 삭제
         for li in list(invoice.line_items):
@@ -233,9 +233,9 @@ async def update_invoice(db: AsyncSession, invoice_id: UUID, data: InvoiceUpdate
 
     await db.flush()
 
-    # LinkageDetail 금액 업데이트 (금액 변경 시)
-    new_total = float(invoice.amount_total)
-    diff = new_total - old_total
+    # LinkageDetail 금액 업데이트 (Subtotal 변경 시, Sales Tax 제외)
+    new_subtotal = float(invoice.amount_subtotal)
+    diff = new_subtotal - old_subtotal
     if diff != 0 and invoice.po_number:
         linkage_result = await db.execute(
             select(LinkageDetail).where(
@@ -274,7 +274,7 @@ async def delete_invoice(db: AsyncSession, invoice_id: UUID) -> None:
         )
         linkage = linkage_result.scalar_one_or_none()
         if linkage:
-            linkage.amount_invoiced = max(0, float(linkage.amount_invoiced) - float(invoice.amount_total))
+            linkage.amount_invoiced = max(0, float(linkage.amount_invoiced) - float(invoice.amount_subtotal))
             linkage.amount_remaining = float(linkage.amount) - float(linkage.amount_invoiced)
             await db.flush()
 

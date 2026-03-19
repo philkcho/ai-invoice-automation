@@ -40,6 +40,7 @@ export default function NewInvoicePage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [invoiceTypes, setInvoiceTypes] = useState<{ id: string; type_code: string; type_name: string }[]>([]);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [salesTax, setSalesTax] = useState('0');
   const [linkageItems, setLinkageItems] = useState<LinkageItem[]>([]);
   const [isLinked, setIsLinked] = useState(false);
 
@@ -111,7 +112,9 @@ export default function NewInvoicePage() {
   };
 
   const lineTotal = (l: LineItem) => (parseFloat(l.quantity) || 0) * (parseFloat(l.unit_price) || 0);
-  const total = lines.reduce((sum, l) => sum + lineTotal(l), 0);
+  const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
+  const taxAmount = parseFloat(salesTax) || 0;
+  const total = subtotal + taxAmount;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -161,12 +164,12 @@ export default function NewInvoicePage() {
         currency_original: form.currency_original,
         source_channel: 'MANUAL',
         notes: form.notes || null,
-        lines: lines.map(l => ({
+        lines: lines.map((l, i) => ({
           line_number: l.line_number,
           description: l.description || null,
           quantity: parseFloat(l.quantity),
           unit_price: parseFloat(l.unit_price),
-          tax_amount: 0,
+          tax_amount: i === 0 ? taxAmount : 0,
         })),
       });
 
@@ -306,8 +309,23 @@ export default function NewInvoicePage() {
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 border-primary-100/40">
-                      <td colSpan={4} className="py-2 text-right font-semibold text-gray-700">Total:</td>
-                      <td className="py-2 text-right font-mono font-bold text-lg">{fmt(total)}</td>
+                      <td colSpan={4} className="py-2 text-right text-gray-600">Subtotal:</td>
+                      <td className="py-2 text-right font-mono">{fmt(subtotal)}</td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td colSpan={3} className="py-1 text-right text-gray-600">Sales Tax:</td>
+                      <td className="py-1">
+                        <input type="number" step="0.01" min="0" value={salesTax}
+                          onChange={(e) => setSalesTax(e.target.value)}
+                          className="input w-full py-1 text-right" />
+                      </td>
+                      <td className="py-1 text-right font-mono">{fmt(taxAmount)}</td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td colSpan={4} className="py-1 text-right font-semibold text-gray-700">Total:</td>
+                      <td className="py-1 text-right font-mono font-bold text-lg">{fmt(total)}</td>
                       <td></td>
                     </tr>
                   </tfoot>

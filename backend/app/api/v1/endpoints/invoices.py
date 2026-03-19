@@ -164,7 +164,6 @@ async def update_invoice(
     current_user: dict = Depends(require_accountant_up),
 ):
     """인보이스 수정"""
-    print(f"*** PATCH invoice {invoice_id} with data: {data.model_dump(exclude_unset=True)}", flush=True)
     invoice = await invoice_service.get_invoice(db, invoice_id)
     verify_company_access(current_user, invoice.company_id)
     return await invoice_service.update_invoice(db, invoice_id, data)

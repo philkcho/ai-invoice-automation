@@ -58,9 +58,10 @@ async def _run_ocr(invoice_id: str, file_path: str) -> dict:
         invoice.ocr_status = "COMPLETED"
         invoice.status = "OCR_REVIEW"
 
-        # 추출된 데이터 반영 (기존 값이 없는 경우만)
-        if not invoice.invoice_number and ocr_data.get("invoice_number"):
-            invoice.invoice_number = ocr_data["invoice_number"]
+        # 추출된 데이터 반영 (이메일 임시번호는 OCR 결과로 덮어쓰기)
+        if ocr_data.get("invoice_number"):
+            if not invoice.invoice_number or invoice.invoice_number.startswith("EMAIL-"):
+                invoice.invoice_number = ocr_data["invoice_number"]
         if not invoice.invoice_date and ocr_data.get("invoice_date"):
             from datetime import date
             try:

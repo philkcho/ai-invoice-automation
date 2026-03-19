@@ -155,10 +155,9 @@ async def poll_single_account(db, config) -> tuple[int, int]:
 
     # 중복 제거
     new_messages = [m for m in parsed_messages if m["message_id"] not in processed_id_set]
-    logger.info(
-        "%s: %d messages fetched, %d new",
-        config.email_address, len(parsed_messages), len(new_messages),
-    )
+    print(f"*** POLL {config.email_address}: {len(parsed_messages)} fetched, {len(new_messages)} new, processed_ids={len(processed_id_set)}", flush=True)
+    for pm in parsed_messages:
+        print(f"*** MSG {pm.get('message_id')}: subject='{pm.get('subject')}', attachments={len(pm.get('attachments', []))}, att_details={[(a.get('filename'), a.get('mime_type')) for a in pm.get('attachments', [])]}", flush=True)
 
     created_count = 0
     successfully_processed = []
@@ -204,7 +203,11 @@ async def _process_email_message(db, config, message: dict, access_token: str) -
             access_token, message["message_id"]
         )
 
+    logger.info("Message %s has %d attachments: %s",
+        message.get("message_id"), len(attachments),
+        [(a.get("filename"), a.get("mime_type")) for a in attachments])
     if not attachments:
+        logger.info("No attachments found for message %s", message.get("message_id"))
         return False
 
     # 첨부파일 수 제한
@@ -262,10 +265,28 @@ async def _process_email_message(db, config, message: dict, access_token: str) -
         with open(full_path, "wb") as f:
             f.write(file_content)
 
+        # 기본 vendor_id, invoice_type_id 조회 (이메일 수신 시 OCR 후 수정 예정)
+        from sqlalchemy import select
+        from app.models.vendor import Vendor
+        from app.models.invoice_type import InvoiceType
+        default_vendor = (await db.execute(
+            select(Vendor).limit(1)
+        )).scalar_one_or_none()
+        default_type = (await db.execute(
+            select(InvoiceType).limit(1)
+        )).scalar_one_or_none()
+
+        if not default_vendor or not default_type:
+            print(f"No default vendor or invoice type found, skipping", flush=True)
+            continue
+
         # 인보이스 생성
         source_channel = "GMAIL" if config.email_provider == "GMAIL" else "OUTLOOK"
         invoice = Invoice(
             company_id=config.company_id,
+            vendor_id=default_vendor.id,
+            invoice_type_id=default_type.id,
+            invoice_number=f"EMAIL-{uuid.uuid4().hex[:8].upper()}",
             source_channel=source_channel,
             source_email=message.get("from", ""),
             file_path=relative_path,
