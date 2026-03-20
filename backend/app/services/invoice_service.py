@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
@@ -99,25 +100,25 @@ async def create_invoice(
     db.add(invoice)
     await db.flush()
 
-    # PO 금액 업데이트
+    # PO 금액 업데이트 (Decimal 사용으로 부동소수점 오차 방지)
     if po_id:
         po = await db.execute(
             select(PurchaseOrder).where(PurchaseOrder.id == po_id)
         )
         po_obj = po.scalar_one_or_none()
         if po_obj:
-            po_obj.amount_invoiced = float(po_obj.amount_invoiced) + amount_total
-            po_obj.amount_remaining = float(po_obj.amount_total) - float(po_obj.amount_invoiced)
+            po_obj.amount_invoiced = Decimal(str(po_obj.amount_invoiced)) + Decimal(str(amount_total))
+            po_obj.amount_remaining = Decimal(str(po_obj.amount_total)) - Decimal(str(po_obj.amount_invoiced))
             if po_obj.amount_remaining <= 0:
                 po_obj.status = "FULLY_INVOICED"
             else:
                 po_obj.status = "PARTIALLY_INVOICED"
             await db.flush()
 
-    # LinkageDetail 금액 업데이트 (Subtotal만, Sales Tax 제외)
+    # LinkageDetail 금액 업데이트 (Subtotal만, Sales Tax 제외, Decimal 사용)
     if matched_linkage:
-        matched_linkage.amount_invoiced = float(matched_linkage.amount_invoiced) + amount_subtotal
-        matched_linkage.amount_remaining = float(matched_linkage.amount) - float(matched_linkage.amount_invoiced)
+        matched_linkage.amount_invoiced = Decimal(str(matched_linkage.amount_invoiced)) + Decimal(str(amount_subtotal))
+        matched_linkage.amount_remaining = Decimal(str(matched_linkage.amount)) - Decimal(str(matched_linkage.amount_invoiced))
         await db.flush()
 
     # 라인 아이템 생성
@@ -202,7 +203,7 @@ async def update_invoice(db: AsyncSession, invoice_id: UUID, data: InvoiceUpdate
         setattr(invoice, field, value)
 
     # Line items 교체
-    old_subtotal = float(invoice.amount_subtotal)
+    old_subtotal = Decimal(str(invoice.amount_subtotal))
     if new_lines is not None:
         # 기존 line items 삭제
         for li in list(invoice.line_items):
@@ -210,8 +211,8 @@ async def update_invoice(db: AsyncSession, invoice_id: UUID, data: InvoiceUpdate
         await db.flush()
 
         # 새 line items 생성
-        amount_subtotal = 0.0
-        amount_tax = 0.0
+        amount_subtotal = Decimal("0")
+        amount_tax = Decimal("0")
         for line_data in new_lines:
             line = InvoiceLineItem(
                 invoice_id=invoice.id,
@@ -223,8 +224,8 @@ async def update_invoice(db: AsyncSession, invoice_id: UUID, data: InvoiceUpdate
                 tax_amount=line_data.get("tax_amount", 0),
             )
             db.add(line)
-            amount_subtotal += line.amount
-            amount_tax += line.tax_amount
+            amount_subtotal += Decimal(str(line.amount))
+            amount_tax += Decimal(str(line.tax_amount))
 
         # 금액 재계산
         invoice.amount_subtotal = amount_subtotal
@@ -233,8 +234,8 @@ async def update_invoice(db: AsyncSession, invoice_id: UUID, data: InvoiceUpdate
 
     await db.flush()
 
-    # LinkageDetail 금액 업데이트 (Subtotal 변경 시, Sales Tax 제외)
-    new_subtotal = float(invoice.amount_subtotal)
+    # LinkageDetail 금액 업데이트 (Subtotal 변경 시, Sales Tax 제외, Decimal 사용)
+    new_subtotal = Decimal(str(invoice.amount_subtotal))
     diff = new_subtotal - old_subtotal
     if diff != 0 and invoice.po_number:
         linkage_result = await db.execute(
@@ -246,8 +247,8 @@ async def update_invoice(db: AsyncSession, invoice_id: UUID, data: InvoiceUpdate
         )
         linkage = linkage_result.scalar_one_or_none()
         if linkage:
-            linkage.amount_invoiced = float(linkage.amount_invoiced) + diff
-            linkage.amount_remaining = float(linkage.amount) - float(linkage.amount_invoiced)
+            linkage.amount_invoiced = Decimal(str(linkage.amount_invoiced)) + diff
+            linkage.amount_remaining = Decimal(str(linkage.amount)) - Decimal(str(linkage.amount_invoiced))
             await db.flush()
 
     await db.refresh(invoice)
@@ -263,8 +264,8 @@ async def delete_invoice(db: AsyncSession, invoice_id: UUID) -> None:
             detail=f"Cannot delete invoice with status '{invoice.status}'",
         )
 
-    # LinkageDetail 금액 복구
-    if invoice.po_number and float(invoice.amount_total) > 0:
+    # LinkageDetail 금액 복구 (Decimal 사용)
+    if invoice.po_number and Decimal(str(invoice.amount_total)) > 0:
         linkage_result = await db.execute(
             select(LinkageDetail).where(
                 LinkageDetail.company_id == invoice.company_id,
@@ -274,8 +275,8 @@ async def delete_invoice(db: AsyncSession, invoice_id: UUID) -> None:
         )
         linkage = linkage_result.scalar_one_or_none()
         if linkage:
-            linkage.amount_invoiced = max(0, float(linkage.amount_invoiced) - float(invoice.amount_subtotal))
-            linkage.amount_remaining = float(linkage.amount) - float(linkage.amount_invoiced)
+            linkage.amount_invoiced = max(Decimal("0"), Decimal(str(linkage.amount_invoiced)) - Decimal(str(invoice.amount_subtotal)))
+            linkage.amount_remaining = Decimal(str(linkage.amount)) - Decimal(str(linkage.amount_invoiced))
             await db.flush()
 
     # line items 먼저 삭제

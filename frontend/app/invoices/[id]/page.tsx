@@ -41,7 +41,10 @@ export default function InvoiceDetailPage() {
   const [invoiceTypes, setInvoiceTypes] = useState<{ id: string; type_code: string; type_name: string }[]>([]);
   const [linkageItems, setLinkageItems] = useState<{ id: string; linkage_no: string; vendor_id: string | null; amount: number; amount_invoiced: number; amount_remaining: number }[]>([]);
   const [isLinked, setIsLinked] = useState(false);
-  const [validationResult, setValidationResult] = useState<Record<string, unknown> | null>(null);
+  const [validationResult, setValidationResult] = useState<{
+    overall: string;
+    results: Array<{ layer: string; rule_name: string; condition_name: string; result: string; reason: string }>;
+  } | null>(null);
   const [error, setError] = useState('');
 
   // Edit form state
@@ -80,8 +83,8 @@ export default function InvoiceDetailPage() {
     setIsLinked(false);
     if (!typeId) return;
     try {
-      const { data: settings } = await api.get('/api/v1/company-type-settings', { params: { invoice_type_id: typeId, limit: 100 } });
-      const setting = (settings.items as { invoice_type_id: string; link_enabled: boolean }[]).find(s => s.invoice_type_id === typeId);
+      const { data: settings } = await api.get<{ items: Array<{ invoice_type_id: string; link_enabled: boolean }> }>('/api/v1/company-type-settings', { params: { invoice_type_id: typeId, limit: 100 } });
+      const setting = (settings.items || []).find(s => s.invoice_type_id === typeId);
       if (setting?.link_enabled) {
         setIsLinked(true);
         const { data: linkages } = await api.get(`/api/v1/linkage-details/${typeId}`);
@@ -513,11 +516,11 @@ export default function InvoiceDetailPage() {
               <div className="card p-6 mb-4">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">
                   Validation Result: <span className={
-                    (validationResult as { overall: string }).overall === 'PASS' ? 'text-green-600' :
-                    (validationResult as { overall: string }).overall === 'FAIL' ? 'text-red-600' : 'text-yellow-600'
-                  }>{(validationResult as { overall: string }).overall}</span>
+                    validationResult.overall === 'PASS' ? 'text-green-600' :
+                    validationResult.overall === 'FAIL' ? 'text-red-600' : 'text-yellow-600'
+                  }>{validationResult.overall}</span>
                 </h3>
-                {((validationResult as { results: Array<{ layer: string; rule_name: string; condition_name: string; result: string; reason: string }> }).results || []).map((r, i) => (
+                {(validationResult.results || []).map((r, i) => (
                   <div key={i} className={`text-sm p-2 rounded mb-1 ${
                     r.result === 'FAIL' ? 'badge-red' :
                     r.result === 'WARNING' ? 'badge-yellow' : 'badge-green'

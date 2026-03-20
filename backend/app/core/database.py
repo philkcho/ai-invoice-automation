@@ -27,6 +27,7 @@ class Base(DeclarativeBase):
 
 
 # FastAPI 의존성 — DB 세션 주입용
+# 요청 단위로 하나의 트랜잭션 보장: 모든 flush가 성공하면 commit, 하나라도 실패하면 rollback
 async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:
         try:
@@ -35,5 +36,3 @@ async def get_db() -> AsyncSession:
         except Exception:
             await session.rollback()
             raise
-        finally:
-            await session.close()

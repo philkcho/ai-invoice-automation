@@ -38,6 +38,7 @@
       dockerfile: Dockerfile
     container_name: invoice_backend
     restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     env_file:
       - .env.dev
     volumes:
