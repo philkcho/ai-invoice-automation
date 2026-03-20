@@ -28,6 +28,7 @@ alembic/versions/*.pyc
 node_modules/
 .next/
 .nuxt/
+*.tsbuildinfo
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
