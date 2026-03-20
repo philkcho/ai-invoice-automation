@@ -86,6 +86,55 @@ export function useCompanies(params?: { skip?: number; limit?: number; status?: 
   });
 }
 
+export function useCompany(id: string) {
+  return useQuery({
+    queryKey: ['companies', id],
+    queryFn: async () => {
+      const { data } = await api.get<Company>(`/api/v1/companies/${id}`);
+      return data;
+    },
+    enabled: !!id,
+  });
+}
+
+export function useCreateCompany() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: Record<string, unknown>) => {
+      const { data } = await api.post<Company>('/api/v1/companies', payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['companies'] });
+    },
+  });
+}
+
+export function useUpdateCompany() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...payload }: { id: string } & Record<string, unknown>) => {
+      const { data } = await api.patch<Company>(`/api/v1/companies/${id}`, payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['companies'] });
+    },
+  });
+}
+
+export function useDeleteCompany() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/api/v1/companies/${id}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['companies'] });
+    },
+  });
+}
+
 // ── Vendors ──────────────────────────────────────────
 export function useVendors(params?: { limit?: number; search?: string; status?: string }) {
   return useQuery({

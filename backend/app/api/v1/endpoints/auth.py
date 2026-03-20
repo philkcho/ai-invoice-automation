@@ -1,38 +1,118 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Cookie, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.schemas.auth import (
     LoginRequest,
     TokenResponse,
     RefreshRequest,
+    LogoutRequest,
     AccessTokenResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    MessageResponse,
 )
 from app.services import auth_service
 
 router = APIRouter()
 
+REFRESH_COOKIE_KEY = "refresh_token"
 
-@router.post("/login", response_model=TokenResponse)
+
+def _set_refresh_cookie(response: Response, token: str) -> None:
+    """refresh token을 HttpOnly 쿠키로 설정"""
+    response.set_cookie(
+        key=REFRESH_COOKIE_KEY,
+        value=token,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        domain=settings.COOKIE_DOMAIN,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
+        path="/api/v1/auth",  # auth 엔드포인트에서만 전송
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    """refresh token 쿠키 삭제"""
+    response.delete_cookie(
+        key=REFRESH_COOKIE_KEY,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        domain=settings.COOKIE_DOMAIN,
+        path="/api/v1/auth",
+    )
+
+
+@router.post("/login", response_model=AccessTokenResponse)
 async def login(
     data: LoginRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    """로그인 — access + refresh token 발급"""
+    """로그인 — access token은 응답 본문, refresh token은 HttpOnly 쿠키로 발급"""
     user = await auth_service.authenticate(db, data.email, data.password)
-    return auth_service.issue_tokens(user)
+    tokens = auth_service.issue_tokens(user)
+    _set_refresh_cookie(response, tokens["refresh_token"])
+    return {
+        "access_token": tokens["access_token"],
+        "token_type": "bearer",
+    }
 
 
 @router.post("/refresh", response_model=AccessTokenResponse)
 async def refresh_token(
-    data: RefreshRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    data: RefreshRequest | None = None,
+    refresh_token: str | None = Cookie(None),
+):
+    """토큰 갱신 — 쿠키 또는 요청 본문의 refresh token으로 새 access token 발급"""
+    # 쿠키 우선, 본문 fallback (하위 호환)
+    token = refresh_token or (data.refresh_token if data else None)
+    if not token:
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not provided",
+        )
+    result = await auth_service.refresh_access_token(db, token)
+    # 쿠키 갱신 (토큰 로테이션은 하지 않지만 만료시간 연장)
+    _set_refresh_cookie(response, token)
+    return result
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    data: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """토큰 갱신 — refresh token으로 새 access token 발급"""
-    return await auth_service.refresh_access_token(db, data.refresh_token)
+    """비밀번호 리셋 이메일 발송 — 보안상 항상 동일 메시지 응답"""
+    await auth_service.request_password_reset(db, data.email)
+    return {"message": "If the email is registered, a password reset link will be sent."}
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+    data: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """비밀번호 재설정"""
+    await auth_service.reset_password(db, data.token, data.new_password)
+    return {"message": "Password has been successfully changed. Please sign in with your new password."}
 
 
 @router.post("/logout", status_code=204)
-async def logout():
-    """로그아웃 — 클라이언트에서 토큰 삭제 처리 (서버는 stateless)"""
+async def logout(
+    response: Response,
+    data: LogoutRequest | None = None,
+    refresh_token: str | None = Cookie(None),
+):
+    """로그아웃 — refresh token을 블랙리스트에 등록하여 재사용 차단"""
+    token = refresh_token or (data.refresh_token if data else None)
+    if token:
+        await auth_service.blacklist_refresh_token(token)
+    _clear_refresh_cookie(response)
     return None

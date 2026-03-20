@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 async def extract_invoice_data(file_path: str) -> dict:
     """파일에서 인보이스 데이터 추출 (Google Document AI 우선)"""
     # 1. Google Document AI
-    if settings.GOOGLE_PROJECT_ID and settings.GOOGLE_PROCESSOR_ID:
+    if (settings.GOOGLE_PROJECT_ID and settings.GOOGLE_PROCESSOR_ID
+            and settings.GOOGLE_PROJECT_ID != "your-google-project-id"):
         logger.info("Using Google Document AI for extraction")
         return await _extract_with_google_documentai(file_path)
 

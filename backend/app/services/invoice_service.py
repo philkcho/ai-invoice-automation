@@ -145,7 +145,6 @@ async def create_invoice(
         await db.flush()
 
     await db.refresh(invoice)
-    await db.refresh(invoice, ["line_items"])
     return invoice
 
 
@@ -252,7 +251,6 @@ async def update_invoice(db: AsyncSession, invoice_id: UUID, data: InvoiceUpdate
             await db.flush()
 
     await db.refresh(invoice)
-    await db.refresh(invoice, ["line_items"])
     return invoice
 
 
@@ -293,6 +291,22 @@ async def run_validation(db: AsyncSession, invoice_id: UUID) -> dict:
     return await _run_and_save_validation(db, invoice)
 
 
+async def confirm_invoice(db: AsyncSession, invoice_id: UUID) -> Invoice:
+    """OCR 검토 완료 후 확정 (OCR_REVIEW → PENDING)"""
+    invoice = await get_invoice(db, invoice_id)
+
+    if invoice.status != "OCR_REVIEW":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot confirm invoice with status '{invoice.status}'. Only OCR_REVIEW invoices can be confirmed.",
+        )
+
+    invoice.status = "PENDING"
+    await db.flush()
+    await db.refresh(invoice)
+    return invoice
+
+
 async def submit_invoice(db: AsyncSession, invoice_id: UUID) -> Invoice:
     """인보이스 제출 (PENDING → SUBMITTED 또는 REVIEW_NEEDED)"""
     invoice = await get_invoice(db, invoice_id)
@@ -322,7 +336,7 @@ async def submit_invoice(db: AsyncSession, invoice_id: UUID) -> Invoice:
             invoice.validation_status = "FAIL"
 
     await db.flush()
-    await db.refresh(invoice, ["line_items"])
+    await db.refresh(invoice)
     return invoice
 
 

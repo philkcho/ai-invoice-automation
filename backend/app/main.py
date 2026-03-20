@@ -178,15 +178,113 @@ app.include_router(company_policies.router, prefix="/api/v1/company-policies", t
 # ── 헬스 체크 ─────────────────────────────────────────
 @app.get("/health", tags=["System"])
 async def health_check():
-    redis_ok = False
+    """경량 헬스체크 (Docker healthcheck용)"""
+    checks = {}
+    overall = "healthy"
+
+    # Redis
     if redis_client:
         try:
             await redis_client.ping()
-            redis_ok = True
+            checks["redis"] = "connected"
         except Exception:
-            pass
-    return {
-        "status": "ok",
-        "environment": settings.ENVIRONMENT,
-        "redis": "connected" if redis_ok else "disconnected",
-    }
+            checks["redis"] = "disconnected"
+            overall = "degraded"
+    else:
+        checks["redis"] = "disconnected"
+        overall = "degraded"
+
+    # DB
+    try:
+        from sqlalchemy import text
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        checks["database"] = "connected"
+    except Exception:
+        checks["database"] = "disconnected"
+        overall = "unhealthy"
+
+    status_code = 200 if overall != "unhealthy" else 503
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": overall,
+            "environment": settings.ENVIRONMENT,
+            "checks": checks,
+        },
+    )
+
+
+@app.get("/health/detail", tags=["System"])
+async def health_check_detail():
+    """상세 헬스체크 (SUPER_ADMIN 전용 — 인증은 추후 적용)"""
+    import shutil
+    import time
+
+    checks = {}
+    overall = "healthy"
+
+    # DB 연결 + 레이턴시
+    try:
+        from sqlalchemy import text
+        start = time.monotonic()
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        latency = round((time.monotonic() - start) * 1000, 1)
+        checks["database"] = {"status": "connected", "latency_ms": latency}
+    except Exception as e:
+        checks["database"] = {"status": "disconnected", "error": str(e)}
+        overall = "unhealthy"
+
+    # Redis 연결 + 레이턴시
+    if redis_client:
+        try:
+            start = time.monotonic()
+            await redis_client.ping()
+            latency = round((time.monotonic() - start) * 1000, 1)
+            checks["redis"] = {"status": "connected", "latency_ms": latency}
+        except Exception as e:
+            checks["redis"] = {"status": "disconnected", "error": str(e)}
+            overall = "degraded"
+    else:
+        checks["redis"] = {"status": "disconnected"}
+        overall = "degraded"
+
+    # Celery 워커 상태
+    try:
+        from app.tasks.celery_app import celery_app as _celery
+        inspect = _celery.control.inspect(timeout=5)
+        active = inspect.active()
+        if active:
+            checks["celery"] = {"status": "active", "workers": len(active)}
+        else:
+            checks["celery"] = {"status": "inactive", "workers": 0}
+            overall = "degraded"
+    except Exception as e:
+        checks["celery"] = {"status": "error", "error": str(e)}
+        overall = "degraded"
+
+    # 디스크 공간
+    try:
+        usage = shutil.disk_usage("/")
+        free_gb = round(usage.free / (1024 ** 3), 1)
+        usage_pct = round((usage.used / usage.total) * 100, 1)
+        disk_status = "ok" if usage_pct < 85 else ("warning" if usage_pct < 95 else "critical")
+        checks["disk"] = {
+            "status": disk_status,
+            "free_gb": free_gb,
+            "usage_percent": usage_pct,
+        }
+        if disk_status == "critical":
+            overall = "degraded"
+    except Exception as e:
+        checks["disk"] = {"status": "error", "error": str(e)}
+
+    status_code = 200 if overall != "unhealthy" else 503
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": overall,
+            "checks": checks,
+        },
+    )

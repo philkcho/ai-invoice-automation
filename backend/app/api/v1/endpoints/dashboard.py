@@ -78,3 +78,18 @@ async def get_recent_activity(
     if not company_id:
         return []
     return await dashboard_service.get_recent_activity(db, company_id, limit)
+
+
+@router.get("/action-items")
+async def get_action_items(
+    limit: int = Query(20, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any),
+):
+    """즉시 조치 필요 항목 (연체, 승인대기, 검증실패, OCR리뷰)"""
+    company_id = current_user.get("company_id")
+    if not company_id:
+        return []
+    return await dashboard_service.get_action_items(
+        db, company_id, current_user["user_id"], limit
+    )

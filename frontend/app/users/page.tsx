@@ -125,6 +125,7 @@ export default function UsersPage() {
                     <th className="table-th text-left">Name</th>
                     <th className="table-th text-left">Email</th>
                     <th className="table-th text-left">Role</th>
+                    <th className="table-th text-left">Company</th>
                     <th className="table-th text-left">Status</th>
                     <th className="table-th text-left">Last Login</th>
                     <th className="table-th text-left">Actions</th>
@@ -140,6 +141,9 @@ export default function UsersPage() {
                           {u.role}
                         </span>
                       </td>
+                      <td className="table-td text-gray-600">
+                        {u.company_name || '-'}
+                      </td>
                       <td className="table-td">
                         <span className={u.is_active ? 'badge-green' : 'badge-red'}>
                           {u.is_active ? 'Active' : 'Inactive'}
@@ -150,6 +154,10 @@ export default function UsersPage() {
                       </td>
                       <td className="table-td">
                         <div className="flex gap-2">
+                          <Link href={`/users/${u.id}`}
+                            className="text-xs text-blue-600 hover:text-blue-800">
+                            Edit
+                          </Link>
                           <button
                             onClick={() => handleToggleActive(u.id, u.is_active)}
                             className={`text-xs ${u.is_active ? 'text-orange-600 hover:text-orange-800' : 'text-green-600 hover:text-green-800'}`}

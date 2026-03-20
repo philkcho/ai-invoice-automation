@@ -193,6 +193,18 @@ async def run_validation(
     return await invoice_service.run_validation(db, invoice_id)
 
 
+@router.post("/{invoice_id}/confirm", response_model=InvoiceResponse)
+async def confirm_invoice(
+    invoice_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_accountant_up),
+):
+    """OCR 검토 완료 확정 (OCR_REVIEW → PENDING)"""
+    invoice = await invoice_service.get_invoice(db, invoice_id)
+    verify_company_access(current_user, invoice.company_id)
+    return await invoice_service.confirm_invoice(db, invoice_id)
+
+
 @router.post("/{invoice_id}/submit", response_model=InvoiceResponse)
 async def submit_invoice(
     invoice_id: UUID,

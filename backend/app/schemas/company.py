@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
@@ -17,9 +17,8 @@ class CompanyCreate(BaseModel):
     contact_name: Optional[str] = Field(None, max_length=255)
     contact_email: Optional[str] = Field(None, max_length=255)
     contact_phone: Optional[str] = Field(None, max_length=50)
-    fiscal_year_start: str = Field("01-01", pattern=r"^\d{2}-\d{2}$", description="MM-DD format")
+    established_date: Optional[str] = Field(None, description="회사 등록일 (YYYY-MM-DD)")
     default_currency: str = Field("USD", max_length=10)
-    s3_bucket_prefix: Optional[str] = Field(None, max_length=100)
 
 
 class CompanyUpdate(BaseModel):
@@ -32,9 +31,8 @@ class CompanyUpdate(BaseModel):
     contact_name: Optional[str] = Field(None, max_length=255)
     contact_email: Optional[str] = Field(None, max_length=255)
     contact_phone: Optional[str] = Field(None, max_length=50)
-    fiscal_year_start: Optional[str] = Field(None, pattern=r"^\d{2}-\d{2}$")
+    established_date: Optional[str] = Field(None, description="회사 등록일 (YYYY-MM-DD)")
     default_currency: Optional[str] = Field(None, max_length=10)
-    s3_bucket_prefix: Optional[str] = Field(None, max_length=100)
     status: Optional[str] = Field(None, pattern=r"^(ACTIVE|INACTIVE)$")
 
 
@@ -53,9 +51,8 @@ class CompanyResponse(BaseModel):
     contact_name: Optional[str]
     contact_email: Optional[str]
     contact_phone: Optional[str]
-    fiscal_year_start: str
+    established_date: Optional[date]
     default_currency: str
-    s3_bucket_prefix: Optional[str]
     status: str
     created_at: datetime
     updated_at: datetime

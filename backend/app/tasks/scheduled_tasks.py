@@ -1,4 +1,5 @@
 """Phase 7: 예약 작업 — 결제 기한 알림, 계약 만료 체크, 면세 만료 체크"""
+import asyncio
 import logging
 from datetime import date, timedelta
 
@@ -7,11 +8,19 @@ from app.tasks.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
+def _run_async(coro):
+    """Celery 동기 워커에서 코루틴을 안전하게 실행"""
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
 @celery_app.task(name="app.tasks.scheduled_tasks.send_payment_due_reminders")
 def send_payment_due_reminders():
     """결제 기한 D-3, D-1, D-day 알림 (매일 8시 UTC 실행)"""
-    import asyncio
-    asyncio.run(_send_payment_due_reminders_async())
+    _run_async(_send_payment_due_reminders_async())
 
 
 async def _send_payment_due_reminders_async():
@@ -62,8 +71,7 @@ async def _send_payment_due_reminders_async():
 @celery_app.task(name="app.tasks.scheduled_tasks.check_contract_expiry")
 def check_contract_expiry():
     """계약 만료 D-30, D-7, D-day 알림 (매일 8시 UTC 실행)"""
-    import asyncio
-    asyncio.run(_check_contract_expiry_async())
+    _run_async(_check_contract_expiry_async())
 
 
 async def _check_contract_expiry_async():
@@ -113,8 +121,7 @@ async def _check_contract_expiry_async():
 @celery_app.task(name="app.tasks.scheduled_tasks.check_tax_exempt_expiry")
 def check_tax_exempt_expiry():
     """면세 인증서 만료 D-30, D-7, D-day 알림 (매일 8시 UTC 실행)"""
-    import asyncio
-    asyncio.run(_check_tax_exempt_expiry_async())
+    _run_async(_check_tax_exempt_expiry_async())
 
 
 async def _check_tax_exempt_expiry_async():

@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import String, Text, Enum as SAEnum, DateTime, func
+from sqlalchemy import Date, String, Text, Enum as SAEnum, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,13 +26,12 @@ class Company(Base):
     contact_name: Mapped[str | None] = mapped_column(String(255))
     contact_email: Mapped[str | None] = mapped_column(String(255))
     contact_phone: Mapped[str | None] = mapped_column(String(50))
-    fiscal_year_start: Mapped[str] = mapped_column(
-        String(5), nullable=False, server_default="01-01", comment="MM-DD format"
+    established_date: Mapped[date | None] = mapped_column(
+        Date, comment="회사 등록일"
     )
     default_currency: Mapped[str] = mapped_column(
         String(10), nullable=False, server_default="USD"
     )
-    s3_bucket_prefix: Mapped[str | None] = mapped_column(String(100))
     status: Mapped[str] = mapped_column(
         SAEnum("ACTIVE", "INACTIVE", name="company_status"),
         nullable=False,

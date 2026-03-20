@@ -13,12 +13,14 @@ const MAX_RETRY = 1;
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,  // HttpOnly 쿠키 자동 전송
 });
 
 // 토큰 갱신 전용 인스턴스 (인터셉터 미적용 → 무한 루프 방지)
 const refreshClient = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,  // 쿠키로 refresh token 전송
 });
 
 // 요청 인터셉터: access token 자동 첨부
@@ -40,23 +42,31 @@ api.interceptors.response.use(
     const retryCount = originalRequest._retryCount ?? 0;
 
     if (error.response?.status === 401 && retryCount < MAX_RETRY) {
+      // 인증 관련 엔드포인트는 refresh 시도 없이 에러 전파
+      const requestUrl = originalRequest.url || '';
+      const skipRefreshPaths = ['/auth/login', '/auth/forgot-password', '/auth/reset-password'];
+      if (skipRefreshPaths.some(p => requestUrl.includes(p))) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retryCount = retryCount + 1;
 
-      const refreshToken = tokenStore.getRefreshToken();
-      if (refreshToken) {
+      try {
+        // refresh token은 HttpOnly 쿠키로 자동 전송
+        const { data } = await refreshClient.post('/api/v1/auth/refresh');
+        tokenStore.setAccessToken(data.access_token);
+        originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
+        return api(originalRequest);
+      } catch {
+        // refresh 실패 → 로그아웃
         try {
-          const { data } = await refreshClient.post('/api/v1/auth/refresh', {
-            refresh_token: refreshToken,
-          });
-          tokenStore.setTokens(data.access_token, tokenStore.getRefreshToken() ?? '');
-          originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
-          return api(originalRequest);
+          await refreshClient.post('/api/v1/auth/logout');
         } catch {
-          // refresh 실패 → 로그아웃
-          tokenStore.clear();
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          }
+          // 로그아웃 API 실패해도 진행
+        }
+        tokenStore.clear();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
         }
       }
     }

@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/lib/api';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
 } from 'recharts';
+
+/* ---------- Types ---------- */
 
 interface Summary {
   invoices_total: number;
@@ -25,20 +27,39 @@ interface Summary {
 }
 
 interface TrendItem { year: number; month: number; count: number; amount: number; }
-interface SpendByType { type_name: string; count: number; amount: number; }
-interface TopVendor { vendor_name: string; invoice_count: number; total_spend: number; }
-interface RecentItem { id: string; invoice_number: string | null; vendor_name: string | null; amount_total: number; status: string; updated_at: string | null; }
 
-const PIE_COLORS = ['#4F46E5', '#7C3AED', '#2563EB', '#0891B2', '#059669', '#D97706', '#DC2626', '#6366F1'];
+interface ActionItem {
+  type: 'overdue_payment' | 'pending_approval' | 'validation_failed' | 'ocr_review';
+  priority: string;
+  invoice_id: string;
+  invoice_number: string | null;
+  vendor_name: string | null;
+  amount: number;
+  due_date?: string;
+  days_overdue?: number;
+  step?: number;
+}
 
-const STATUS_COLORS: Record<string, string> = {
-  RECEIVED: 'bg-gray-100 text-gray-600',
-  PENDING: 'bg-blue-50 text-blue-700',
-  IN_APPROVAL: 'bg-yellow-50 text-yellow-700',
-  APPROVED: 'bg-green-50 text-green-700',
-  PAID: 'bg-emerald-50 text-emerald-700',
-  REJECTED: 'bg-red-50 text-red-700',
+/* ---------- Constants ---------- */
+
+const PIPELINE_STEPS = ['RECEIVED', 'PENDING', 'IN_APPROVAL', 'APPROVED', 'PAID'] as const;
+
+const PIPELINE_LABELS: Record<string, string> = {
+  RECEIVED: 'Received',
+  PENDING: 'Processing',
+  IN_APPROVAL: 'In Approval',
+  APPROVED: 'Approved',
+  PAID: 'Paid',
 };
+
+const ACTION_CONFIG: Record<string, { icon: string; label: string; color: string; bgColor: string }> = {
+  overdue_payment:   { icon: '🔴', label: 'Overdue Payment',       color: 'text-red-700',    bgColor: 'bg-red-50 border-red-200' },
+  pending_approval:  { icon: '🟡', label: 'Pending Approval',      color: 'text-yellow-700', bgColor: 'bg-yellow-50 border-yellow-200' },
+  validation_failed: { icon: '🟠', label: 'Validation Failed',     color: 'text-orange-700', bgColor: 'bg-orange-50 border-orange-200' },
+  ocr_review:        { icon: '🔵', label: 'OCR Review Pending',    color: 'text-blue-700',   bgColor: 'bg-blue-50 border-blue-200' },
+};
+
+/* ---------- Helpers ---------- */
 
 function fmt(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
@@ -48,52 +69,40 @@ function fmtMonth(item: TrendItem) {
   return `${item.year}-${String(item.month).padStart(2, '0')}`;
 }
 
+function calcMomChange(trend: TrendItem[]): number | null {
+  if (trend.length < 2) return null;
+  const prev = trend[trend.length - 2].amount;
+  const curr = trend[trend.length - 1].amount;
+  if (prev === 0) return null;
+  return ((curr - prev) / prev) * 100;
+}
+
+/* ---------- Main Page ---------- */
+
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
+  const router = useRouter();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [trend, setTrend] = useState<TrendItem[]>([]);
-  const [spendByType, setSpendByType] = useState<SpendByType[]>([]);
-  const [topVendors, setTopVendors] = useState<TopVendor[]>([]);
-  const [recent, setRecent] = useState<RecentItem[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAll = async () => {
-      try {
-        const [sumRes, trendRes, typeRes, vendorRes, recentRes] = await Promise.all([
-          api.get('/api/v1/dashboard/summary'),
-          api.get('/api/v1/dashboard/invoice-trend'),
-          api.get('/api/v1/dashboard/spend-by-type'),
-          api.get('/api/v1/dashboard/top-vendors'),
-          api.get('/api/v1/dashboard/recent-activity'),
-        ]);
-        setSummary(sumRes.data);
-        setTrend(trendRes.data);
-        setSpendByType(typeRes.data);
-        setTopVendors(vendorRes.data);
-        setRecent(recentRes.data);
-      } catch {
-        // Dashboard load failure is non-critical
-      } finally {
-        setLoading(false);
-      }
+      const results = await Promise.allSettled([
+        api.get('/api/v1/dashboard/summary'),
+        api.get('/api/v1/dashboard/invoice-trend'),
+        api.get('/api/v1/dashboard/action-items'),
+      ]);
+      if (results[0].status === 'fulfilled') setSummary(results[0].value.data);
+      if (results[1].status === 'fulfilled') setTrend(results[1].value.data);
+      if (results[2].status === 'fulfilled') setActionItems(results[2].value.data);
+      setLoading(false);
     };
     fetchAll();
   }, []);
 
-  const handleExport = async (type: string) => {
-    try {
-      const resp = await api.get(`/api/v1/reports/${type}/export?fmt=csv`, { responseType: 'blob' });
-      const url = URL.createObjectURL(resp.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${type}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      // silent
-    }
-  };
+  const momChange = calcMomChange(trend);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -101,19 +110,9 @@ export default function DashboardPage() {
       <div className="flex flex-1">
         <Sidebar />
         <main className="flex-1 bg-gray-50 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-              <p className="text-sm text-gray-500 mt-1">Welcome back, {user?.full_name}</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => handleExport('invoices')} className="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                Export Invoices
-              </button>
-              <button onClick={() => handleExport('vendor-spend')} className="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                Export Vendor Spend
-              </button>
-            </div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
+            <p className="text-sm text-gray-500 mt-1">Welcome back, {user?.full_name}</p>
           </div>
 
           {loading ? (
@@ -122,27 +121,50 @@ export default function DashboardPage() {
             <div className="text-center text-gray-500 py-16">Unable to load dashboard data.</div>
           ) : (
             <>
-              {/* KPI Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-                <KpiCard label="Invoices (Month)" value={summary.invoices_this_month} />
-                <KpiCard label="Invoices (YTD)" value={summary.invoices_ytd} />
-                <KpiCard label="Spend (Month)" value={fmt(summary.spend_this_month)} />
-                <KpiCard label="Spend (YTD)" value={fmt(summary.spend_ytd)} />
-                <KpiCard label="Active Vendors" value={summary.active_vendors} />
+              {/* Section 1: KPI Cards (4개) */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <KpiCard
+                  label="Invoices This Month"
+                  value={summary.invoices_this_month}
+                />
+                <KpiCard
+                  label="Spend This Month"
+                  value={fmt(summary.spend_this_month)}
+                />
+                <KpiCard
+                  label="Pending Approvals"
+                  value={summary.pending_approvals}
+                  accent={summary.pending_approvals > 0 ? 'yellow' : undefined}
+                  onClick={() => router.push('/approvals')}
+                />
+                <KpiCard
+                  label="Overdue Payments"
+                  value={summary.overdue_payments}
+                  accent={summary.overdue_payments > 0 ? 'red' : undefined}
+                  onClick={() => router.push('/payments')}
+                />
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <KpiCard label="Pending Approvals" value={summary.pending_approvals} color={summary.pending_approvals > 0 ? 'yellow' : undefined} />
-                <KpiCard label="Validation Fails" value={summary.validation_fails} color={summary.validation_fails > 0 ? 'red' : undefined} />
-                <KpiCard label="Warnings" value={summary.validation_warnings} color={summary.validation_warnings > 0 ? 'orange' : undefined} />
-                <KpiCard label="Overdue Payments" value={summary.overdue_payments} color={summary.overdue_payments > 0 ? 'red' : undefined} />
+              {/* Section 2: Invoice Pipeline */}
+              <div className="bg-white rounded-lg shadow-sm border p-5 mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 mb-4">Invoice Processing Pipeline</h3>
+                <PipelineBar statusCounts={summary.status_counts} />
               </div>
 
-              {/* Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                {/* Invoice Trend */}
+              {/* Section 3 & 4: Trend + Action Items */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 월별 지출 트렌드 */}
                 <div className="bg-white rounded-lg shadow-sm border p-5">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-4">Invoice Trend (Monthly)</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-700">Monthly Spend Trend</h3>
+                    {momChange !== null && (
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        momChange >= 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                      }`}>
+                        MoM {momChange >= 0 ? '+' : ''}{momChange.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
                   {trend.length > 0 ? (
                     <ResponsiveContainer width="100%" height={260}>
                       <BarChart data={trend.map(t => ({ ...t, label: fmtMonth(t) }))}>
@@ -158,89 +180,40 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Spend by Type */}
+                {/* 즉시 조치 필요 */}
                 <div className="bg-white rounded-lg shadow-sm border p-5">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-4">Spend by Invoice Type</h3>
-                  {spendByType.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={260}>
-                      <PieChart>
-                        <Pie
-                          data={spendByType}
-                          dataKey="amount"
-                          nameKey="type_name"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={90}
-                          label={({ type_name, percent }) => `${type_name} ${(percent * 100).toFixed(0)}%`}
-                          labelLine={false}
-                          fontSize={11}
-                        >
-                          {spendByType.map((_, i) => (
-                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(v: number) => fmt(v)} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-64 flex items-center justify-center text-gray-400 text-sm">No data</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Bottom: Top Vendors + Recent Activity */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Top Vendors */}
-                <div className="bg-white rounded-lg shadow-sm border p-5">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-4">Top 10 Vendors by Spend</h3>
-                  {topVendors.length > 0 ? (
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-xs text-gray-500 border-b">
-                          <th className="text-left py-2">Vendor</th>
-                          <th className="text-right py-2">Invoices</th>
-                          <th className="text-right py-2">Total Spend</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {topVendors.map((v, i) => (
-                          <tr key={i} className="border-b border-gray-50">
-                            <td className="py-2 text-gray-800">{v.vendor_name}</td>
-                            <td className="py-2 text-right text-gray-600">{v.invoice_count}</td>
-                            <td className="py-2 text-right font-medium text-gray-800">{fmt(v.total_spend)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="py-8 text-center text-gray-400 text-sm">No vendor data</div>
-                  )}
-                </div>
-
-                {/* Recent Activity */}
-                <div className="bg-white rounded-lg shadow-sm border p-5">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-4">Recent Activity</h3>
-                  {recent.length > 0 ? (
-                    <div className="space-y-3">
-                      {recent.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                          <div>
-                            <p className="text-sm font-medium text-gray-800">
-                              {item.invoice_number || 'Draft'}
-                            </p>
-                            <p className="text-xs text-gray-500">{item.vendor_name || 'Unknown Vendor'}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-gray-800">{fmt(item.amount_total)}</p>
-                            <span className={`inline-block px-1.5 py-0.5 text-[10px] font-medium rounded ${STATUS_COLORS[item.status] || 'bg-gray-100 text-gray-600'}`}>
-                              {item.status}
+                  <h3 className="text-sm font-semibold text-gray-700 mb-4">Action Required</h3>
+                  {actionItems.length > 0 ? (
+                    <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                      {actionItems.map((item, idx) => {
+                        const cfg = ACTION_CONFIG[item.type];
+                        return (
+                          <button
+                            key={`${item.invoice_id}-${idx}`}
+                            className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg border ${cfg.bgColor} hover:opacity-80 transition`}
+                            onClick={() => router.push(`/invoices/${item.invoice_id}`)}
+                          >
+                            <span className="text-base flex-shrink-0">{cfg.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium ${cfg.color} truncate`}>
+                                {item.invoice_number || 'Draft'} — {item.vendor_name || 'Unknown'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {cfg.label}
+                                {item.days_overdue ? ` · ${item.days_overdue} days overdue` : ''}
+                              </p>
+                            </div>
+                            <span className={`text-sm font-semibold ${cfg.color} flex-shrink-0`}>
+                              {fmt(item.amount)}
                             </span>
-                          </div>
-                        </div>
-                      ))}
+                          </button>
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="py-8 text-center text-gray-400 text-sm">No recent activity</div>
+                    <div className="h-64 flex items-center justify-center text-gray-400 text-sm">
+                      No action items required
+                    </div>
                   )}
                 </div>
               </div>
@@ -252,12 +225,65 @@ export default function DashboardPage() {
   );
 }
 
-function KpiCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
-  const borderColor = color === 'red' ? 'border-l-red-500' : color === 'yellow' ? 'border-l-yellow-500' : color === 'orange' ? 'border-l-orange-500' : 'border-l-transparent';
+/* ---------- KPI Card ---------- */
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  accent,
+  onClick,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  accent?: 'red' | 'yellow';
+  onClick?: () => void;
+}) {
+  const border = accent === 'red' ? 'border-l-red-500' : accent === 'yellow' ? 'border-l-yellow-500' : 'border-l-transparent';
+  const Wrapper = onClick ? 'button' : 'div';
   return (
-    <div className={`bg-white rounded-lg shadow-sm border p-4 border-l-4 ${borderColor}`}>
+    <Wrapper
+      className={`bg-white rounded-lg shadow-sm border border-l-4 ${border} p-4 text-left ${onClick ? 'hover:bg-gray-50 cursor-pointer transition' : ''}`}
+      onClick={onClick}
+    >
       <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className="text-xl font-bold text-gray-900">{value}</p>
+      <p className="text-xl font-bold text-gray-900">
+        {value}
+        {sub && <span className="text-sm font-normal text-gray-400 ml-1">{sub}</span>}
+      </p>
+    </Wrapper>
+  );
+}
+
+/* ---------- Pipeline Bar ---------- */
+
+function PipelineBar({ statusCounts }: { statusCounts: Record<string, number> }) {
+  const counts = PIPELINE_STEPS.map(s => statusCounts[s] || 0);
+  const maxCount = Math.max(...counts, 1);
+
+  return (
+    <div className="flex items-end gap-1">
+      {PIPELINE_STEPS.map((step) => {
+        const count = statusCounts[step] || 0;
+        const isBottleneck = count === maxCount && count > 0;
+        return (
+          <div key={step} className="flex-1 flex flex-col items-center">
+            {/* Count */}
+            <span className={`text-lg font-bold mb-2 ${isBottleneck ? 'text-indigo-600' : 'text-gray-800'}`}>
+              {count}
+            </span>
+            {/* Bar */}
+            <div className={`w-full rounded-t-md ${isBottleneck ? 'bg-indigo-500' : 'bg-indigo-300'}`}
+              style={{ height: `${Math.max((count / maxCount) * 80, 8)}px`, transition: 'height 0.3s' }}
+            />
+            {/* Label */}
+            <div className="w-full bg-gray-100 rounded-b-md py-2 text-center">
+              <p className="text-[11px] font-medium text-gray-600">{PIPELINE_LABELS[step]}</p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

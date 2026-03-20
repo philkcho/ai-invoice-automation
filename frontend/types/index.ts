@@ -26,6 +26,7 @@ export type UserRole =
 export interface User {
   id: string;
   company_id: string | null;
+  company_name: string | null;
   email: string;
   full_name: string;
   role: UserRole;
@@ -49,9 +50,8 @@ export interface Company {
   contact_name: string | null;
   contact_email: string | null;
   contact_phone: string | null;
-  fiscal_year_start: string;
+  established_date: string | null;
   default_currency: string;
-  s3_bucket_prefix: string | null;
   status: 'ACTIVE' | 'INACTIVE';
   created_at: string;
   updated_at: string;

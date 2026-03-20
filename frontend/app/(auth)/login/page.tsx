@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { getErrorMessage } from '@/lib/error';
@@ -102,6 +103,12 @@ export default function LoginPage() {
               className="input w-full"
               placeholder="Enter your password"
             />
+          </div>
+
+          <div className="flex justify-end">
+            <Link href="/forgot-password" className="text-sm text-primary-600 hover:underline">
+              Forgot password?
+            </Link>
           </div>
 
           <button

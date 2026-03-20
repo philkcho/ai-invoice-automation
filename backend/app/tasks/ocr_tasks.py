@@ -11,6 +11,15 @@ from app.tasks.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
+def _run_async(coro):
+    """Celery 동기 워커에서 코루틴을 안전하게 실행 (이벤트 루프 재진입 방지)"""
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
 @celery_app.task(
     bind=True,
     max_retries=3,
@@ -22,7 +31,7 @@ def process_invoice_ocr(self, invoice_id: str, file_path: str):
     logger.info("Starting OCR for invoice %s, file: %s", invoice_id, file_path)
 
     try:
-        result = asyncio.run(_run_ocr(invoice_id, file_path))
+        result = _run_async(_run_ocr(invoice_id, file_path))
         logger.info("OCR completed for invoice %s: %s", invoice_id, result.get("status"))
         return result
     except Exception as exc:
@@ -31,7 +40,7 @@ def process_invoice_ocr(self, invoice_id: str, file_path: str):
             raise self.retry(exc=exc, countdown=60)
         else:
             logger.critical("OCR max retries exceeded for invoice %s", invoice_id)
-            asyncio.run(_mark_ocr_failed(invoice_id))
+            _run_async(_mark_ocr_failed(invoice_id))
             return {"status": "FAILED", "invoice_id": invoice_id, "error": str(exc)}
 
 

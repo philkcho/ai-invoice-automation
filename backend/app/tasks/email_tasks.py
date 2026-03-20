@@ -20,6 +20,15 @@ MAX_ATTACHMENT_SIZE = 50 * 1024 * 1024  # 50MB
 MAX_CONSECUTIVE_ERRORS = 10  # 연속 에러 초과 시 자동 비활성화
 
 
+def _run_async(coro):
+    """Celery 동기 워커에서 코루틴을 안전하게 실행"""
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
 @celery_app.task(
     bind=True,
     max_retries=1,
@@ -30,7 +39,7 @@ def poll_all_email_accounts(self):
     """활성 이메일 설정 전체 폴링 (Celery Beat에서 5분마다 실행)"""
     logger.info("Starting email polling for all active accounts")
     try:
-        result = asyncio.run(_poll_all())
+        result = _run_async(_poll_all())
         logger.info("Email polling completed: %s", result)
         return result
     except Exception as exc:
@@ -118,7 +127,8 @@ async def poll_single_account(db, config) -> tuple[int, int]:
         from app.services.email_configuration_service import save_oauth_credentials
         await save_oauth_credentials(db, config.id, new_creds)
     except Exception as e:
-        logger.warning("Token refresh failed for %s, trying existing token: %s", config.email_address, e)
+        logger.error("Token refresh failed for %s, skipping account: %s", config.email_address, e)
+        raise ValueError(f"Token refresh failed for {config.email_address}: {e}")
 
     # 필터 파싱
     filter_keywords = [k.strip() for k in (config.filter_keywords or "").split(",") if k.strip()] or None

@@ -4,7 +4,7 @@ from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func, case, extract, and_
+from sqlalchemy import select, func, case, extract, and_, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.invoice import Invoice
@@ -51,7 +51,7 @@ async def get_company_summary(
         select(func.count(InvoiceApproval.id))
         .where(
             InvoiceApproval.company_id == company_id,
-            InvoiceApproval.status == "PENDING",
+            InvoiceApproval.status.cast(String) == "PENDING",
         )
     )
 
@@ -60,7 +60,7 @@ async def get_company_summary(
         select(Invoice.validation_status, func.count(Invoice.id))
         .where(
             Invoice.company_id == company_id,
-            Invoice.validation_status.in_(["FAIL", "WARNING"]),
+            Invoice.validation_status.cast(String).in_(["FAIL", "WARNING"]),
         )
         .group_by(Invoice.validation_status)
     )
@@ -72,7 +72,7 @@ async def get_company_summary(
         .where(
             Invoice.company_id == company_id,
             Invoice.due_date < today,
-            Invoice.status.in_(["APPROVED", "SCHEDULED", "IN_APPROVAL", "PENDING"]),
+            Invoice.status.cast(String).in_(["APPROVED", "SCHEDULED", "IN_APPROVAL", "PENDING"]),
         )
     )
 
@@ -197,23 +197,159 @@ async def get_recent_activity(
     ]
 
 
+async def get_action_items(
+    db: AsyncSession, company_id: UUID, user_id: UUID, limit: int = 20
+) -> list[dict]:
+    """즉시 조치가 필요한 항목 목록"""
+    today = date.today()
+    items: list[dict] = []
+
+    # 🔴 연체 결제
+    overdue_result = await db.execute(
+        select(Invoice)
+        .where(
+            Invoice.company_id == company_id,
+            Invoice.due_date < today,
+            Invoice.status.cast(String).in_(["APPROVED", "SCHEDULED", "IN_APPROVAL", "PENDING"]),
+        )
+        .order_by(Invoice.due_date.asc())
+        .limit(limit)
+    )
+    for inv in overdue_result.scalars().all():
+        items.append({
+            "type": "overdue_payment",
+            "priority": "critical",
+            "invoice_id": str(inv.id),
+            "invoice_number": inv.invoice_number,
+            "vendor_name": inv.vendor.company_name if inv.vendor else None,
+            "amount": float(inv.amount_total),
+            "due_date": inv.due_date.isoformat() if inv.due_date else None,
+            "days_overdue": (today - inv.due_date).days if inv.due_date else 0,
+        })
+
+    # 🟡 승인 대기 (현재 사용자가 승인자인 건)
+    pending_result = await db.execute(
+        select(InvoiceApproval)
+        .where(
+            InvoiceApproval.company_id == company_id,
+            InvoiceApproval.approver_id == user_id,
+            InvoiceApproval.status.cast(String) == "PENDING",
+        )
+        .order_by(InvoiceApproval.created_at.asc())
+        .limit(limit)
+    )
+    for appr in pending_result.scalars().all():
+        inv = appr.invoice
+        items.append({
+            "type": "pending_approval",
+            "priority": "high",
+            "invoice_id": str(appr.invoice_id),
+            "invoice_number": inv.invoice_number if inv else None,
+            "vendor_name": inv.vendor.company_name if inv and inv.vendor else None,
+            "amount": float(inv.amount_total) if inv else 0,
+            "step": appr.step,
+        })
+
+    # 🟠 검증 실패 인보이스
+    fail_result = await db.execute(
+        select(Invoice)
+        .where(
+            Invoice.company_id == company_id,
+            Invoice.validation_status.cast(String) == "FAIL",
+            Invoice.status.cast(String).notin_(["VOID", "REJECTED"]),
+        )
+        .order_by(Invoice.updated_at.desc())
+        .limit(limit)
+    )
+    for inv in fail_result.scalars().all():
+        items.append({
+            "type": "validation_failed",
+            "priority": "medium",
+            "invoice_id": str(inv.id),
+            "invoice_number": inv.invoice_number,
+            "vendor_name": inv.vendor.company_name if inv.vendor else None,
+            "amount": float(inv.amount_total),
+        })
+
+    # 🔵 OCR 리뷰 대기
+    ocr_result = await db.execute(
+        select(Invoice)
+        .where(
+            Invoice.company_id == company_id,
+            Invoice.ocr_status.cast(String) == "COMPLETED",
+            Invoice.status.cast(String) == "OCR_REVIEW",
+        )
+        .order_by(Invoice.updated_at.desc())
+        .limit(limit)
+    )
+    for inv in ocr_result.scalars().all():
+        items.append({
+            "type": "ocr_review",
+            "priority": "low",
+            "invoice_id": str(inv.id),
+            "invoice_number": inv.invoice_number,
+            "vendor_name": inv.vendor.company_name if inv.vendor else None,
+            "amount": float(inv.amount_total),
+        })
+
+    return items
+
+
 async def get_super_admin_summary(db: AsyncSession) -> dict:
-    """전체 시스템 요약 (SUPER_ADMIN)"""
+    """전체 시스템 요약 (SUPER_ADMIN) — company_summary와 동일 형식 + 추가 필드"""
+    today = date.today()
+    month_start = today.replace(day=1)
+    year_start = today.replace(month=1, day=1)
+
     company_count = (await db.execute(
         select(func.count(Company.id)).where(Company.status == "ACTIVE")
     )).scalar() or 0
 
-    total_invoices = (await db.execute(
-        select(func.count(Invoice.id))
-    )).scalar() or 0
+    # 인보이스 통계 (전체)
+    inv_stats = await db.execute(
+        select(
+            func.count(Invoice.id).label("total"),
+            func.coalesce(func.sum(Invoice.amount_total), 0).label("total_amount"),
+            func.count(case((Invoice.created_at >= month_start, Invoice.id))).label("month_count"),
+            func.coalesce(func.sum(case((Invoice.created_at >= month_start, Invoice.amount_total))), 0).label("month_amount"),
+            func.count(case((Invoice.created_at >= year_start, Invoice.id))).label("ytd_count"),
+            func.coalesce(func.sum(case((Invoice.created_at >= year_start, Invoice.amount_total))), 0).label("ytd_amount"),
+        )
+    )
+    inv = inv_stats.one()
 
-    total_spend = (await db.execute(
-        select(func.coalesce(func.sum(Invoice.amount_total), 0))
-    )).scalar() or 0
+    # 상태별 카운트
+    status_stats = await db.execute(
+        select(Invoice.status, func.count(Invoice.id))
+        .group_by(Invoice.status)
+    )
+    status_counts = {row[0]: row[1] for row in status_stats.all()}
 
     pending_approvals = (await db.execute(
         select(func.count(InvoiceApproval.id))
-        .where(InvoiceApproval.status == "PENDING")
+        .where(InvoiceApproval.status.cast(String) == "PENDING")
+    )).scalar() or 0
+
+    # 연체 결제 건수 (전체)
+    overdue = (await db.execute(
+        select(func.count(Invoice.id))
+        .where(
+            Invoice.due_date < today,
+            Invoice.status.cast(String).in_(["APPROVED", "SCHEDULED", "IN_APPROVAL", "PENDING"]),
+        )
+    )).scalar() or 0
+
+    # 검증 실패/경고 (전체)
+    validation_stats = await db.execute(
+        select(Invoice.validation_status, func.count(Invoice.id))
+        .where(Invoice.validation_status.cast(String).in_(["FAIL", "WARNING"]))
+        .group_by(Invoice.validation_status)
+    )
+    val_counts = {row[0]: row[1] for row in validation_stats.all()}
+
+    # 활성 벤더 수
+    vendor_count = (await db.execute(
+        select(func.count(Vendor.id)).where(Vendor.status == "ACTIVE")
     )).scalar() or 0
 
     # 회사별 요약
@@ -230,10 +366,18 @@ async def get_super_admin_summary(db: AsyncSession) -> dict:
     )
 
     return {
-        "active_companies": company_count,
-        "total_invoices": total_invoices,
-        "total_spend": float(total_spend),
+        "invoices_total": inv.total,
+        "invoices_this_month": inv.month_count,
+        "invoices_ytd": inv.ytd_count,
+        "spend_this_month": float(inv.month_amount),
+        "spend_ytd": float(inv.ytd_amount),
         "pending_approvals": pending_approvals,
+        "validation_fails": val_counts.get("FAIL", 0),
+        "validation_warnings": val_counts.get("WARNING", 0),
+        "overdue_payments": overdue,
+        "active_vendors": vendor_count,
+        "status_counts": status_counts,
+        "active_companies": company_count,
         "company_breakdown": [
             {
                 "company_name": row.company_name,

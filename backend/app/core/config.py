@@ -68,11 +68,24 @@ class Settings(BaseSettings):
     LOGIN_MAX_ATTEMPTS: int = 5
     LOGIN_LOCKOUT_MINUTES: int = 15
 
+    # Password Reset
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
+    FRONTEND_URL: str = "http://localhost:3000"
+
+    # Cookie
+    COOKIE_SECURE: bool = False  # 프로덕션에서 True (HTTPS)
+    COOKIE_DOMAIN: Optional[str] = None  # 프로덕션에서 도메인 설정
+    COOKIE_SAMESITE: str = "lax"
+
     # SMTP
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
+
+    # Telegram Alerts
+    TELEGRAM_BOT_TOKEN: Optional[str] = None
+    TELEGRAM_CHAT_ID: Optional[str] = None
 
     class Config:
         env_file = ".env.dev"

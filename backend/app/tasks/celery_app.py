@@ -1,6 +1,11 @@
+import logging
+
 from celery import Celery
 from celery.schedules import crontab
+from celery.signals import task_failure
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 celery_app = Celery(
     "ai_invoice_automation",
@@ -56,3 +61,39 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(hour=8, minute=0),
     },
 }
+
+
+# ── Celery 작업 실패 시그널 핸들러 ──────────────────────────
+@task_failure.connect
+def handle_task_failure(sender=None, task_id=None, exception=None,
+                        args=None, kwargs=None, traceback=None, **kw):
+    """작업 실패 시 Sentry + 텔레그램 알림"""
+    task_name = sender.name if sender else "unknown"
+    error_msg = f"Celery task failed: {task_name}\nTask ID: {task_id}\nError: {exception}"
+    logger.error(error_msg)
+
+    # Sentry 알림
+    try:
+        import sentry_sdk
+        if sentry_sdk.is_initialized():
+            sentry_sdk.capture_exception(exception)
+    except Exception:
+        pass
+
+    # 텔레그램 알림
+    if settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_CHAT_ID:
+        try:
+            import urllib.request
+            import urllib.parse
+
+            message = f"🔴 *Celery Task Failed*\nTask: `{task_name}`\nID: `{task_id}`\nError: `{exception}`"
+            params = urllib.parse.urlencode({
+                "chat_id": settings.TELEGRAM_CHAT_ID,
+                "text": message,
+                "parse_mode": "Markdown",
+            })
+            url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage?{params}"
+            req = urllib.request.Request(url, method="GET")
+            urllib.request.urlopen(req, timeout=10)
+        except Exception as e:
+            logger.warning("Failed to send Telegram alert: %s", e)

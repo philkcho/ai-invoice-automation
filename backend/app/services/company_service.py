@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Optional
 from uuid import UUID
 
@@ -7,6 +8,13 @@ from fastapi import HTTPException, status
 
 from app.models.company import Company
 from app.schemas.company import CompanyCreate, CompanyUpdate
+
+
+def _parse_date(value: Optional[str]) -> Optional[date]:
+    """YYYY-MM-DD 문자열을 date 객체로 변환"""
+    if not value:
+        return None
+    return date.fromisoformat(value)
 
 
 async def create_company(db: AsyncSession, data: CompanyCreate) -> Company:
@@ -31,7 +39,9 @@ async def create_company(db: AsyncSession, data: CompanyCreate) -> Company:
                 detail=f"EIN '{data.ein}' already exists",
             )
 
-    company = Company(**data.model_dump())
+    company_data = data.model_dump()
+    company_data["established_date"] = _parse_date(company_data.get("established_date"))
+    company = Company(**company_data)
     db.add(company)
     await db.flush()
     await db.refresh(company)
@@ -94,6 +104,9 @@ async def update_company(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"EIN '{update_data['ein']}' already exists",
             )
+
+    if "established_date" in update_data:
+        update_data["established_date"] = _parse_date(update_data["established_date"])
 
     for field, value in update_data.items():
         setattr(company, field, value)

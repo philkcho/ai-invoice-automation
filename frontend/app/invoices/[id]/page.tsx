@@ -32,6 +32,7 @@ export default function InvoiceDetailPage() {
   const router = useRouter();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [validating, setValidating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -152,6 +153,19 @@ export default function InvoiceDetailPage() {
     }
   };
 
+  const handleConfirm = async () => {
+    setConfirming(true);
+    setError('');
+    try {
+      await api.post(`/api/v1/invoices/${id}/confirm`);
+      await fetchInvoice();
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
+    } finally {
+      setConfirming(false);
+    }
+  };
+
   const handleValidate = async () => {
     setValidating(true);
     try {
@@ -262,10 +276,17 @@ export default function InvoiceDetailPage() {
                       className="btn-secondary disabled:opacity-50">
                       {validating ? 'Validating...' : 'Run Validation'}
                     </button>
-                    <button onClick={handleSubmit} disabled={submitting}
-                      className="btn-primary disabled:opacity-50">
-                      {submitting ? 'Submitting...' : 'Submit'}
-                    </button>
+                    {invoice.status === 'OCR_REVIEW' ? (
+                      <button onClick={handleConfirm} disabled={confirming}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50">
+                        {confirming ? 'Confirming...' : 'Confirm'}
+                      </button>
+                    ) : (
+                      <button onClick={handleSubmit} disabled={submitting}
+                        className="btn-primary disabled:opacity-50">
+                        {submitting ? 'Submitting...' : 'Submit'}
+                      </button>
+                    )}
                   </>
                 )}
               </div>

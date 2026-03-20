@@ -57,5 +57,9 @@ class User(Base):
     # Relationships
     company = relationship("Company", back_populates="users", lazy="selectin")
 
+    @property
+    def company_name(self) -> str | None:
+        return self.company.company_name if self.company else None
+
     def __repr__(self) -> str:
         return f"<User {self.email} ({self.role})>"
