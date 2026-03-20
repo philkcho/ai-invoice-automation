@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func, or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
@@ -64,7 +64,7 @@ async def create_invoice(
         if matched_po:
             po_id = matched_po.id
 
-    # PO 번호로 LinkageDetail 자동 연결
+    # PO 번호로 LinkageDetail 자동 연결 (SELECT FOR UPDATE로 동시성 보호)
     matched_linkage = None
     if data.po_number:
         linkage_result = await db.execute(
@@ -72,7 +72,7 @@ async def create_invoice(
                 LinkageDetail.company_id == data.company_id,
                 LinkageDetail.linkage_no == data.po_number,
                 LinkageDetail.invoice_type_id == data.invoice_type_id,
-            )
+            ).with_for_update()
         )
         matched_linkage = linkage_result.scalar_one_or_none()
 
@@ -243,7 +243,7 @@ async def update_invoice(db: AsyncSession, invoice_id: UUID, data: InvoiceUpdate
                 LinkageDetail.company_id == invoice.company_id,
                 LinkageDetail.linkage_no == invoice.po_number,
                 LinkageDetail.invoice_type_id == invoice.invoice_type_id,
-            )
+            ).with_for_update()
         )
         linkage = linkage_result.scalar_one_or_none()
         if linkage:
@@ -264,14 +264,14 @@ async def delete_invoice(db: AsyncSession, invoice_id: UUID) -> None:
             detail=f"Cannot delete invoice with status '{invoice.status}'",
         )
 
-    # LinkageDetail 금액 복구 (Decimal 사용)
+    # LinkageDetail 금액 복구 (Decimal 사용, SELECT FOR UPDATE로 동시성 보호)
     if invoice.po_number and Decimal(str(invoice.amount_total)) > 0:
         linkage_result = await db.execute(
             select(LinkageDetail).where(
                 LinkageDetail.company_id == invoice.company_id,
                 LinkageDetail.linkage_no == invoice.po_number,
                 LinkageDetail.invoice_type_id == invoice.invoice_type_id,
-            )
+            ).with_for_update()
         )
         linkage = linkage_result.scalar_one_or_none()
         if linkage:
@@ -313,7 +313,13 @@ async def submit_invoice(db: AsyncSession, invoice_id: UUID) -> Invoice:
         # PASS 또는 WARNING → 승인 워크플로우 시작
         invoice.validation_status = result["overall"]
         await db.flush()
-        await start_approval_workflow(db, invoice)
+        try:
+            await start_approval_workflow(db, invoice)
+        except Exception as e:
+            # 승인 워크플로우 실패 시 인보이스 상태를 REVIEW_NEEDED로 되돌림
+            logger.error("Failed to start approval workflow for invoice %s: %s", invoice_id, e)
+            invoice.status = "REVIEW_NEEDED"
+            invoice.validation_status = "FAIL"
 
     await db.flush()
     await db.refresh(invoice, ["line_items"])

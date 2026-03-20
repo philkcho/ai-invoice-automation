@@ -36,13 +36,28 @@ async def extract_invoice_data(file_path: str) -> dict:
     return _mock_ocr_result()
 
 
+def _safe_resolve_path(file_path: str) -> str:
+    """파일 경로 traversal 공격 방지 — /app/media 하위 경로만 허용"""
+    base_dir = os.path.realpath("/app/media")
+    if file_path.startswith("/"):
+        full_path = os.path.realpath(file_path)
+    else:
+        full_path = os.path.realpath(os.path.join(base_dir, file_path))
+
+    if not full_path.startswith(base_dir + os.sep) and full_path != base_dir:
+        raise ValueError(f"Path traversal detected: access denied")
+
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(f"File not found: {full_path}")
+
+    return full_path
+
+
 async def _extract_with_google_documentai(file_path: str) -> dict:
     """Google Document AI Invoice Parser로 인보이스 데이터 추출"""
     from google.cloud import documentai_v1 as documentai
 
-    full_path = os.path.join("/app/media", file_path) if not file_path.startswith("/") else file_path
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f"File not found: {full_path}")
+    full_path = _safe_resolve_path(file_path)
 
     with open(full_path, "rb") as f:
         file_content = f.read()
@@ -158,9 +173,7 @@ async def _extract_with_claude(file_path: str) -> dict:
     """Claude API로 인보이스 데이터 추출 (fallback)"""
     import anthropic
 
-    full_path = os.path.join("/app/media", file_path) if not file_path.startswith("/") else file_path
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f"File not found: {full_path}")
+    full_path = _safe_resolve_path(file_path)
 
     with open(full_path, "rb") as f:
         file_content = f.read()
@@ -207,7 +220,13 @@ Return ONLY valid JSON. Use null for unknown fields."""
         result["_provider"] = "claude"
         return result
     except json.JSONDecodeError:
-        return {"_raw_text": raw_text, "_parse_error": True, "_provider": "claude"}
+        logger.warning("Claude API response is not valid JSON, returning raw text for review")
+        return {
+            "_raw_text": raw_text,
+            "_parse_error": True,
+            "_provider": "claude",
+            "_error_message": "OCR 결과를 JSON으로 파싱할 수 없습니다. 수동 검토가 필요합니다.",
+        }
     except Exception as e:
         logger.error("Claude API call failed: %s", e)
         raise

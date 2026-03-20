@@ -17,7 +17,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 비루트 유저로 실행 (보안)
-RUN adduser --disabled-password --gecos "" appuser
+RUN adduser --disabled-password --gecos "" appuser \
+    && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000

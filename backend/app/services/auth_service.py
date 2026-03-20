@@ -111,7 +111,7 @@ def issue_tokens(user: User) -> dict:
     """access + refresh token 발급"""
     return {
         "access_token": create_access_token(user.id, user.company_id, user.role),
-        "refresh_token": create_refresh_token(user.id),
+        "refresh_token": create_refresh_token(user.id, user.company_id),
         "token_type": "bearer",
     }
 
@@ -142,6 +142,15 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str) -> dict:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is deactivated",
+        )
+
+    # 토큰 payload의 company_id와 현재 DB의 company_id 일치 검증
+    # (회사 변경 후 이전 토큰으로 접근 방지)
+    token_company_id = payload.get("company_id")
+    if token_company_id and user.company_id and str(user.company_id) != token_company_id:
+        logger.warning(
+            "Refresh token company mismatch for user %s: token=%s, db=%s",
+            user_id, token_company_id, user.company_id,
         )
 
     return {

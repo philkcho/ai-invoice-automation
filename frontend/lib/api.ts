@@ -1,4 +1,5 @@
 import axios, { InternalAxiosRequestConfig } from 'axios';
+import { tokenStore } from '@/lib/token-store';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -14,10 +15,16 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// 토큰 갱신 전용 인스턴스 (인터셉터 미적용 → 무한 루프 방지)
+const refreshClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
 // 요청 인터셉터: access token 자동 첨부
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('access_token');
+    const token = tokenStore.getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -35,19 +42,18 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && retryCount < MAX_RETRY) {
       originalRequest._retryCount = retryCount + 1;
 
-      const refreshToken = localStorage.getItem('refresh_token');
+      const refreshToken = tokenStore.getRefreshToken();
       if (refreshToken) {
         try {
-          const { data } = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {
+          const { data } = await refreshClient.post('/api/v1/auth/refresh', {
             refresh_token: refreshToken,
           });
-          localStorage.setItem('access_token', data.access_token);
+          tokenStore.setTokens(data.access_token, tokenStore.getRefreshToken() ?? '');
           originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
           return api(originalRequest);
         } catch {
           // refresh 실패 → 로그아웃
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
+          tokenStore.clear();
           if (typeof window !== 'undefined') {
             window.location.href = '/login';
           }

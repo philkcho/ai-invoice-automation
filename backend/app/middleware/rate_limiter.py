@@ -1,10 +1,12 @@
 """
 Rate Limiter 미들웨어
 설계서 기준: IP당 100 req/min, 회사당 1000 req/min.
-Redis를 사용한 슬라이딩 윈도우 방식.
+Redis를 사용한 슬라이딩 윈도우 방식. Redis 장애 시 인메모리 fallback.
 """
 import time
 import logging
+from collections import defaultdict
+from threading import Lock
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -21,9 +23,34 @@ COMPANY_RATE_LIMIT = settings.RATE_LIMIT_COMPANY_PER_MIN
 WINDOW_SECONDS = 60
 
 
+class InMemoryRateLimiter:
+    """Redis 장애 시 사용되는 인메모리 fallback rate limiter"""
+
+    def __init__(self):
+        self._buckets: dict[str, list[float]] = defaultdict(list)
+        self._lock = Lock()
+
+    def check(self, key: str, limit: int) -> bool:
+        now = time.time()
+        window_start = now - WINDOW_SECONDS
+        with self._lock:
+            # 만료된 항목 제거
+            self._buckets[key] = [t for t in self._buckets[key] if t > window_start]
+            if len(self._buckets[key]) >= limit:
+                return False
+            self._buckets[key].append(now)
+            # 메모리 누수 방지: 키가 너무 많아지면 오래된 것 정리
+            if len(self._buckets) > 10000:
+                stale_keys = [k for k, v in self._buckets.items() if not v or v[-1] < window_start]
+                for k in stale_keys:
+                    del self._buckets[k]
+            return True
+
+
 class RateLimiterMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
+        self._fallback = InMemoryRateLimiter()
 
     def _get_redis(self):
         """main.py에서 초기화된 redis_client를 가져옴"""
@@ -47,38 +74,46 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         return count <= limit
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        redis = self._get_redis()
-
-        # Redis 없으면 제한 없이 통과
-        if not redis:
-            return await call_next(request)
-
         # health 엔드포인트 제외
         if request.url.path in {"/health", "/docs", "/redoc", "/openapi.json"}:
             return await call_next(request)
 
-        try:
-            # IP 기반 제한
-            client_ip = request.client.host if request.client else "unknown"
-            ip_key = f"rate_limit:ip:{client_ip}"
+        client_ip = request.client.host if request.client else "unknown"
+        ip_key = f"rate_limit:ip:{client_ip}"
 
-            if not await self._check_rate_limit(redis, ip_key, IP_RATE_LIMIT):
+        redis = self._get_redis()
+
+        try:
+            if redis:
+                # Redis 기반 제한
+                if not await self._check_rate_limit(redis, ip_key, IP_RATE_LIMIT):
+                    return JSONResponse(
+                        status_code=429,
+                        content={"detail": f"Rate limit exceeded: {IP_RATE_LIMIT} requests per minute"},
+                    )
+
+                company_id = get_current_company_id()
+                if company_id:
+                    company_key = f"rate_limit:company:{company_id}"
+                    if not await self._check_rate_limit(redis, company_key, COMPANY_RATE_LIMIT):
+                        return JSONResponse(
+                            status_code=429,
+                            content={"detail": f"Company rate limit exceeded: {COMPANY_RATE_LIMIT} requests per minute"},
+                        )
+            else:
+                # Redis 없으면 인메모리 fallback
+                if not self._fallback.check(ip_key, IP_RATE_LIMIT):
+                    return JSONResponse(
+                        status_code=429,
+                        content={"detail": f"Rate limit exceeded: {IP_RATE_LIMIT} requests per minute"},
+                    )
+        except Exception as e:
+            # Redis 오류 시 인메모리 fallback으로 전환
+            logger.warning("Rate limiter Redis error, using in-memory fallback: %s", e)
+            if not self._fallback.check(ip_key, IP_RATE_LIMIT):
                 return JSONResponse(
                     status_code=429,
                     content={"detail": f"Rate limit exceeded: {IP_RATE_LIMIT} requests per minute"},
                 )
-
-            # 회사 기반 제한 (컨텍스트가 설정된 경우만)
-            company_id = get_current_company_id()
-            if company_id:
-                company_key = f"rate_limit:company:{company_id}"
-                if not await self._check_rate_limit(redis, company_key, COMPANY_RATE_LIMIT):
-                    return JSONResponse(
-                        status_code=429,
-                        content={"detail": f"Company rate limit exceeded: {COMPANY_RATE_LIMIT} requests per minute"},
-                    )
-        except Exception as e:
-            # Redis 오류 시 요청을 차단하지 않고 통과시킴
-            logger.warning("Rate limiter error (allowing request): %s", e)
 
         return await call_next(request)

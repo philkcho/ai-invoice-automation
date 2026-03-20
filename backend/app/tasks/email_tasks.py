@@ -155,9 +155,15 @@ async def poll_single_account(db, config) -> tuple[int, int]:
 
     # 중복 제거
     new_messages = [m for m in parsed_messages if m["message_id"] not in processed_id_set]
-    print(f"*** POLL {config.email_address}: {len(parsed_messages)} fetched, {len(new_messages)} new, processed_ids={len(processed_id_set)}", flush=True)
+    logger.info(
+        "POLL [%s]: %d fetched, %d new, processed_ids=%d",
+        config.email_address, len(parsed_messages), len(new_messages), len(processed_id_set),
+    )
     for pm in parsed_messages:
-        print(f"*** MSG {pm.get('message_id')}: subject='{pm.get('subject')}', attachments={len(pm.get('attachments', []))}, att_details={[(a.get('filename'), a.get('mime_type')) for a in pm.get('attachments', [])]}", flush=True)
+        logger.debug(
+            "MSG %s: attachments=%d",
+            pm.get("message_id", "unknown"), len(pm.get("attachments", [])),
+        )
 
     created_count = 0
     successfully_processed = []
@@ -277,7 +283,13 @@ async def _process_email_message(db, config, message: dict, access_token: str) -
         )).scalar_one_or_none()
 
         if not default_vendor or not default_type:
-            print(f"No default vendor or invoice type found, skipping", flush=True)
+            logger.warning(
+                "No default vendor or invoice type found for company %s, "
+                "skipping attachment %s from message %s",
+                config.company_id,
+                att.get("filename", "unknown"),
+                message.get("message_id", "unknown"),
+            )
             continue
 
         # 인보이스 생성
