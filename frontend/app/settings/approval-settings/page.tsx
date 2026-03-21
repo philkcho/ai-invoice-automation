@@ -130,7 +130,7 @@ export default function ApprovalSettingsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('이 승인 설정을 삭제하시겠습니까?')) return;
+    if (!confirm('Are you sure you want to delete this approval rule?')) return;
     try {
       await api.delete(`/api/v1/approval-settings/${id}`);
       fetchSettings();

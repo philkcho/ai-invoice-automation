@@ -16,6 +16,7 @@ celery_app = Celery(
         "app.tasks.notification_tasks",  # Phase 7
         "app.tasks.scheduled_tasks",     # Phase 7
         "app.tasks.email_tasks",         # Phase 8
+        "app.tasks.backup_tasks",        # Backup & Monitoring
     ],
     # 향후 추가:
     # "app.tasks.validation_tasks",    # Phase 5
@@ -59,6 +60,37 @@ celery_app.conf.beat_schedule = {
     "payment-due-reminder": {
         "task": "app.tasks.scheduled_tasks.send_payment_due_reminders",
         "schedule": crontab(hour=8, minute=0),
+    },
+    # ── 백업/모니터링 (KST 기준, UTC로 변환) ──────────────────
+    # DB 백업 — 매일 03:00 KST (UTC 18:00)
+    "backup-database": {
+        "task": "app.tasks.backup_tasks.backup_database",
+        "schedule": crontab(hour=18, minute=0),
+    },
+    # 미디어 백업 — 매일 03:30 KST (UTC 18:30)
+    "backup-media": {
+        "task": "app.tasks.backup_tasks.backup_media",
+        "schedule": crontab(hour=18, minute=30),
+    },
+    # 백업 로테이션 — 매일 04:00 KST (UTC 19:00)
+    "rotate-backups": {
+        "task": "app.tasks.backup_tasks.rotate_backups",
+        "schedule": crontab(hour=19, minute=0),
+    },
+    # 헬스체크 — 5분마다
+    "health-check": {
+        "task": "app.tasks.backup_tasks.health_check_all",
+        "schedule": crontab(minute="*/5"),
+    },
+    # 디스크 감시 — 매시 정각
+    "disk-monitor": {
+        "task": "app.tasks.backup_tasks.monitor_disk",
+        "schedule": crontab(minute=0),
+    },
+    # 환경설정 백업 — 매주 일요일 04:00 KST (UTC 19:00)
+    "backup-config": {
+        "task": "app.tasks.backup_tasks.backup_config",
+        "schedule": crontab(day_of_week=0, hour=19, minute=0),
     },
 }
 

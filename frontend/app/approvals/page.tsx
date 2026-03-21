@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import api from '@/lib/api';
@@ -126,8 +127,10 @@ export default function ApprovalsPage() {
                 <tbody>
                   {approvals.map((a) => (
                     <tr key={a.id} className="table-row">
-                      <td className="table-td font-medium text-blue-600">
-                        {a.invoice_number || a.invoice_id.slice(0, 8)}
+                      <td className="table-td font-medium">
+                        <Link href={`/invoices/${a.invoice_id}`} className="text-blue-600 hover:underline">
+                          {a.invoice_number || a.invoice_id.slice(0, 8)}
+                        </Link>
                       </td>
                       <td className="table-td text-gray-600">{a.vendor_name || '—'}</td>
                       <td className="table-td text-right font-mono text-xs">

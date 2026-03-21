@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.invoice import Invoice
 from app.models.invoice_payment import InvoicePayment
 from app.models.invoice_approval import InvoiceApproval
+from app.models.invoice_type import InvoiceType
 from app.models.vendor import Vendor
 from app.models.vendor_contract import VendorContract
 from app.models.company import Company
@@ -38,13 +39,17 @@ async def get_company_summary(
     )
     inv = inv_stats.one()
 
-    # 상태별 카운트
+    # 상태별 카운트 + 금액
     status_stats = await db.execute(
-        select(Invoice.status, func.count(Invoice.id))
+        select(Invoice.status, func.count(Invoice.id), func.coalesce(func.sum(Invoice.amount_total), 0))
         .where(Invoice.company_id == company_id)
         .group_by(Invoice.status)
     )
-    status_counts = {row[0]: row[1] for row in status_stats.all()}
+    status_counts = {}
+    status_amounts = {}
+    for row in status_stats.all():
+        status_counts[row[0]] = row[1]
+        status_amounts[row[0]] = float(row[2])
 
     # 승인 대기 건수
     pending_approvals = await db.execute(
@@ -66,15 +71,43 @@ async def get_company_summary(
     )
     val_counts = {row[0]: row[1] for row in validation_stats.all()}
 
-    # 연체 결제 건수
-    overdue = await db.execute(
-        select(func.count(Invoice.id))
-        .where(
+    # 미지급 (승인 완료 but 미결제) 건수/금액
+    unpaid_stats = await db.execute(
+        select(
+            func.count(Invoice.id),
+            func.coalesce(func.sum(Invoice.amount_total), 0),
+        ).where(
+            Invoice.company_id == company_id,
+            Invoice.status.cast(String).notin_(["PAID", "VOID"]),
+        )
+    )
+    unpaid_row = unpaid_stats.one()
+
+    # 연체 결제 건수/금액
+    overdue_stats = await db.execute(
+        select(
+            func.count(Invoice.id),
+            func.coalesce(func.sum(Invoice.amount_total), 0),
+        ).where(
             Invoice.company_id == company_id,
             Invoice.due_date < today,
             Invoice.status.cast(String).in_(["APPROVED", "SCHEDULED", "IN_APPROVAL", "PENDING"]),
         )
     )
+    overdue_row = overdue_stats.one()
+
+    # 이번 달 결제 완료 건수/금액
+    paid_this_month_stats = await db.execute(
+        select(
+            func.count(Invoice.id),
+            func.coalesce(func.sum(Invoice.amount_total), 0),
+        ).where(
+            Invoice.company_id == company_id,
+            Invoice.status.cast(String) == "PAID",
+            Invoice.updated_at >= month_start,
+        )
+    )
+    paid_month_row = paid_this_month_stats.one()
 
     # 활성 벤더 수
     vendor_count = await db.execute(
@@ -91,9 +124,15 @@ async def get_company_summary(
         "pending_approvals": pending_approvals.scalar() or 0,
         "validation_fails": val_counts.get("FAIL", 0),
         "validation_warnings": val_counts.get("WARNING", 0),
-        "overdue_payments": overdue.scalar() or 0,
+        "overdue_payments": overdue_row[0],
+        "overdue_amount": float(overdue_row[1]),
+        "paid_this_month_count": paid_month_row[0],
+        "paid_this_month_amount": float(paid_month_row[1]),
+        "unpaid_count": unpaid_row[0],
+        "unpaid_amount": float(unpaid_row[1]),
         "active_vendors": vendor_count.scalar() or 0,
         "status_counts": status_counts,
+        "status_amounts": status_amounts,
     }
 
 
@@ -330,14 +369,40 @@ async def get_super_admin_summary(db: AsyncSession) -> dict:
         .where(InvoiceApproval.status.cast(String) == "PENDING")
     )).scalar() or 0
 
-    # 연체 결제 건수 (전체)
-    overdue = (await db.execute(
-        select(func.count(Invoice.id))
-        .where(
+    # 미지급 (전체)
+    unpaid_stats = await db.execute(
+        select(
+            func.count(Invoice.id),
+            func.coalesce(func.sum(Invoice.amount_total), 0),
+        ).where(
+            Invoice.status.cast(String).notin_(["PAID", "VOID"]),
+        )
+    )
+    unpaid_row = unpaid_stats.one()
+
+    # 연체 결제 건수/금액 (전체)
+    overdue_stats = await db.execute(
+        select(
+            func.count(Invoice.id),
+            func.coalesce(func.sum(Invoice.amount_total), 0),
+        ).where(
             Invoice.due_date < today,
             Invoice.status.cast(String).in_(["APPROVED", "SCHEDULED", "IN_APPROVAL", "PENDING"]),
         )
-    )).scalar() or 0
+    )
+    overdue_row = overdue_stats.one()
+
+    # 이번 달 결제 완료 (전체)
+    paid_this_month_stats = await db.execute(
+        select(
+            func.count(Invoice.id),
+            func.coalesce(func.sum(Invoice.amount_total), 0),
+        ).where(
+            Invoice.status.cast(String) == "PAID",
+            Invoice.updated_at >= month_start,
+        )
+    )
+    paid_month_row = paid_this_month_stats.one()
 
     # 검증 실패/경고 (전체)
     validation_stats = await db.execute(
@@ -374,7 +439,12 @@ async def get_super_admin_summary(db: AsyncSession) -> dict:
         "pending_approvals": pending_approvals,
         "validation_fails": val_counts.get("FAIL", 0),
         "validation_warnings": val_counts.get("WARNING", 0),
-        "overdue_payments": overdue,
+        "overdue_payments": overdue_row[0],
+        "overdue_amount": float(overdue_row[1]),
+        "unpaid_count": unpaid_row[0],
+        "unpaid_amount": float(unpaid_row[1]),
+        "paid_this_month_count": paid_month_row[0],
+        "paid_this_month_amount": float(paid_month_row[1]),
         "active_vendors": vendor_count,
         "status_counts": status_counts,
         "active_companies": company_count,
@@ -387,3 +457,53 @@ async def get_super_admin_summary(db: AsyncSession) -> dict:
             for row in company_stats.all()
         ],
     }
+
+
+async def get_kpi_detail(
+    db: AsyncSession, company_id: UUID, category: str
+) -> list[dict]:
+    """KPI 카드 클릭 시 상세 인보이스 목록"""
+    today = date.today()
+    month_start = today.replace(day=1)
+
+    query = select(Invoice).where(Invoice.company_id == company_id)
+
+    if category == "this_month":
+        query = query.where(Invoice.created_at >= month_start)
+        query = query.order_by(Invoice.created_at.desc())
+    elif category == "unpaid":
+        query = query.where(
+            Invoice.status.cast(String).notin_(["PAID", "VOID"])
+        )
+        query = query.order_by(Invoice.due_date.asc().nulls_last())
+    elif category == "overdue":
+        query = query.where(
+            Invoice.due_date < today,
+            Invoice.status.cast(String).in_(["APPROVED", "SCHEDULED", "IN_APPROVAL", "PENDING"]),
+        )
+        query = query.order_by(Invoice.due_date.asc())
+    elif category == "paid_this_month":
+        query = query.where(
+            Invoice.status.cast(String) == "PAID",
+            Invoice.updated_at >= month_start,
+        )
+        query = query.order_by(Invoice.updated_at.desc())
+    else:
+        return []
+
+    result = await db.execute(query.limit(50))
+    invoices = result.scalars().all()
+
+    return [
+        {
+            "id": str(inv.id),
+            "invoice_number": inv.invoice_number,
+            "vendor_name": inv.vendor.company_name if inv.vendor else None,
+            "amount_total": float(inv.amount_total),
+            "invoice_type": inv.invoice_type.type_name if inv.invoice_type else None,
+            "status": inv.status,
+            "due_date": inv.due_date.isoformat() if inv.due_date else None,
+            "days_overdue": (today - inv.due_date).days if inv.due_date and inv.due_date < today else None,
+        }
+        for inv in invoices
+    ]

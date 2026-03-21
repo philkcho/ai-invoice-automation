@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
     poppler-utils \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -16,9 +17,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 소스 복사
 COPY . .
 
+# 백업 디렉토리 생성
+RUN mkdir -p /backups
+
 # 비루트 유저로 실행 (보안)
 RUN adduser --disabled-password --gecos "" appuser \
-    && chown -R appuser:appuser /app
+    && chown -R appuser:appuser /app \
+    && chown -R appuser:appuser /backups
 USER appuser
 
 EXPOSE 8000

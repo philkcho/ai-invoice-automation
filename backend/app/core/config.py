@@ -87,6 +87,9 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: Optional[str] = None
     TELEGRAM_CHAT_ID: Optional[str] = None
 
+    # Backup
+    BACKUP_DIR: str = "/backups"
+
     class Config:
         env_file = ".env.dev"
         case_sensitive = True

@@ -62,3 +62,19 @@ class PaymentDetailResponse(PaymentResponse):
 class PaymentListResponse(BaseModel):
     items: list[PaymentDetailResponse]
     total: int
+
+
+class AwaitingPaymentItem(BaseModel):
+    invoice_id: str
+    invoice_number: str | None
+    vendor_name: str | None
+    amount_total: float
+    currency_original: str
+    due_date: date | None
+    invoice_date: date | None
+    approved_at: datetime
+
+
+class AwaitingPaymentListResponse(BaseModel):
+    items: list[AwaitingPaymentItem]
+    total: int

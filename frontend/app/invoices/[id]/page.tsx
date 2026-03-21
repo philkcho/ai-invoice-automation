@@ -235,7 +235,7 @@ export default function InvoiceDetailPage() {
       <div className="flex flex-1">
         <Sidebar />
         <main className="flex-1 bg-surface-50 p-8">
-          <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT']}>
+          <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT', 'APPROVER']}>
           <div className="max-w-4xl">
             <div className="page-header">
               <div>
@@ -254,8 +254,8 @@ export default function InvoiceDetailPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => router.push('/invoices')}
-                  className="btn-secondary">Back to List</button>
+                <button onClick={() => router.back()}
+                  className="btn-secondary">Back</button>
                 {canEdit && !editing && (
                   <>
                     <button onClick={startEditing} className="btn-secondary">Edit</button>
@@ -297,14 +297,24 @@ export default function InvoiceDetailPage() {
             {/* Invoice Info - View Mode */}
             {!editing && (
               <div className="card p-6 mb-4">
-                <div className="grid grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-4 gap-x-6 gap-y-3 text-sm">
+                  {/* Row 1: Vendor, Invoice Date, Due Date */}
+                  <div><span className="text-gray-500">Vendor:</span> <span className="font-medium">{vendors.find(v => v.id === invoice.vendor_id)?.company_name || '—'}</span></div>
                   <div><span className="text-gray-500">Date:</span> <span className="font-medium">{invoice.invoice_date || '—'}</span></div>
                   <div><span className="text-gray-500">Due:</span> <span className="font-medium">{invoice.due_date || '—'}</span></div>
-                  <div><span className="text-gray-500">Linkage No:</span> <span className="font-medium">{invoice.po_number || '—'}</span></div>
-                  <div><span className="text-gray-500">Source:</span> <span className="font-medium">{invoice.source_channel}</span></div>
+                  <div></div>
+                  {/* Row 2: Subtotal, Tax, Total */}
                   <div><span className="text-gray-500">Subtotal:</span> <span className="font-mono">{fmt(invoice.amount_subtotal)}</span></div>
                   <div><span className="text-gray-500">Tax:</span> <span className="font-mono">{fmt(invoice.amount_tax)}</span></div>
                   <div className="col-span-2"><span className="text-gray-500">Total:</span> <span className="font-mono font-bold text-lg">{fmt(invoice.amount_total)}</span></div>
+                  {/* Row 3: Invoice Type, Linkage No, Source, Submitted By */}
+                  <div><span className="text-gray-500">Invoice Type:</span> <span className="font-medium">{invoiceTypes.find(t => t.id === invoice.invoice_type_id)?.type_name || '—'}</span></div>
+                  <div><span className="text-gray-500">Linkage No:</span> <span className="font-medium">{invoice.po_number || '—'}</span></div>
+                  <div><span className="text-gray-500">Source:</span> <span className="font-medium">{invoice.source_channel}</span></div>
+                  {/* Row 4: Notes (if any) */}
+                  {invoice.notes && (
+                    <div className="col-span-4"><span className="text-gray-500">Notes:</span> <span className="font-medium">{invoice.notes}</span></div>
+                  )}
                 </div>
               </div>
             )}

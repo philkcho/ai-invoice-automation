@@ -2,13 +2,13 @@
 
 > AI Invoice Automation System — 장애 복구 대책
 >
-> 최종 수정: 2026-03-20 | 담당: 시스템 관리자
+> 최종 수정: 2026-03-20 (v2 — Celery Beat 통합) | 담당: 시스템 관리자
 
 ---
 
 ## 목차
 
-1. [개요](#1-개요)
+1. [개요](#1-개요) (빠른 참조 TL;DR 포함)
 2. [전체 아키텍처](#2-전체-아키텍처)
 3. [데이터 보호 (Phase A)](#3-데이터-보호-phase-a)
 4. [모니터링 (Phase B)](#4-모니터링-phase-b)
@@ -34,31 +34,91 @@ Windows 10 데스크탑에서 Docker Compose로 운영하는 인보이스 시스
 | 데이터 보호 | PostgreSQL 백업, Redis 영속성, 미디어/설정 백업, 로그 로테이션 |
 | 모니터링 | 헬스체크 API, Docker healthcheck, 텔레그램 알림, 디스크 감시 |
 | 복구 자동화 | DB 복원, 미디어 복원, 전체 시스템 원클릭 복원 |
-| 운영 안정화 | 리소스 제한, Graceful Shutdown, Windows 스케줄러, Celery 장애 알림 |
+| 운영 안정화 | 리소스 제한, Graceful Shutdown, Celery Beat 스케줄링, Celery 장애 알림 |
 
 ### 파일 구조
 
 ```
+backend/app/tasks/
+└── backup_tasks.py             # Celery 백업/모니터링 태스크 (6개)
+
 scripts/
-├── backup/
-│   ├── backup-db.sh            # PostgreSQL 백업
-│   ├── backup-media.sh         # 미디어 파일 백업
-│   ├── backup-config.sh        # 환경설정 암호화 백업
-│   ├── backup-all.sh           # 전체 백업 통합
-│   └── rotate-backups.sh       # 오래된 백업 삭제
+├── backup/                     # 셸 스크립트 (수동 실행 참고용, 자동 실행은 Celery)
+│   ├── backup-db.sh
+│   ├── backup-media.sh
+│   ├── backup-config.sh
+│   ├── backup-all.sh
+│   └── rotate-backups.sh
 ├── monitoring/
-│   ├── alert.sh                # 텔레그램 알림 발송
-│   ├── health-check.sh         # 서비스 상태 점검
-│   └── disk-monitor.sh         # 디스크 용량 감시
-├── restore/
-│   ├── restore-db.sh           # DB 복원
-│   ├── restore-media.sh        # 미디어 복원
-│   └── restore-all.sh          # 전체 시스템 복원
-└── setup/
-    └── setup-scheduled-tasks.ps1  # Windows 스케줄러 등록
+│   ├── alert.sh                # 텔레그램 알림 발송 (수동 테스트용)
+│   ├── health-check.sh
+│   └── disk-monitor.sh
+└── restore/                    # 복원은 수동 실행 (그대로 유지)
+    ├── restore-db.sh
+    ├── restore-media.sh
+    └── restore-all.sh
 
 docker/
 └── redis.conf                  # Redis RDB 영속성 설정
+```
+
+### 빠른 참조 (TL;DR)
+
+**시작**: `docker compose up -d --build` — 이것만 하면 백업/모니터링 전부 자동.
+
+**작동 흐름:**
+
+```
+docker compose up -d
+       │
+       ▼
+  celery_beat (스케줄러) ──시간표대로──▶ Redis (메시지 큐)
+                                           │
+                                           ▼
+                                     celery_worker (실행)
+                                           │
+                        ┌──────────────────┼──────────────────┐
+                        ▼                  ▼                  ▼
+                   pg_dump → DB백업    tarfile → 미디어백업   SELECT 1 → 헬스체크
+                        │                  │                  │
+                        ▼                  ▼                  ▼
+              /backups/ (컨테이너)  →  호스트 디스크에 저장  +  이상 시 텔레그램 알림
+```
+
+**무엇을 백업하나:**
+
+| 대상 | 주기 | 방식 | 보관 |
+|------|------|------|------|
+| PostgreSQL DB | 매일 03:00 KST | `pg_dump` + 무결성 검증 | 일간 7, 주간 4, 월간 3 |
+| 미디어 파일 (인보이스 PDF/이미지) | 매일 03:30 KST | `tar.gz` 압축 | 7개 |
+| 환경설정 (.env, credentials) | 매주 일 04:00 KST | `tar.gz` 압축 | 5개 |
+
+**호스트 저장 구조:**
+
+```
+C:/Users/philk/Documents/invoice-backups/   ← 컨테이너 밖, 안전
+├── db/
+│   ├── daily/    ← 최근 7개 (1주)
+│   ├── weekly/   ← 최근 4개 (1달)
+│   └── monthly/  ← 최근 3개 (3달)
+├── media/        ← 최근 7개 (1주)
+└── config/       ← 최근 5개 (5주)
+```
+
+**모니터링:**
+
+| 항목 | 주기 | 이상 시 |
+|------|------|---------|
+| DB + Redis 연결 | 5분마다 | 텔레그램 CRITICAL |
+| 디스크 사용률 | 1시간마다 | 85% WARNING, 95% CRITICAL |
+| Celery 태스크 실패 | 즉시 | 텔레그램 + Sentry |
+
+**복구 (수동):**
+
+```bash
+bash scripts/restore/restore-db.sh <백업파일>       # DB만 복원
+bash scripts/restore/restore-media.sh <백업파일>     # 미디어만 복원
+bash scripts/restore/restore-all.sh                  # 전체 복원 (원클릭)
 ```
 
 ---
@@ -75,27 +135,28 @@ graph TB
     end
 
     subgraph Windows["Windows 10 Host"]
-        SCHED["⏰ Task Scheduler\n예약 작업 6개"]
         BACKUP_DIR["💾 invoice-backups/\nDB · Media · Config"]
 
         subgraph Docker["Docker Compose"]
             FE["frontend\n:3000"]
             BE["backend\n:8000"]
-            CW["celery_worker"]
-            CB["celery_beat"]
+            CW["celery_worker\n+ backup tasks"]
+            CB["celery_beat\n⏰ 스케줄 11개"]
             FL["flower\n:5555"]
             DB[(PostgreSQL\n:5432)]
             RD[(Redis\n:6379)]
         end
     end
 
-    SCHED -->|03:00 backup-db.sh| DB
-    SCHED -->|03:30 backup-media.sh| Docker
-    SCHED -->|5min health-check.sh| BE
-    SCHED -->|1hr disk-monitor.sh| Windows
+    CB -->|스케줄| RD
+    RD -->|태스크 전달| CW
+    CW -->|03:00 pg_dump| DB
+    CW -->|03:30 tar.gz| BACKUP_DIR
+    CW -->|5min health| DB
+    CW -->|5min health| RD
+    CW -->|1hr disk| BACKUP_DIR
 
     DB -->|pg_dump| BACKUP_DIR
-    Docker -->|tar.gz| BACKUP_DIR
 
     BE -->|장애 감지| TG
     CW -->|task_failure| TG
@@ -103,8 +164,6 @@ graph TB
     BE --> DB
     BE --> RD
     CW --> DB
-    CW --> RD
-    CB --> RD
     FE --> BE
 ```
 
@@ -112,11 +171,11 @@ graph TB
 
 ```mermaid
 graph LR
-    subgraph 백업["매일 자동 백업"]
+    subgraph 백업["매일 자동 백업 (Celery Beat)"]
         direction TB
-        B1["03:00\nbackup-db.sh"]
-        B2["03:30\nbackup-media.sh"]
-        B3["04:00\nrotate-backups.sh"]
+        B1["03:00 KST\nbackup_database"]
+        B2["03:30 KST\nbackup_media"]
+        B3["04:00 KST\nrotate_backups"]
         B1 --> B2 --> B3
     end
 
@@ -164,11 +223,11 @@ flowchart TD
 
 | 항목 | 설정 |
 |------|------|
-| 스크립트 | `scripts/backup/backup-db.sh` |
-| 실행 주기 | 매일 03:00 (Windows Task Scheduler) |
+| Celery 태스크 | `app.tasks.backup_tasks.backup_database` |
+| 실행 주기 | 매일 03:00 KST (Celery Beat, UTC 18:00) |
 | 백업 방식 | `pg_dump --format=custom` (압축, 선택적 복원 가능) |
 | 검증 | `pg_restore --list`로 백업 파일 무결성 확인 |
-| 저장 위치 | `C:/Users/philk/Documents/invoice-backups/db/` |
+| 저장 위치 | `/backups/db/` (호스트: `BACKUP_DIR_HOST` 환경변수) |
 
 **보관 정책:**
 
@@ -212,9 +271,10 @@ logging:
 
 ### 3-4. 백업 로테이션
 
-| 스크립트 | `scripts/backup/rotate-backups.sh` |
-|----------|-----------------------------------|
-| 실행 주기 | 매일 04:00 |
+| 항목 | 설정 |
+|------|------|
+| Celery 태스크 | `app.tasks.backup_tasks.rotate_backups` |
+| 실행 주기 | 매일 04:00 KST (Celery Beat, UTC 19:00) |
 | 동작 | 보관 기한 초과 파일을 오래된 순서대로 삭제 |
 
 ---
@@ -238,7 +298,7 @@ flowchart LR
     end
 
     DOCKER["Docker\nhealthcheck"] -->|30초마다| 경량
-    SCRIPT["health-check.sh"] -->|5분마다| 경량
+    CELERY["Celery Beat\nhealth_check_all"] -->|5분마다| 경량
     ADMIN["관리자"] --> 상세
 ```
 
@@ -283,11 +343,10 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    SRC1["health-check.sh"] --> ALERT["alert.sh"]
-    SRC2["disk-monitor.sh"] --> ALERT
-    SRC3["backup-*.sh"] --> ALERT
-    SRC4["celery task_failure"] --> TG_API["Telegram Bot API"]
-    ALERT --> TG_API
+    SRC1["health_check_all\n(Celery 태스크)"] --> TG_API["Telegram Bot API"]
+    SRC2["monitor_disk\n(Celery 태스크)"] --> TG_API
+    SRC3["backup_database\n(Celery 태스크)"] --> TG_API
+    SRC4["celery task_failure\n시그널"] --> TG_API
     TG_API --> PHONE["📱 모바일 즉시 수신"]
 ```
 
@@ -305,18 +364,18 @@ TELEGRAM_BOT_TOKEN=your-bot-token    # BotFather에서 발급
 TELEGRAM_CHAT_ID=your-chat-id        # @userinfobot으로 확인
 ```
 
-### 4-4. 외부 헬스체크 (`health-check.sh`)
+### 4-4. 헬스체크 (`health_check_all` Celery 태스크)
 
-5분마다 실행하며 아래 항목을 점검:
+5분마다 Celery Beat에 의해 자동 실행:
 
 | 점검 | 방법 |
 |------|------|
-| API 응답 | `curl /health` → HTTP 200 확인 |
-| 컨테이너 6개 | `docker inspect` → running + healthy 확인 |
+| DB 연결 | `SELECT 1` (SQLAlchemy sync engine) |
+| Redis 연결 | `redis.ping()` |
 
-비정상 감지 시 → `alert.sh` → 텔레그램 CRITICAL 알림
+비정상 감지 시 → `send_telegram()` → 텔레그램 CRITICAL 알림
 
-### 4-5. 디스크 모니터링 (`disk-monitor.sh`)
+### 4-5. 디스크 모니터링 (`monitor_disk` Celery 태스크)
 
 | 사용률 | 레벨 | 동작 |
 |:---:|------|------|
@@ -482,16 +541,18 @@ gantt
     디스크 감시 (1시간 주기) :m2, 00:00, 24h
 ```
 
-### Windows 작업 스케줄러 등록 목록
+### Celery Beat 등록 태스크
 
-| 작업명 | 스크립트 | 스케줄 | 타임아웃 |
-|--------|----------|--------|:---:|
-| DB-Backup | `backup-db.sh` | 매일 03:00 | 30분 |
-| Media-Backup | `backup-media.sh` | 매일 03:30 | 30분 |
-| Backup-Rotation | `rotate-backups.sh` | 매일 04:00 | 10분 |
-| Health-Check | `health-check.sh` | 5분마다 | 5분 |
-| Disk-Monitor | `disk-monitor.sh` | 1시간마다 | 5분 |
-| Docker-Startup | `docker compose up -d` | 로그온 시 | 10분 |
+| Beat 이름 | Celery 태스크 | 스케줄 (KST) | UTC |
+|-----------|--------------|-------------|-----|
+| backup-database | `backup_tasks.backup_database` | 매일 03:00 | 18:00 |
+| backup-media | `backup_tasks.backup_media` | 매일 03:30 | 18:30 |
+| rotate-backups | `backup_tasks.rotate_backups` | 매일 04:00 | 19:00 |
+| health-check | `backup_tasks.health_check_all` | 5분마다 | */5 |
+| disk-monitor | `backup_tasks.monitor_disk` | 매시 정각 | :00 |
+| backup-config | `backup_tasks.backup_config` | 매주 일 04:00 | 일 19:00 |
+
+> 기존 Windows Task Scheduler는 제거됨. `docker compose up -d` 한 번이면 모든 스케줄이 자동 실행.
 
 ---
 
@@ -510,30 +571,28 @@ TELEGRAM_BOT_TOKEN=123456789:ABCdefGhIjKlMnOpQrStUvWxYz
 TELEGRAM_CHAT_ID=987654321
 ```
 
-### Step 2. 서비스 재시작
+### Step 2. 서비스 시작 (백업/모니터링 포함)
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
-### Step 3. Windows 스케줄러 등록
+> Celery Beat가 자동으로 백업/모니터링 스케줄을 실행합니다. 별도의 스케줄러 등록 불필요.
 
-```powershell
-# 관리자 PowerShell에서 실행
-PowerShell -ExecutionPolicy Bypass -File scripts/setup/setup-scheduled-tasks.ps1
-```
-
-### Step 4. 동작 확인
+### Step 3. 동작 확인
 
 ```bash
-# 텔레그램 알림 테스트
-bash scripts/monitoring/alert.sh INFO "Test alert - system OK"
-
-# 헬스체크 테스트
+# 헬스체크 API
 curl http://localhost:8000/health/detail
 
-# 백업 테스트
-bash scripts/backup/backup-db.sh
+# Flower에서 Beat 스케줄 확인
+# http://localhost:5555 접속
+
+# 수동 백업 트리거 (테스트)
+docker compose exec celery_worker celery -A app.tasks.celery_app call app.tasks.backup_tasks.backup_database
+
+# 백업 파일 확인
+ls -la ~/Documents/invoice-backups/db/daily/
 
 # 복원 테스트 (개발 환경에서만!)
 bash scripts/restore/restore-db.sh /path/to/backup.dump
@@ -615,9 +674,10 @@ docker compose up -d   # 로그 로테이션이 자동 적용됨
 | 2 | Git으로 프로젝트 클론 |
 | 3 | 설정 백업 복원 또는 `.env.dev` 수동 생성 |
 | 4 | `bash scripts/restore/restore-all.sh` 실행 |
-| 5 | Windows 스케줄러 재등록 |
 
-**예상 복구 시간**: ~30분
+> `docker compose up -d`만 하면 백업/모니터링이 Celery Beat로 자동 실행됩니다. 별도 스케줄러 등록 불필요.
+
+**예상 복구 시간**: ~20분
 
 ---
 
@@ -625,4 +685,5 @@ docker compose up -d   # 로그 로테이션이 자동 적용됨
 
 | 날짜 | 내용 | 담당 |
 |------|------|------|
-| 2026-03-20 | 초기 작성 — Phase A~D 전체 구현 | - |
+| 2026-03-20 | v2 — 백업/모니터링을 Celery Beat로 통합, Windows Task Scheduler 제거 | - |
+| 2026-03-20 | v1 — 초기 작성 — Phase A~D 전체 구현 | - |

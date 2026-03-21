@@ -102,6 +102,7 @@ services:
       - ./backend:/app
       - media_files:/app/media
       - ./backend/credentials:/app/credentials:ro
+      - ${BACKUP_DIR_HOST:-C:/Users/philk/Documents/invoice-backups}:/backups
     depends_on:
       db:
         condition: service_healthy
@@ -133,6 +134,7 @@ services:
       - .env.dev
     volumes:
       - ./backend:/app
+      - ${BACKUP_DIR_HOST:-C:/Users/philk/Documents/invoice-backups}:/backups
     depends_on:
       db:
         condition: service_healthy

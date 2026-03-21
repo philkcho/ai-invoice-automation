@@ -80,6 +80,19 @@ async def get_recent_activity(
     return await dashboard_service.get_recent_activity(db, company_id, limit)
 
 
+@router.get("/kpi-detail")
+async def get_kpi_detail(
+    category: str = Query(..., regex="^(this_month|unpaid|overdue|paid_this_month)$"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any),
+):
+    """KPI card detail list (this_month, unpaid, overdue)"""
+    company_id = current_user.get("company_id")
+    if not company_id:
+        return []
+    return await dashboard_service.get_kpi_detail(db, company_id, category)
+
+
 @router.get("/action-items")
 async def get_action_items(
     limit: int = Query(20, ge=1, le=50),

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
@@ -155,7 +155,7 @@ async def _handle_approved(
         select(InvoiceApproval).where(
             InvoiceApproval.invoice_id == invoice.id,
             InvoiceApproval.submission_round == invoice.submission_round,
-            InvoiceApproval.status == "PENDING",
+            InvoiceApproval.status.cast(String) == "PENDING",
             InvoiceApproval.step > approval.step,
         ).order_by(InvoiceApproval.step.asc()).limit(1)
     )
@@ -207,7 +207,7 @@ async def _handle_rejected(
         .where(
             InvoiceApproval.invoice_id == invoice.id,
             InvoiceApproval.submission_round == invoice.submission_round,
-            InvoiceApproval.status == "PENDING",
+            InvoiceApproval.status.cast(String) == "PENDING",
         )
         .values(status="CANCELLED")
     )
@@ -254,7 +254,7 @@ async def resubmit_invoice(
         .where(
             InvoiceApproval.invoice_id == invoice.id,
             InvoiceApproval.submission_round == invoice.submission_round,
-            InvoiceApproval.status == "PENDING",
+            InvoiceApproval.status.cast(String) == "PENDING",
         )
         .values(status="CANCELLED")
     )
@@ -296,12 +296,12 @@ async def list_pending_approvals(
         count_query = count_query.where(InvoiceApproval.company_id == company_id)
 
     if approver_role:
-        query = query.where(InvoiceApproval.approver_role == approver_role)
-        count_query = count_query.where(InvoiceApproval.approver_role == approver_role)
+        query = query.where(InvoiceApproval.approver_role.cast(String) == approver_role)
+        count_query = count_query.where(InvoiceApproval.approver_role.cast(String) == approver_role)
 
     if status_filter:
-        query = query.where(InvoiceApproval.status == status_filter)
-        count_query = count_query.where(InvoiceApproval.status == status_filter)
+        query = query.where(InvoiceApproval.status.cast(String) == status_filter)
+        count_query = count_query.where(InvoiceApproval.status.cast(String) == status_filter)
 
     total = (await db.execute(count_query)).scalar()
     result = await db.execute(

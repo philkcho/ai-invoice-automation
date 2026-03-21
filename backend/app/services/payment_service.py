@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
@@ -250,6 +250,55 @@ async def list_payments(
             "invoice_number": invoice.invoice_number,
             "vendor_name": vendor_name,
             "invoice_amount_total": float(invoice.amount_total),
+        })
+
+    return items, total
+
+
+async def list_awaiting_payment(
+    db: AsyncSession,
+    company_id: Optional[UUID] = None,
+    skip: int = 0,
+    limit: int = 20,
+) -> tuple[list[dict], int]:
+    """APPROVED 상태이면서 활성 결제 기록이 없는 인보이스 목록"""
+    active_payment_ids = (
+        select(InvoicePayment.invoice_id)
+        .where(InvoicePayment.payment_status.cast(String).in_(["SCHEDULED", "PROCESSING"]))
+    ).correlate(None).scalar_subquery()
+
+    base_filter = [
+        Invoice.status.cast(String) == "APPROVED",
+        Invoice.id.notin_(select(InvoicePayment.invoice_id).where(
+            InvoicePayment.payment_status.cast(String).in_(["SCHEDULED", "PROCESSING"])
+        )),
+    ]
+
+    if company_id:
+        base_filter.append(Invoice.company_id == company_id)
+
+    count_query = select(func.count()).select_from(Invoice).where(*base_filter)
+    total = (await db.execute(count_query)).scalar() or 0
+
+    query = (
+        select(Invoice)
+        .where(*base_filter)
+        .order_by(Invoice.due_date.asc().nullslast(), Invoice.updated_at.desc())
+        .offset(skip).limit(limit)
+    )
+    result = await db.execute(query)
+
+    items = []
+    for invoice in result.scalars().all():
+        items.append({
+            "invoice_id": str(invoice.id),
+            "invoice_number": invoice.invoice_number,
+            "vendor_name": invoice.vendor.company_name if invoice.vendor else None,
+            "amount_total": float(invoice.amount_total),
+            "currency_original": invoice.currency_original,
+            "due_date": invoice.due_date,
+            "invoice_date": invoice.invoice_date,
+            "approved_at": invoice.updated_at,
         })
 
     return items, total

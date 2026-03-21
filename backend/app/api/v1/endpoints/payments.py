@@ -14,6 +14,7 @@ from app.schemas.payment import (
     PaymentScheduleRequest, PaymentProcessRequest,
     PaymentCompleteRequest, PaymentVoidRequest,
     PaymentResponse, PaymentDetailResponse, PaymentListResponse,
+    AwaitingPaymentListResponse,
 )
 from app.services import payment_service
 
@@ -58,6 +59,19 @@ async def list_payments(
         db, company_id, invoice_id, payment_status, skip, limit
     )
     return PaymentListResponse(items=items, total=total)
+
+
+@router.get("/awaiting", response_model=AwaitingPaymentListResponse)
+async def list_awaiting_payment(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """결제 대기 중인 승인 완료 인보이스 목록"""
+    company_id = None if current_user["role"] == ROLE_SUPER_ADMIN else current_user["company_id"]
+    items, total = await payment_service.list_awaiting_payment(db, company_id, skip, limit)
+    return AwaitingPaymentListResponse(items=items, total=total)
 
 
 @router.get("/{payment_id}", response_model=PaymentResponse)
