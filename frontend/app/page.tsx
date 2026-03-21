@@ -75,24 +75,27 @@ const PIPELINE_LABELS: Record<string, string> = {
 function getPipelineCount(statusCounts: Record<string, number>, step: string): number {
   const base = statusCounts[step] || 0;
   if (step === 'RECEIVED') return base + (statusCounts['OCR_REVIEW'] || 0);
+  if (step === 'PENDING') return base + (statusCounts['REJECTED'] || 0) + (statusCounts['REVIEW_NEEDED'] || 0);
   if (step === 'APPROVED') return base + (statusCounts['SCHEDULED'] || 0);
-  if (step === 'IN_APPROVAL') return base + (statusCounts['SUBMITTED'] || 0) + (statusCounts['REVIEW_NEEDED'] || 0);
+  if (step === 'IN_APPROVAL') return base + (statusCounts['SUBMITTED'] || 0);
   return base;
 }
 
 function getPipelineAmount(statusAmounts: Record<string, number>, step: string): number {
   const base = statusAmounts[step] || 0;
   if (step === 'RECEIVED') return base + (statusAmounts['OCR_REVIEW'] || 0);
+  if (step === 'PENDING') return base + (statusAmounts['REJECTED'] || 0) + (statusAmounts['REVIEW_NEEDED'] || 0);
   if (step === 'APPROVED') return base + (statusAmounts['SCHEDULED'] || 0);
-  if (step === 'IN_APPROVAL') return base + (statusAmounts['SUBMITTED'] || 0) + (statusAmounts['REVIEW_NEEDED'] || 0);
+  if (step === 'IN_APPROVAL') return base + (statusAmounts['SUBMITTED'] || 0);
   return base;
 }
 
 /** Map pipeline step to actual invoice statuses for detail query */
 function getStatusesForStep(step: string): string[] {
   if (step === 'RECEIVED') return ['RECEIVED', 'OCR_REVIEW'];
+  if (step === 'PENDING') return ['PENDING', 'REJECTED', 'REVIEW_NEEDED'];
   if (step === 'APPROVED') return ['APPROVED', 'SCHEDULED'];
-  if (step === 'IN_APPROVAL') return ['IN_APPROVAL', 'SUBMITTED', 'REVIEW_NEEDED'];
+  if (step === 'IN_APPROVAL') return ['IN_APPROVAL', 'SUBMITTED'];
   return [step];
 }
 
@@ -148,6 +151,26 @@ export default function DashboardPage() {
   const [pipelineData, setPipelineData] = useState<KpiDetailItem[]>([]);
   const [pipelineLoading, setPipelineLoading] = useState(false);
 
+  // Lookup maps for vendor/type names
+  const [vendorMap, setVendorMap] = useState<Record<string, string>>({});
+  const [typeMap, setTypeMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Load vendor/type maps for pipeline popup
+    api.get('/api/v1/vendors', { params: { limit: 200, status: 'ACTIVE' } })
+      .then(({ data }) => {
+        const m: Record<string, string> = {};
+        for (const v of data.items) m[v.id] = v.company_name;
+        setVendorMap(m);
+      }).catch(() => {});
+    api.get('/api/v1/invoice-types', { params: { limit: 100 } })
+      .then(({ data }) => {
+        const m: Record<string, string> = {};
+        for (const t of data.items) m[t.id] = t.type_name;
+        setTypeMap(m);
+      }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     const fetchAll = async () => {
       const results = await Promise.allSettled([
@@ -189,9 +212,9 @@ export default function DashboardPage() {
           items.push({
             id: inv.id,
             invoice_number: inv.invoice_number,
-            vendor_name: null,
+            vendor_name: inv.vendor_name || vendorMap[inv.vendor_id] || null,
             amount_total: inv.amount_total,
-            invoice_type: null,
+            invoice_type: inv.invoice_type_name || typeMap[inv.invoice_type_id] || null,
             status: inv.status,
             due_date: inv.due_date,
             days_overdue: inv.due_date ? Math.max(0, Math.floor((Date.now() - new Date(inv.due_date).getTime()) / 86400000)) : null,
@@ -203,7 +226,7 @@ export default function DashboardPage() {
       setPipelineData([]);
     }
     setPipelineLoading(false);
-  }, []);
+  }, [vendorMap, typeMap]);
 
   const momChange = calcMomChange(trend);
 
@@ -515,15 +538,15 @@ function PipelineBar({
   statusAmounts: Record<string, number>;
   onStepClick: (step: string) => void;
 }) {
-  const counts = PIPELINE_STEPS.map(s => getPipelineCount(statusCounts, s));
-  const maxCount = Math.max(...counts, 1);
+  const amounts = PIPELINE_STEPS.map(s => getPipelineAmount(statusAmounts, s));
+  const maxAmount = Math.max(...amounts, 1);
 
   return (
     <div className="flex items-end gap-1">
       {PIPELINE_STEPS.map((step) => {
         const count = getPipelineCount(statusCounts, step);
         const amount = getPipelineAmount(statusAmounts, step);
-        const isBottleneck = count === maxCount && count > 0;
+        const isTop = amount === maxAmount && amount > 0;
         return (
           <button
             key={step}
@@ -531,13 +554,15 @@ function PipelineBar({
             onClick={() => count > 0 && onStepClick(step)}
           >
             {/* Count + Amount */}
-            <span className={`text-lg font-bold ${isBottleneck ? 'text-indigo-600' : 'text-gray-800'}`}>
+            <span className={`text-lg font-bold ${isTop ? 'text-indigo-600' : 'text-gray-800'}`}>
               {count}
             </span>
-            <span className="text-[10px] text-gray-400 mb-1">{fmt(amount)}</span>
-            {/* Bar */}
-            <div className={`w-full rounded-t-md ${isBottleneck ? 'bg-indigo-500' : 'bg-indigo-300'}`}
-              style={{ height: `${Math.max((count / maxCount) * 80, 8)}px`, transition: 'height 0.3s' }}
+            <span className={`text-lg font-bold mb-1 ${isTop ? 'text-indigo-600' : 'text-gray-800'}`}>
+              {fmt(amount)}
+            </span>
+            {/* Bar — based on amount */}
+            <div className={`w-full rounded-t-md ${isTop ? 'bg-indigo-500' : 'bg-indigo-300'}`}
+              style={{ height: `${Math.max((amount / maxAmount) * 80, 8)}px`, transition: 'height 0.3s' }}
             />
             {/* Label */}
             <div className="w-full bg-gray-100 rounded-b-md py-2 text-center">

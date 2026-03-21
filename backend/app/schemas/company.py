@@ -53,6 +53,7 @@ class CompanyResponse(BaseModel):
     contact_phone: Optional[str]
     established_date: Optional[date]
     default_currency: str
+    ai_chat_mode: str
     status: str
     created_at: datetime
     updated_at: datetime

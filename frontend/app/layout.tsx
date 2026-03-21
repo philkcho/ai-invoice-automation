@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import AuthProvider from '@/components/layout/AuthProvider';
+import ChatWidget from '@/components/chat/ChatWidget';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import ToastContainer from '@/components/common/ToastContainer';
 import QueryProvider from '@/components/common/QueryProvider';
@@ -19,7 +20,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans">
         <ErrorBoundary>
           <QueryProvider>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              {children}
+              <ChatWidget />
+            </AuthProvider>
             <ToastContainer />
           </QueryProvider>
         </ErrorBoundary>

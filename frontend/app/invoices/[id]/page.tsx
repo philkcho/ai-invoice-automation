@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/error';
 import type { Invoice, Vendor, VendorListResponse } from '@/types';
 import RequireRole from '@/components/common/RequireRole';
+import { useAuthStore } from '@/stores/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -30,6 +31,9 @@ const EDITABLE_STATUSES = ['PENDING', 'REVIEW_NEEDED', 'RECEIVED', 'OCR_REVIEW',
 export default function InvoiceDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const userRole = user?.role || 'VIEWER';
+  const canManage = ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ACCOUNTANT'].includes(userRole);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -227,7 +231,7 @@ export default function InvoiceDetailPage() {
   if (loading) return <div className="loading-state min-h-screen flex items-center justify-center">Loading...</div>;
   if (!invoice) return <div className="min-h-screen flex items-center justify-center text-red-500">{error || 'Invoice not found'}</div>;
 
-  const canEdit = EDITABLE_STATUSES.includes(invoice.status);
+  const canEdit = canManage && EDITABLE_STATUSES.includes(invoice.status);
 
   return (
     <div className="min-h-screen flex flex-col">

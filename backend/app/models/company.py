@@ -37,6 +37,10 @@ class Company(Base):
         nullable=False,
         server_default="ACTIVE",
     )
+    ai_chat_mode: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="invoice_only",
+        comment="AI chat mode: invoice_only or hybrid",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

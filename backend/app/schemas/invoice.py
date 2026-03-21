@@ -2,7 +2,7 @@ from datetime import datetime, date
 from typing import Optional, Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 
 # ── Line Item 스키마 ─────────────────────────────────
@@ -119,6 +119,17 @@ class InvoiceListItem(BaseModel):
     status: str
     validation_status: Optional[str]
     created_at: datetime
+    vendor_name: Optional[str] = None
+    invoice_type_name: Optional[str] = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def extract_relation_names(cls, data: Any) -> Any:
+        if hasattr(data, 'vendor') and data.vendor:
+            data.vendor_name = data.vendor.company_name
+        if hasattr(data, 'invoice_type') and data.invoice_type:
+            data.invoice_type_name = data.invoice_type.type_name
+        return data
 
 
 class InvoiceListResponse(BaseModel):
