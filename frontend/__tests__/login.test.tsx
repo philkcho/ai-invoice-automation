@@ -23,6 +23,22 @@ jest.mock('@/stores/auth', () => ({
     selector({ login: mockLogin }),
 }));
 
+// Mock i18n — return English translations
+import en from '@/lib/i18n/en.json';
+import { getTranslation } from '@/lib/i18n';
+const t = getTranslation('en');
+jest.mock('@/lib/i18n', () => {
+  const actual = jest.requireActual('@/lib/i18n');
+  return {
+    ...actual,
+    useTranslation: () => ({
+      locale: 'en',
+      setLocale: jest.fn(),
+      t: actual.getTranslation('en'),
+    }),
+  };
+});
+
 describe('LoginPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();

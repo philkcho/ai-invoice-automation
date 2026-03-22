@@ -1,0 +1,134 @@
+{
+  "common": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signingIn": "Signing in...",
+    "creatingAccount": "Creating account...",
+    "pricing": "Pricing",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full Name",
+    "companyName": "Company Name",
+    "startFreeTrial": "Start Free Trial",
+    "watchDemo": "Watch Demo",
+    "contactSales": "Contact Sales",
+    "getStarted": "Get Started — It's Free",
+    "learnMore": "Learn More",
+    "aiInvoice": "AI Invoice",
+    "copyright": "© 2026 AI Invoice Automation. All rights reserved.",
+    "month": "month",
+    "custom": "Custom",
+    "loadingPlans": "Loading plans..."
+  },
+  "login": {
+    "title": "AI Invoice Automation",
+    "subtitle": "Sign in to your account",
+    "emailPlaceholder": "email@example.com",
+    "passwordPlaceholder": "Enter your password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "signUpLink": "Sign up"
+  },
+  "signup": {
+    "title": "Create Your Account",
+    "subtitle": "Start automating your invoice processing",
+    "namePlaceholder": "John Doe",
+    "emailPlaceholder": "email@example.com",
+    "passwordPlaceholder": "Min 8 chars, uppercase, lowercase, digit, symbol",
+    "companyPlaceholder": "Acme Corp",
+    "hasAccount": "Already have an account?",
+    "signInLink": "Sign in"
+  },
+  "landing": {
+    "poweredByAi": "Powered by AI",
+    "heroTitle": "The Future of Invoice Processing Is Here",
+    "heroSubtitle": "Transform your accounts payable with AI that reads, validates, and routes invoices automatically — reducing manual work by 80%.",
+    "processed": "Processed",
+    "pending": "Pending",
+    "accuracy": "Accuracy",
+    "aiVerified": "AI Verified",
+    "stats": {
+      "ocrAccuracy": "OCR Accuracy",
+      "fasterProcessing": "Faster Processing",
+      "costReduction": "Cost Reduction",
+      "automatedMonitoring": "Automated Monitoring"
+    },
+    "features": {
+      "sectionTitle": "Everything you need to automate invoice processing",
+      "sectionSubtitle": "Four powerful capabilities, one intelligent platform.",
+      "aiAutomation": "AI-Powered Automation",
+      "aiAutomationDesc": "Drop a PDF, snap a photo, or forward an email — our AI reads every line, extracts every field, and enters the data for you. Zero manual entry. Zero errors.",
+      "analytics": "Intelligent Analytics",
+      "analyticsDesc": "Ask questions in plain English. 'What did we spend on logistics last quarter?' Our AI analyzes your invoice data and delivers instant, actionable insights.",
+      "approval": "Smart Approval Workflow",
+      "approvalDesc": "Multi-level approvals that route themselves. Set rules once — by amount, department, or vendor — and let the system handle the rest. Real-time status tracking included.",
+      "integration": "Seamless Integration",
+      "integrationDesc": "Connect to your ERP, accounting software, or any system via REST API. Import and export invoice data in any format. Your existing tools, supercharged."
+    },
+    "howItWorks": {
+      "title": "From inbox to payment in four steps",
+      "step1": "Receive",
+      "step1Desc": "Invoices arrive via email, upload, or API",
+      "step2": "AI Process",
+      "step2Desc": "AI extracts data, validates against rules & POs",
+      "step3": "Approve",
+      "step3Desc": "Smart routing through your approval chain",
+      "step4": "Pay & Analyze",
+      "step4Desc": "Track payments, get AI-powered spend insights"
+    },
+    "aiChat": {
+      "badge": "AI-Powered",
+      "title": "Your AI Financial Analyst, On Demand",
+      "subtitle": "No more digging through spreadsheets. Just ask — our AI understands your invoice data and responds with charts, summaries, and recommendations.",
+      "feature1": "Spend analysis by vendor, category, or period",
+      "feature2": "Anomaly detection and duplicate invoice alerts",
+      "feature3": "Budget vs. actual comparisons in real time",
+      "assistant": "AI Assistant",
+      "online": "Online",
+      "userMsg": "Show me our top 5 vendors by spend this quarter",
+      "botMsg": "Here are your top 5 vendors by spend (Q1 2026):",
+      "inputPlaceholder": "Ask about your invoices...",
+      "anomalies": "3 anomalies detected"
+    },
+    "cta": {
+      "title": "Ready to Transform Your Invoice Processing?",
+      "subtitle": "Join companies automating their AP workflow with AI."
+    }
+  },
+  "pricing": {
+    "title": "Plans that grow with your business",
+    "subtitle": "Start with a free 14-day trial. No credit card required. Upgrade anytime.",
+    "plans": {
+      "freeTrial": "Free Trial",
+      "freeTrialSub": "Try it free for 14 days",
+      "starter": "Starter",
+      "starterSub": "For small teams getting started",
+      "getStarter": "Get Starter",
+      "professional": "Professional",
+      "professionalSub": "For growing businesses",
+      "getProfessional": "Get Professional",
+      "enterprise": "Enterprise",
+      "enterpriseSub": "Unlimited scale & support"
+    },
+    "features": {
+      "invoicesPerMonth": "Up to {count} invoices per month",
+      "unlimitedInvoices": "Unlimited invoices, users & OCR",
+      "users": "Up to {count} users",
+      "ocrScans": "{count} AI-powered OCR scans",
+      "validation": "Invoice validation & approval",
+      "dashboard": "Dashboard & basic reports",
+      "emailIntegration": "Email integration (Gmail & Outlook)",
+      "vendorManagement": "Vendor management",
+      "apiAccess": "REST API access",
+      "multiApproval": "Multi-level approval workflows",
+      "auditLog": "Audit log & compliance",
+      "sso": "SSO (Google, Microsoft)",
+      "dedicatedManager": "Dedicated account manager",
+      "customIntegrations": "Custom integrations & onboarding",
+      "prioritySupport": "Priority support & SLA",
+      "everythingInFree": "Everything in Free, plus:",
+      "everythingInStarter": "Everything in Starter, plus:",
+      "everythingInPro": "Everything in Professional, plus:"
+    }
+  }
+}

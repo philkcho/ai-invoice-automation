@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useTranslation } from '@/lib/i18n';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 import type { SubscriptionPlan } from '@/types';
 
 const FALLBACK_PLANS: SubscriptionPlan[] = [
@@ -32,54 +34,55 @@ const FALLBACK_PLANS: SubscriptionPlan[] = [
   },
 ];
 
-// 플랜별 부제목
-const PLAN_SUBTITLES: Record<string, string> = {
-  free_trial: 'Try it free for 14 days',
-  starter: 'For small teams getting started',
-  professional: 'For growing businesses',
-  enterprise: 'Unlimited scale & support',
+// 플랜별 부제목 키 매핑
+const PLAN_SUBTITLE_KEYS: Record<string, string> = {
+  free_trial: 'pricing.plans.freeTrialSub',
+  starter: 'pricing.plans.starterSub',
+  professional: 'pricing.plans.professionalSub',
+  enterprise: 'pricing.plans.enterpriseSub',
 };
 
-// 플랜별 기능 설명 (누적 형태)
-const PLAN_FEATURES: Record<string, { prefix?: string; items: string[] }> = {
+// 플랜별 기능 설명 키 매핑 (누적 형태)
+type FeatureItem = { key: string; params?: Record<string, string | number> };
+const PLAN_FEATURE_KEYS: Record<string, { prefixKey?: string; items: FeatureItem[] }> = {
   free_trial: {
     items: [
-      'Up to 20 invoices per month',
-      'Up to 3 users',
-      '10 AI-powered OCR scans',
-      'Invoice validation & approval',
-      'Dashboard & basic reports',
+      { key: 'pricing.features.invoicesPerMonth', params: { count: 20 } },
+      { key: 'pricing.features.users', params: { count: 3 } },
+      { key: 'pricing.features.ocrScans', params: { count: 10 } },
+      { key: 'pricing.features.validation' },
+      { key: 'pricing.features.dashboard' },
     ],
   },
   starter: {
-    prefix: 'Everything in Free, plus:',
+    prefixKey: 'pricing.features.everythingInFree',
     items: [
-      'Up to 100 invoices per month',
-      'Up to 5 users',
-      '50 AI-powered OCR scans',
-      'Email integration (Gmail & Outlook)',
-      'Vendor management',
+      { key: 'pricing.features.invoicesPerMonth', params: { count: 100 } },
+      { key: 'pricing.features.users', params: { count: 5 } },
+      { key: 'pricing.features.ocrScans', params: { count: 50 } },
+      { key: 'pricing.features.emailIntegration' },
+      { key: 'pricing.features.vendorManagement' },
     ],
   },
   professional: {
-    prefix: 'Everything in Starter, plus:',
+    prefixKey: 'pricing.features.everythingInStarter',
     items: [
-      'Up to 500 invoices per month',
-      'Up to 15 users',
-      '200 AI-powered OCR scans',
-      'REST API access',
-      'Multi-level approval workflows',
-      'Audit log & compliance',
+      { key: 'pricing.features.invoicesPerMonth', params: { count: 500 } },
+      { key: 'pricing.features.users', params: { count: 15 } },
+      { key: 'pricing.features.ocrScans', params: { count: 200 } },
+      { key: 'pricing.features.apiAccess' },
+      { key: 'pricing.features.multiApproval' },
+      { key: 'pricing.features.auditLog' },
     ],
   },
   enterprise: {
-    prefix: 'Everything in Professional, plus:',
+    prefixKey: 'pricing.features.everythingInPro',
     items: [
-      'Unlimited invoices, users & OCR',
-      'SSO (Google, Microsoft)',
-      'Dedicated account manager',
-      'Custom integrations & onboarding',
-      'Priority support & SLA',
+      { key: 'pricing.features.unlimitedInvoices' },
+      { key: 'pricing.features.sso' },
+      { key: 'pricing.features.dedicatedManager' },
+      { key: 'pricing.features.customIntegrations' },
+      { key: 'pricing.features.prioritySupport' },
     ],
   },
 };
@@ -124,6 +127,7 @@ function CheckMark() {
 }
 
 export default function PricingPage() {
+  const { t } = useTranslation();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -146,14 +150,15 @@ export default function PricingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <span className="font-bold text-lg">AI Invoice</span>
+              <span className="font-bold text-lg">{t('common.aiInvoice')}</span>
             </Link>
             <div className="flex items-center gap-4">
+              <LanguageSwitcher />
               <Link href="/login" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                Sign In
+                {t('common.signIn')}
               </Link>
               <Link href="/signup" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors">
-                Start Free Trial
+                {t('common.startFreeTrial')}
               </Link>
             </div>
           </div>
@@ -163,22 +168,32 @@ export default function PricingPage() {
       {/* Header */}
       <div className="pt-16 pb-14 text-center">
         <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
-          Plans that grow with your business
+          {t('pricing.title')}
         </h1>
         <p className="text-base text-gray-500 max-w-lg mx-auto">
-          Start with a free 14-day trial. No credit card required. Upgrade anytime.
+          {t('pricing.subtitle')}
         </p>
       </div>
 
       {/* Plans grid */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-28">
         {loading ? (
-          <div className="text-center py-20 text-gray-400">Loading plans...</div>
+          <div className="text-center py-20 text-gray-400">{t('common.loadingPlans')}</div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-0 border border-gray-200 rounded-2xl overflow-hidden">
             {plans.map((plan, idx) => {
-              const featureInfo = PLAN_FEATURES[plan.name] || { items: [] };
+              const featureInfo = PLAN_FEATURE_KEYS[plan.name] || { items: [] };
               const isLast = idx === plans.length - 1;
+              const planNameKeyMap: Record<string, string> = {
+                free_trial: 'pricing.plans.freeTrial',
+                starter: 'pricing.plans.starter',
+                professional: 'pricing.plans.professional',
+                enterprise: 'pricing.plans.enterprise',
+              };
+              const ctaKeyMap: Record<string, string> = {
+                starter: 'pricing.plans.getStarter',
+                professional: 'pricing.plans.getProfessional',
+              };
 
               return (
                 <div
@@ -193,22 +208,24 @@ export default function PricingPage() {
                   </div>
 
                   {/* Plan name + subtitle */}
-                  <h3 className="text-xl font-bold text-gray-900">{plan.display_name}</h3>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {planNameKeyMap[plan.name] ? t(planNameKeyMap[plan.name]) : plan.display_name}
+                  </h3>
                   <p className="text-sm text-gray-400 mt-0.5 mb-5">
-                    {PLAN_SUBTITLES[plan.name] || ''}
+                    {PLAN_SUBTITLE_KEYS[plan.name] ? t(PLAN_SUBTITLE_KEYS[plan.name]) : ''}
                   </p>
 
                   {/* Price */}
                   <div className="mb-6">
                     {plan.name === 'enterprise' ? (
-                      <div className="text-3xl font-bold text-gray-900">Custom</div>
+                      <div className="text-3xl font-bold text-gray-900">{t('common.custom')}</div>
                     ) : (
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl font-bold text-gray-900">
                           ${plan.monthly_price}
                         </span>
                         {plan.monthly_price > 0 && (
-                          <span className="text-sm text-gray-400">/ month</span>
+                          <span className="text-sm text-gray-400">/ {t('common.month')}</span>
                         )}
                       </div>
                     )}
@@ -220,33 +237,33 @@ export default function PricingPage() {
                       href="/signup"
                       className="block w-full py-2.5 text-center text-sm font-medium border border-gray-300 text-gray-700 rounded-full hover:bg-gray-50 transition-colors mb-7"
                     >
-                      Start Free Trial
+                      {t('common.startFreeTrial')}
                     </Link>
                   ) : plan.name === 'enterprise' ? (
                     <button className="w-full py-2.5 text-sm font-medium bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors mb-7">
-                      Contact Sales
+                      {t('common.contactSales')}
                     </button>
                   ) : (
                     <Link
                       href="/signup"
                       className="block w-full py-2.5 text-center text-sm font-medium bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors mb-7"
                     >
-                      Get {plan.display_name}
+                      {ctaKeyMap[plan.name] ? t(ctaKeyMap[plan.name]) : `Get ${plan.display_name}`}
                     </Link>
                   )}
 
                   {/* Features list */}
                   <div className="flex-1">
-                    {featureInfo.prefix && (
+                    {featureInfo.prefixKey && (
                       <p className="text-sm font-semibold text-gray-700 mb-3">
-                        {featureInfo.prefix}
+                        {t(featureInfo.prefixKey)}
                       </p>
                     )}
                     <ul className="space-y-2.5">
                       {featureInfo.items.map((item) => (
-                        <li key={item} className="flex items-start gap-2.5 text-sm text-gray-600">
+                        <li key={item.key} className="flex items-start gap-2.5 text-sm text-gray-600">
                           <CheckMark />
-                          <span>{item}</span>
+                          <span>{t(item.key, item.params)}</span>
                         </li>
                       ))}
                     </ul>

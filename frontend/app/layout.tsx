@@ -5,6 +5,7 @@ import ChatWidget from '@/components/chat/ChatWidget';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import ToastContainer from '@/components/common/ToastContainer';
 import QueryProvider from '@/components/common/QueryProvider';
+import I18nProvider from '@/components/common/I18nProvider';
 
 export const metadata: Metadata = {
   title: 'AI Invoice Automation System',
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="font-sans">
         <ErrorBoundary>
+          <I18nProvider>
           <QueryProvider>
             <AuthProvider>
               {children}
@@ -26,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </AuthProvider>
             <ToastContainer />
           </QueryProvider>
+          </I18nProvider>
         </ErrorBoundary>
       </body>
     </html>

@@ -23,6 +23,19 @@ jest.mock('@/lib/api', () => ({
   default: { post: (...args: unknown[]) => mockPost(...args) },
 }));
 
+// Mock i18n
+jest.mock('@/lib/i18n', () => {
+  const actual = jest.requireActual('@/lib/i18n');
+  return {
+    ...actual,
+    useTranslation: () => ({
+      locale: 'en',
+      setLocale: jest.fn(),
+      t: actual.getTranslation('en'),
+    }),
+  };
+});
+
 describe('SignupPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();

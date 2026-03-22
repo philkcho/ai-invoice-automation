@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 
 // ─── Icons (inline SVG) ───────────────────────────────────────────────────────
 
@@ -89,6 +91,7 @@ function CheckIcon({ className = 'w-5 h-5' }: { className?: string }) {
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
+  const { t } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -114,7 +117,7 @@ export default function LandingPage() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
                 <SparklesIcon className="w-5 h-5 text-white" />
               </div>
-              <span className="text-white font-bold text-lg">AI Invoice</span>
+              <span className="text-white font-bold text-lg">{t('common.aiInvoice')}</span>
             </div>
             {/* Nav buttons */}
             <div className="flex items-center gap-3">
@@ -122,19 +125,20 @@ export default function LandingPage() {
                 href="/pricing"
                 className="px-5 py-2 text-sm font-medium text-white hover:text-primary-200 transition-colors"
               >
-                Pricing
+                {t('common.pricing')}
               </Link>
+              <LanguageSwitcher />
               <Link
                 href="/login"
                 className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
               >
-                Sign In
+                {t('common.signIn')}
               </Link>
               <Link
                 href="/signup"
                 className="px-5 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-400 transition-colors"
               >
-                Sign Up
+                {t('common.signUp')}
               </Link>
             </div>
           </div>
@@ -163,20 +167,15 @@ export default function LandingPage() {
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-300 text-sm font-medium">
               <SparklesIcon className="w-4 h-4" />
-              Powered by AI
+              {t('landing.poweredByAi')}
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight">
-              The Future of{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-300">
-                Invoice Processing
-              </span>{' '}
-              Is Here
+              {t('landing.heroTitle')}
             </h1>
 
             <p className="text-lg text-gray-300 max-w-lg leading-relaxed">
-              Transform your accounts payable with AI that reads, validates, and
-              routes invoices automatically &mdash; reducing manual work by 80%.
+              {t('landing.heroSubtitle')}
             </p>
 
             <div className="flex flex-wrap gap-4">
@@ -184,13 +183,13 @@ export default function LandingPage() {
                 href="/signup"
                 className="inline-flex items-center px-6 py-3 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:from-primary-400 hover:to-primary-500 transition-all"
               >
-                Start Free Trial
+                {t('common.startFreeTrial')}
               </Link>
               <button className="inline-flex items-center px-6 py-3 rounded-lg border border-white/20 text-white font-semibold hover:bg-white/5 transition-colors">
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
-                Watch Demo
+                {t('common.watchDemo')}
               </button>
             </div>
           </div>
@@ -213,9 +212,9 @@ export default function LandingPage() {
                 {/* Stat cards row */}
                 <div className="grid grid-cols-3 gap-3 mb-6">
                   {[
-                    { label: 'Processed', value: '1,284', color: 'from-primary-400 to-primary-600' },
-                    { label: 'Pending', value: '23', color: 'from-amber-400 to-orange-500' },
-                    { label: 'Accuracy', value: '99.2%', color: 'from-emerald-400 to-green-500' },
+                    { label: t('landing.processed'), value: '1,284', color: 'from-primary-400 to-primary-600' },
+                    { label: t('landing.pending'), value: '23', color: 'from-amber-400 to-orange-500' },
+                    { label: t('landing.accuracy'), value: '99.2%', color: 'from-emerald-400 to-green-500' },
                   ].map((stat) => (
                     <div
                       key={stat.label}
@@ -273,7 +272,7 @@ export default function LandingPage() {
                     <CheckIcon className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400">AI Verified</div>
+                    <div className="text-xs text-gray-400">{t('landing.aiVerified')}</div>
                     <div className="text-sm font-semibold text-white">$12,450.00</div>
                   </div>
                 </div>
@@ -288,10 +287,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { value: '99.2%', label: 'OCR Accuracy' },
-              { value: '80%', label: 'Faster Processing' },
-              { value: '50%', label: 'Cost Reduction' },
-              { value: '24/7', label: 'Automated Monitoring' },
+              { value: '99.2%', label: t('landing.stats.ocrAccuracy') },
+              { value: '80%', label: t('landing.stats.fasterProcessing') },
+              { value: '50%', label: t('landing.stats.costReduction') },
+              { value: '24/7', label: t('landing.stats.automatedMonitoring') },
             ].map((stat) => (
               <div key={stat.label}>
                 <div className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-primary-500">
@@ -309,10 +308,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-              Everything you need to automate invoice processing
+              {t('landing.features.sectionTitle')}
             </h2>
             <p className="mt-4 text-lg text-gray-500">
-              Four powerful capabilities, one intelligent platform.
+              {t('landing.features.sectionSubtitle')}
             </p>
           </div>
 
@@ -320,23 +319,23 @@ export default function LandingPage() {
             {[
               {
                 icon: <CpuChipIcon className="w-6 h-6 text-white" />,
-                title: 'AI-Powered Automation',
-                desc: 'Drop a PDF, snap a photo, or forward an email \u2014 our AI reads every line, extracts every field, and enters the data for you. Zero manual entry. Zero errors.',
+                title: t('landing.features.aiAutomation'),
+                desc: t('landing.features.aiAutomationDesc'),
               },
               {
                 icon: <ChartBarIcon className="w-6 h-6 text-white" />,
-                title: 'Intelligent Analytics',
-                desc: "Ask questions in plain English. 'What did we spend on logistics last quarter?' Our AI analyzes your invoice data and delivers instant, actionable insights.",
+                title: t('landing.features.analytics'),
+                desc: t('landing.features.analyticsDesc'),
               },
               {
                 icon: <ArrowPathIcon className="w-6 h-6 text-white" />,
-                title: 'Smart Approval Workflow',
-                desc: 'Multi-level approvals that route themselves. Set rules once \u2014 by amount, department, or vendor \u2014 and let the system handle the rest. Real-time status tracking included.',
+                title: t('landing.features.approval'),
+                desc: t('landing.features.approvalDesc'),
               },
               {
                 icon: <LinkIcon className="w-6 h-6 text-white" />,
-                title: 'Seamless Integration',
-                desc: 'Connect to your ERP, accounting software, or any system via REST API. Import and export invoice data in any format. Your existing tools, supercharged.',
+                title: t('landing.features.integration'),
+                desc: t('landing.features.integrationDesc'),
               },
             ].map((feature) => (
               <div
@@ -371,7 +370,7 @@ export default function LandingPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-white">
-              From inbox to payment in four steps
+              {t('landing.howItWorks.title')}
             </h2>
           </div>
 
@@ -383,26 +382,26 @@ export default function LandingPage() {
               {
                 step: 1,
                 icon: <InboxIcon className="w-6 h-6 text-white" />,
-                title: 'Receive',
-                desc: 'Invoices arrive via email, upload, or API',
+                title: t('landing.howItWorks.step1'),
+                desc: t('landing.howItWorks.step1Desc'),
               },
               {
                 step: 2,
                 icon: <CpuChipIcon className="w-6 h-6 text-white" />,
-                title: 'AI Process',
-                desc: 'AI extracts data, validates against rules & POs',
+                title: t('landing.howItWorks.step2'),
+                desc: t('landing.howItWorks.step2Desc'),
               },
               {
                 step: 3,
                 icon: <CheckCircleIcon className="w-6 h-6 text-white" />,
-                title: 'Approve',
-                desc: 'Smart routing through your approval chain',
+                title: t('landing.howItWorks.step3'),
+                desc: t('landing.howItWorks.step3Desc'),
               },
               {
                 step: 4,
                 icon: <BanknotesIcon className="w-6 h-6 text-white" />,
-                title: 'Pay & Analyze',
-                desc: 'Track payments, get AI-powered spend insights',
+                title: t('landing.howItWorks.step4'),
+                desc: t('landing.howItWorks.step4Desc'),
               },
             ].map((item) => (
               <div key={item.step} className="relative text-center">
@@ -432,24 +431,22 @@ export default function LandingPage() {
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-50 border border-primary-100 text-primary-600 text-sm font-medium">
                 <SparklesIcon className="w-4 h-4" />
-                AI-Powered
+                {t('landing.aiChat.badge')}
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-                Your AI Financial Analyst, On Demand
+                {t('landing.aiChat.title')}
               </h2>
 
               <p className="text-lg text-gray-500 leading-relaxed">
-                No more digging through spreadsheets. Just ask &mdash; our AI
-                understands your invoice data and responds with charts, summaries,
-                and recommendations.
+                {t('landing.aiChat.subtitle')}
               </p>
 
               <ul className="space-y-4">
                 {[
-                  'Spend analysis by vendor, category, or period',
-                  'Anomaly detection and duplicate invoice alerts',
-                  'Budget vs. actual comparisons in real time',
+                  t('landing.aiChat.feature1'),
+                  t('landing.aiChat.feature2'),
+                  t('landing.aiChat.feature3'),
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3">
                     <div className="mt-0.5 w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
@@ -470,10 +467,10 @@ export default function LandingPage() {
                     <SparklesIcon className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-900 text-sm">AI Assistant</div>
+                    <div className="font-semibold text-gray-900 text-sm">{t('landing.aiChat.assistant')}</div>
                     <div className="text-xs text-green-500 flex items-center gap-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                      Online
+                      {t('landing.aiChat.online')}
                     </div>
                   </div>
                 </div>
@@ -481,7 +478,7 @@ export default function LandingPage() {
                 {/* User message */}
                 <div className="flex justify-end mb-4">
                   <div className="bg-primary-500 text-white rounded-2xl rounded-br-md px-4 py-3 max-w-[80%] text-sm">
-                    Show me our top 5 vendors by spend this quarter
+                    {t('landing.aiChat.userMsg')}
                   </div>
                 </div>
 
@@ -489,7 +486,7 @@ export default function LandingPage() {
                 <div className="flex justify-start mb-4">
                   <div className="bg-white rounded-2xl rounded-bl-md px-5 py-4 max-w-[90%] text-sm shadow-sm border border-gray-100">
                     <p className="text-gray-700 mb-3">
-                      Here are your top 5 vendors by spend (Q1 2026):
+                      {t('landing.aiChat.botMsg')}
                     </p>
                     {/* Mini chart */}
                     <div className="space-y-2.5 mb-3">
@@ -522,7 +519,7 @@ export default function LandingPage() {
 
                 {/* Input */}
                 <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 px-4 py-3">
-                  <span className="text-sm text-gray-400 flex-1">Ask about your invoices...</span>
+                  <span className="text-sm text-gray-400 flex-1">{t('landing.aiChat.inputPlaceholder')}</span>
                   <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
@@ -535,7 +532,7 @@ export default function LandingPage() {
               <div className="absolute -top-3 -left-3 animate-float-delayed bg-white rounded-xl px-4 py-2.5 shadow-lg border border-gray-100">
                 <div className="flex items-center gap-2 text-sm">
                   <div className="w-2 h-2 rounded-full bg-amber-400" />
-                  <span className="text-gray-600 font-medium">3 anomalies detected</span>
+                  <span className="text-gray-600 font-medium">{t('landing.aiChat.anomalies')}</span>
                 </div>
               </div>
             </div>
@@ -550,16 +547,16 @@ export default function LandingPage() {
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Transform Your Invoice Processing?
+            {t('landing.cta.title')}
           </h2>
           <p className="text-lg text-gray-300 mb-10 max-w-2xl mx-auto">
-            Join companies automating their AP workflow with AI.
+            {t('landing.cta.subtitle')}
           </p>
           <Link
             href="/signup"
             className="inline-flex items-center px-8 py-4 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold text-lg shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:from-primary-400 hover:to-primary-500 transition-all"
           >
-            Get Started &mdash; It&apos;s Free
+            {t('common.getStarted')}
           </Link>
         </div>
 
@@ -567,7 +564,7 @@ export default function LandingPage() {
         <div className="border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
             <p className="text-sm text-gray-500">
-              &copy; 2026 AI Invoice Automation. All rights reserved.
+              {t('common.copyright')}
             </p>
           </div>
         </div>

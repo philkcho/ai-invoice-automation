@@ -1,0 +1,134 @@
+{
+  "common": {
+    "signIn": "로그인",
+    "signUp": "회원가입",
+    "signingIn": "로그인 중...",
+    "creatingAccount": "계정 생성 중...",
+    "pricing": "요금제",
+    "email": "이메일",
+    "password": "비밀번호",
+    "fullName": "이름",
+    "companyName": "회사명",
+    "startFreeTrial": "무료 체험 시작",
+    "watchDemo": "데모 보기",
+    "contactSales": "영업팀 문의",
+    "getStarted": "무료로 시작하기",
+    "learnMore": "자세히 보기",
+    "aiInvoice": "AI Invoice",
+    "copyright": "© 2026 AI Invoice Automation. All rights reserved.",
+    "month": "월",
+    "custom": "맞춤형",
+    "loadingPlans": "요금제 불러오는 중..."
+  },
+  "login": {
+    "title": "AI 인보이스 자동화",
+    "subtitle": "계정에 로그인하세요",
+    "emailPlaceholder": "email@example.com",
+    "passwordPlaceholder": "비밀번호를 입력하세요",
+    "forgotPassword": "비밀번호를 잊으셨나요?",
+    "noAccount": "계정이 없으신가요?",
+    "signUpLink": "회원가입"
+  },
+  "signup": {
+    "title": "계정 만들기",
+    "subtitle": "인보이스 처리를 자동화하세요",
+    "namePlaceholder": "홍길동",
+    "emailPlaceholder": "email@example.com",
+    "passwordPlaceholder": "8자 이상, 대/소문자, 숫자, 특수문자 포함",
+    "companyPlaceholder": "회사명을 입력하세요",
+    "hasAccount": "이미 계정이 있으신가요?",
+    "signInLink": "로그인"
+  },
+  "landing": {
+    "poweredByAi": "AI 기반",
+    "heroTitle": "인보이스 처리의 미래가 여기에",
+    "heroSubtitle": "AI가 인보이스를 자동으로 읽고, 검증하고, 승인 라우팅합니다 — 수작업을 80% 줄여드립니다.",
+    "processed": "처리 완료",
+    "pending": "대기 중",
+    "accuracy": "정확도",
+    "aiVerified": "AI 검증 완료",
+    "stats": {
+      "ocrAccuracy": "OCR 정확도",
+      "fasterProcessing": "처리 속도 향상",
+      "costReduction": "비용 절감",
+      "automatedMonitoring": "자동 모니터링"
+    },
+    "features": {
+      "sectionTitle": "인보이스 자동화에 필요한 모든 것",
+      "sectionSubtitle": "네 가지 핵심 기능, 하나의 지능형 플랫폼.",
+      "aiAutomation": "AI 기반 자동화",
+      "aiAutomationDesc": "PDF를 드롭하거나, 사진을 찍거나, 이메일을 전달하세요 — AI가 모든 항목을 읽고, 데이터를 추출하여 자동 입력합니다. 수작업 제로, 오류 제로.",
+      "analytics": "지능형 분석",
+      "analyticsDesc": "'지난 분기 물류 비용이 얼마였나요?' 같은 질문을 하세요. AI가 인보이스 데이터를 분석하고 즉각적인 인사이트를 제공합니다.",
+      "approval": "스마트 승인 워크플로우",
+      "approvalDesc": "자동 라우팅되는 다단계 승인. 금액, 부서, 거래처별 규칙을 한 번만 설정하세요 — 나머지는 시스템이 처리합니다. 실시간 상태 추적 포함.",
+      "integration": "원활한 시스템 연동",
+      "integrationDesc": "REST API로 ERP, 회계 소프트웨어 등 어떤 시스템이든 연결하세요. 모든 형식으로 인보이스 데이터를 가져오고 내보낼 수 있습니다."
+    },
+    "howItWorks": {
+      "title": "수신에서 결제까지 네 단계",
+      "step1": "수신",
+      "step1Desc": "이메일, 업로드, API를 통해 인보이스 수신",
+      "step2": "AI 처리",
+      "step2Desc": "AI가 데이터 추출, 규칙 및 PO 대조 검증",
+      "step3": "승인",
+      "step3Desc": "승인 체인을 통한 스마트 라우팅",
+      "step4": "결제 및 분석",
+      "step4Desc": "결제 추적, AI 기반 지출 분석"
+    },
+    "aiChat": {
+      "badge": "AI 기반",
+      "title": "AI 재무 분석가, 언제든 준비 완료",
+      "subtitle": "더 이상 스프레드시트를 뒤질 필요 없습니다. 질문만 하세요 — AI가 인보이스 데이터를 이해하고 차트, 요약, 추천을 제공합니다.",
+      "feature1": "거래처, 카테고리, 기간별 지출 분석",
+      "feature2": "이상 탐지 및 중복 인보이스 알림",
+      "feature3": "실시간 예산 대비 실적 비교",
+      "assistant": "AI 어시스턴트",
+      "online": "온라인",
+      "userMsg": "이번 분기 지출 상위 5개 거래처를 보여주세요",
+      "botMsg": "이번 분기(2026년 1분기) 지출 상위 5개 거래처입니다:",
+      "inputPlaceholder": "인보이스에 대해 질문하세요...",
+      "anomalies": "3건의 이상 항목 감지"
+    },
+    "cta": {
+      "title": "인보이스 처리를 혁신할 준비가 되셨나요?",
+      "subtitle": "AI로 매입 업무를 자동화하는 기업에 합류하세요."
+    }
+  },
+  "pricing": {
+    "title": "비즈니스와 함께 성장하는 요금제",
+    "subtitle": "14일 무료 체험으로 시작하세요. 신용카드 불필요. 언제든 업그레이드 가능.",
+    "plans": {
+      "freeTrial": "무료 체험",
+      "freeTrialSub": "14일 무료 체험",
+      "starter": "스타터",
+      "starterSub": "소규모 팀을 위한 시작",
+      "getStarter": "스타터 시작",
+      "professional": "프로페셔널",
+      "professionalSub": "성장하는 비즈니스를 위한",
+      "getProfessional": "프로페셔널 시작",
+      "enterprise": "엔터프라이즈",
+      "enterpriseSub": "무제한 규모 및 지원"
+    },
+    "features": {
+      "invoicesPerMonth": "월 최대 {count}건 인보이스",
+      "unlimitedInvoices": "무제한 인보이스, 사용자 및 OCR",
+      "users": "최대 {count}명 사용자",
+      "ocrScans": "AI OCR 스캔 {count}건",
+      "validation": "인보이스 검증 및 승인",
+      "dashboard": "대시보드 및 기본 리포트",
+      "emailIntegration": "이메일 연동 (Gmail & Outlook)",
+      "vendorManagement": "거래처 관리",
+      "apiAccess": "REST API 접근",
+      "multiApproval": "다단계 승인 워크플로우",
+      "auditLog": "감사 로그 및 컴플라이언스",
+      "sso": "SSO (Google, Microsoft)",
+      "dedicatedManager": "전담 계정 매니저",
+      "customIntegrations": "맞춤 연동 및 온보딩",
+      "prioritySupport": "우선 지원 및 SLA",
+      "everythingInFree": "무료 체험의 모든 기능, 추가로:",
+      "everythingInStarter": "스타터의 모든 기능, 추가로:",
+      "everythingInPro": "프로페셔널의 모든 기능, 추가로:"
+    }
+  }
+}
