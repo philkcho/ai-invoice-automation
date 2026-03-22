@@ -11,8 +11,9 @@ async def test_login_success(client, test_super_admin: User):
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
-    assert "refresh_token" in data
     assert data["token_type"] == "bearer"
+    # refresh_token은 HttpOnly 쿠키로 전달
+    assert "refresh_token" in response.cookies
 
 
 @pytest.mark.asyncio
@@ -35,30 +36,25 @@ async def test_login_nonexistent_email(client):
 
 @pytest.mark.asyncio
 async def test_refresh_token(client, test_super_admin: User):
-    # 먼저 로그인
+    # 먼저 로그인하여 refresh_token 쿠키 획득
     login_response = await client.post("/api/v1/auth/login", json={
         "email": "admin@test.com",
         "password": "password123",
     })
-    refresh_token = login_response.json()["refresh_token"]
+    assert login_response.status_code == 200
 
-    # refresh로 새 access token 발급
+    # 쿠키에서 refresh_token 추출하여 요청 본문으로 전달
+    refresh_tok = login_response.cookies.get("refresh_token", "")
     response = await client.post("/api/v1/auth/refresh", json={
-        "refresh_token": refresh_token,
+        "refresh_token": refresh_tok,
     })
     assert response.status_code == 200
     assert "access_token" in response.json()
 
 
 @pytest.mark.asyncio
-async def test_refresh_with_access_token_fails(client, test_super_admin: User):
-    login_response = await client.post("/api/v1/auth/login", json={
-        "email": "admin@test.com",
-        "password": "password123",
-    })
-    access_token = login_response.json()["access_token"]
-
+async def test_refresh_with_invalid_token_fails(client):
     response = await client.post("/api/v1/auth/refresh", json={
-        "refresh_token": access_token,
+        "refresh_token": "invalid.token.string",
     })
     assert response.status_code == 401
