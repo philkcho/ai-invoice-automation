@@ -39,9 +39,16 @@ class ApprovalSetting(Base):
     step: Mapped[int] = mapped_column(
         Integer, nullable=False, comment="승인 단계 번호 (1, 2, 3...)",
     )
-    step_approver_role: Mapped[str] = mapped_column(
+    step_approver_role: Mapped[str | None] = mapped_column(
         SAEnum("APPROVER", "COMPANY_ADMIN", name="approver_role_type"),
-        nullable=False,
+        nullable=True,
+        comment="하위호환용 — approver_user_id 지정 시 자동 파생",
+    )
+    approver_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="지정 승인자 (NULL=역할 기반 폴백)",
     )
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="true",
@@ -57,6 +64,7 @@ class ApprovalSetting(Base):
     # Relationships
     company = relationship("Company", lazy="selectin")
     invoice_type = relationship("InvoiceType", lazy="selectin")
+    approver = relationship("User", lazy="selectin", foreign_keys=[approver_user_id])
 
     __table_args__ = (
         Index(
@@ -64,6 +72,10 @@ class ApprovalSetting(Base):
             "company_id", "invoice_type_id", "is_active",
         ),
     )
+
+    @property
+    def approver_name(self) -> str | None:
+        return self.approver.full_name if self.approver else None
 
     def __repr__(self) -> str:
         return (

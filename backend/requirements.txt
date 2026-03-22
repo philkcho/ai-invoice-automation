@@ -24,6 +24,9 @@ celery==5.4.0
 redis==5.0.4
 flower==2.0.1
 
+# Payment
+stripe==9.12.0
+
 # AWS S3
 boto3==1.34.100
 

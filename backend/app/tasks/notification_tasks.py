@@ -166,3 +166,70 @@ def send_password_reset_email(self, email: str, token: str):
     except Exception as exc:
         logger.error("Failed to send password reset email to %s: %s", email, exc)
         self.retry(exc=exc)
+
+
+@celery_app.task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=30,
+    name="app.tasks.notification_tasks.send_verification_email",
+)
+def send_verification_email(self, email: str, token: str):
+    """이메일 인증 메일 발송 (Celery task)"""
+    try:
+        from urllib.parse import quote
+        verify_link = f"{settings.FRONTEND_URL}/verify-email?token={quote(token, safe='')}"
+
+        if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+            logger.warning("SMTP not configured, skipping verification email for %s", email)
+            logger.info("Verification link (dev mode): %s", verify_link)
+            return
+
+        msg = MIMEMultipart("alternative")
+        msg["From"] = settings.SMTP_USER
+        msg["To"] = email
+        msg["Subject"] = "[AI Invoice] Verify Your Email"
+
+        text_body = (
+            f"Welcome to AI Invoice Automation!\n\n"
+            f"Please verify your email by clicking the link below:\n"
+            f"{verify_link}\n\n"
+            f"This link is valid for 24 hours.\n"
+            f"If you did not create this account, please ignore this email."
+        )
+
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">AI Invoice Automation</h1>
+            </div>
+            <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+                <h2 style="color: #333; margin-top: 0;">Verify Your Email</h2>
+                <p style="color: #666; line-height: 1.6;">Welcome! Please verify your email address to get started with AI Invoice Automation.</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{verify_link}" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Verify Email</a>
+                </div>
+                <p style="color: #999; font-size: 13px;">This link is valid for 24 hours.</p>
+                <p style="color: #999; font-size: 13px;">If you did not create this account, please ignore this email.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #bbb; font-size: 12px; text-align: center;">AI Invoice Automation System</p>
+            </div>
+        </div>
+        """
+
+        msg.attach(MIMEText(text_body, "plain", "utf-8"))
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.send_message(msg)
+
+        logger.info("Verification email sent to %s", email)
+
+    except smtplib.SMTPException as exc:
+        logger.error("SMTP error sending verification email to %s: %s", email, exc)
+        self.retry(exc=exc)
+    except Exception as exc:
+        logger.error("Failed to send verification email to %s: %s", email, exc)
+        self.retry(exc=exc)

@@ -14,6 +14,13 @@ interface InvoiceType {
   type_name: string;
 }
 
+interface ApproverUser {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+}
+
 interface ApprovalSetting {
   id: string;
   company_id: string;
@@ -21,7 +28,9 @@ interface ApprovalSetting {
   amount_threshold_min: number;
   amount_threshold_max: number | null;
   step: number;
-  step_approver_role: string;
+  step_approver_role: string | null;
+  approver_user_id: string | null;
+  approver_name: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -30,6 +39,7 @@ export default function ApprovalSettingsPage() {
   const user = useAuthStore((s) => s.user);
   const [settings, setSettings] = useState<ApprovalSetting[]>([]);
   const [invoiceTypes, setInvoiceTypes] = useState<InvoiceType[]>([]);
+  const [approverUsers, setApproverUsers] = useState<ApproverUser[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -39,7 +49,7 @@ export default function ApprovalSettingsPage() {
     amount_threshold_min: '0',
     amount_threshold_max: '',
     step: '1',
-    step_approver_role: 'APPROVER',
+    approver_user_id: '',
     is_active: true,
   });
   const [error, setError] = useState('');
@@ -66,9 +76,23 @@ export default function ApprovalSettingsPage() {
     }
   };
 
+  const fetchApproverUsers = async () => {
+    try {
+      const { data } = await api.get('/api/v1/users', { params: { limit: 100 } });
+      // APPROVER, COMPANY_ADMIN만 필터
+      const filtered = data.items.filter(
+        (u: ApproverUser) => ['APPROVER', 'COMPANY_ADMIN'].includes(u.role)
+      );
+      setApproverUsers(filtered);
+    } catch (err: unknown) {
+      console.error('Failed to fetch users', err);
+    }
+  };
+
   useEffect(() => {
     fetchSettings();
     fetchInvoiceTypes();
+    fetchApproverUsers();
   }, []);
 
   const resetForm = () => {
@@ -77,7 +101,7 @@ export default function ApprovalSettingsPage() {
       amount_threshold_min: '0',
       amount_threshold_max: '',
       step: '1',
-      step_approver_role: 'APPROVER',
+      approver_user_id: '',
       is_active: true,
     });
     setEditingId(null);
@@ -93,7 +117,7 @@ export default function ApprovalSettingsPage() {
         amount_threshold_min: parseFloat(form.amount_threshold_min) || 0,
         amount_threshold_max: form.amount_threshold_max ? parseFloat(form.amount_threshold_max) : null,
         step: parseInt(form.step) || 1,
-        step_approver_role: form.step_approver_role,
+        approver_user_id: form.approver_user_id || null,
         is_active: form.is_active,
       };
 
@@ -116,17 +140,32 @@ export default function ApprovalSettingsPage() {
   };
 
   const handleEdit = (s: ApprovalSetting) => {
-    setForm({
-      invoice_type_id: s.invoice_type_id || '',
-      amount_threshold_min: String(s.amount_threshold_min),
-      amount_threshold_max: s.amount_threshold_max !== null ? String(s.amount_threshold_max) : '',
-      step: String(s.step),
-      step_approver_role: s.step_approver_role,
-      is_active: s.is_active,
-    });
+    // 레거시 역할 기반 설정: approver_user_id 없이 step_approver_role만 있는 경우
+    if (!s.approver_user_id && s.step_approver_role) {
+      // 해당 역할의 첫 번째 사용자를 자동 선택
+      const matchingUser = approverUsers.find((u) => u.role === s.step_approver_role);
+      setForm({
+        invoice_type_id: s.invoice_type_id || '',
+        amount_threshold_min: String(s.amount_threshold_min),
+        amount_threshold_max: s.amount_threshold_max !== null ? String(s.amount_threshold_max) : '',
+        step: String(s.step),
+        approver_user_id: matchingUser?.id || '',
+        is_active: s.is_active,
+      });
+      setError(`This rule uses role-based assignment (${s.step_approver_role}). Please select a specific approver.`);
+    } else {
+      setForm({
+        invoice_type_id: s.invoice_type_id || '',
+        amount_threshold_min: String(s.amount_threshold_min),
+        amount_threshold_max: s.amount_threshold_max !== null ? String(s.amount_threshold_max) : '',
+        step: String(s.step),
+        approver_user_id: s.approver_user_id || '',
+        is_active: s.is_active,
+      });
+      setError('');
+    }
     setEditingId(s.id);
     setShowForm(true);
-    setError('');
   };
 
   const handleDelete = async (id: string) => {
@@ -147,6 +186,15 @@ export default function ApprovalSettingsPage() {
 
   const formatAmount = (v: number | null) =>
     v !== null ? `$${v.toLocaleString()}` : 'Unlimited';
+
+  const getApproverDisplay = (s: ApprovalSetting) => {
+    if (s.approver_name) return s.approver_name;
+    if (s.approver_user_id) {
+      const u = approverUsers.find((au) => au.id === s.approver_user_id);
+      return u ? u.full_name : s.approver_user_id.slice(0, 8);
+    }
+    return s.step_approver_role || '—';
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -217,14 +265,19 @@ export default function ApprovalSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="label">Approver Role *</label>
+                  <label className="label">Assigned Approver *</label>
                   <select
-                    value={form.step_approver_role}
-                    onChange={(e) => setForm({ ...form, step_approver_role: e.target.value })}
+                    value={form.approver_user_id}
+                    onChange={(e) => setForm({ ...form, approver_user_id: e.target.value })}
                     className="input w-full"
+                    required
                   >
-                    <option value="APPROVER">Approver</option>
-                    <option value="COMPANY_ADMIN">Company Admin</option>
+                    <option value="">Select approver...</option>
+                    {approverUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name} ({u.role})
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="flex items-end gap-4">
@@ -262,7 +315,7 @@ export default function ApprovalSettingsPage() {
                     <th className="table-th text-right">Min Amount</th>
                     <th className="table-th text-right">Max Amount</th>
                     <th className="table-th text-center">Step</th>
-                    <th className="table-th text-left">Role</th>
+                    <th className="table-th text-left">Assigned To</th>
                     <th className="table-th text-center">Status</th>
                     <th className="table-th text-center">Actions</th>
                   </tr>
@@ -279,11 +332,8 @@ export default function ApprovalSettingsPage() {
                         </span>
                       </td>
                       <td className="table-td">
-                        <span className={s.step_approver_role === 'COMPANY_ADMIN'
-                            ? 'badge-purple'
-                            : 'badge-orange'
-                        }>
-                          {s.step_approver_role}
+                        <span className="badge-orange">
+                          {getApproverDisplay(s)}
                         </span>
                       </td>
                       <td className="table-td text-center">

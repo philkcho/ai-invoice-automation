@@ -34,6 +34,7 @@ export default function UserEditPage() {
     company_id: '',
     is_active: true,
     notification_email: true,
+    approval_level: '0',
   });
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function UserEditPage() {
         company_id: user.company_id || '',
         is_active: user.is_active,
         notification_email: user.notification_email,
+        approval_level: String(user.approval_level ?? 0),
       });
     }
   }, [user]);
@@ -70,6 +72,7 @@ export default function UserEditPage() {
         role: form.role,
         is_active: form.is_active,
         notification_email: form.notification_email,
+        approval_level: parseInt(form.approval_level) || 0,
       };
       // SUPER_ADMIN만 회사 변경 가능
       if (currentUser?.role === 'SUPER_ADMIN') {
@@ -147,6 +150,18 @@ export default function UserEditPage() {
                       {availableRoles.map(r => (
                         <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>
                       ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Approval Level</label>
+                    <select name="approval_level" value={form.approval_level} onChange={handleChange}
+                      className="input w-full">
+                      <option value="0">0 - None</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
                     </select>
                   </div>
                   {form.role !== 'SUPER_ADMIN' && currentUser?.role === 'SUPER_ADMIN' && (

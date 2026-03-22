@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     # Open Exchange Rates
     OPEN_EXCHANGE_RATES_APP_ID: Optional[str] = None
 
+    # Stripe
+    STRIPE_SECRET_KEY: Optional[str] = None
+    STRIPE_PUBLISHABLE_KEY: Optional[str] = None
+    STRIPE_WEBHOOK_SECRET: Optional[str] = None
+
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000"  # 콤마 구분 다중 도메인
 

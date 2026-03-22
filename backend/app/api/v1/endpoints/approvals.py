@@ -29,16 +29,19 @@ async def list_approvals(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_approver_up),
 ):
-    """승인 목록 조회 (내 역할에 해당하는 항목)"""
+    """승인 목록 조회 (내 역할/사용자에 해당하는 항목)"""
     company_id = None if current_user["role"] == ROLE_SUPER_ADMIN else current_user["company_id"]
 
-    # APPROVER는 자기 역할 필터링, COMPANY_ADMIN/SUPER_ADMIN은 전체
+    # APPROVER/ACCOUNTANT: 자기에게 지정된 건만 표시
+    # COMPANY_ADMIN/SUPER_ADMIN: 전체
+    approver_user_id = None
     approver_role = None
     if current_user["role"] == "APPROVER":
-        approver_role = "APPROVER"
+        approver_user_id = current_user["user_id"]
+        approver_role = current_user["role"]
 
     items, total = await approval_service.list_pending_approvals(
-        db, company_id, approver_role, status_filter, skip, limit
+        db, company_id, approver_user_id, approver_role, status_filter, skip, limit
     )
     return ApprovalListResponse(items=items, total=total)
 

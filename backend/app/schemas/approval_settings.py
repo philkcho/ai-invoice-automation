@@ -12,7 +12,8 @@ class ApprovalSettingCreate(BaseModel):
     amount_threshold_min: float = Field(0, ge=0)
     amount_threshold_max: Optional[float] = Field(None, ge=0)
     step: int = Field(..., ge=1)
-    step_approver_role: str = Field(..., pattern=r"^(APPROVER|COMPANY_ADMIN)$")
+    step_approver_role: Optional[str] = Field(None, pattern=r"^(APPROVER|COMPANY_ADMIN)$")
+    approver_user_id: Optional[UUID] = None
     is_active: bool = True
 
 
@@ -22,6 +23,7 @@ class ApprovalSettingUpdate(BaseModel):
     amount_threshold_max: Optional[float] = Field(None, ge=0)
     step: Optional[int] = Field(None, ge=1)
     step_approver_role: Optional[str] = Field(None, pattern=r"^(APPROVER|COMPANY_ADMIN)$")
+    approver_user_id: Optional[UUID] = None
     is_active: Optional[bool] = None
 
 
@@ -35,7 +37,9 @@ class ApprovalSettingResponse(BaseModel):
     amount_threshold_min: float
     amount_threshold_max: Optional[float]
     step: int
-    step_approver_role: str
+    step_approver_role: Optional[str]
+    approver_user_id: Optional[UUID] = None
+    approver_name: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime

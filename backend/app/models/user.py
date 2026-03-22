@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Enum as SAEnum, func
+from sqlalchemy import String, Boolean, Integer, DateTime, ForeignKey, Enum as SAEnum, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -40,9 +40,17 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="true"
     )
+    email_verified: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false",
+        comment="이메일 인증 완료 여부",
+    )
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     notification_email: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="true", comment="이메일 알림 수신 여부"
+    )
+    approval_level: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0",
+        comment="조직 레벨 (0=없음, 1-5=승인 레벨)",
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

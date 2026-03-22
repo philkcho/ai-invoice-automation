@@ -3,14 +3,16 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/auth';
+import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/error';
+import type { MessageResponse } from '@/types';
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter();
-  const login = useAuthStore((s) => s.login);
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,8 +22,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login({ email, password });
-      router.push('/');
+      await api.post<MessageResponse>('/api/v1/auth/register', {
+        email,
+        password,
+        full_name: fullName,
+        company_name: companyName,
+      });
+      // 가입 성공 → 이메일 인증 안내 페이지로 이동
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
@@ -41,16 +49,16 @@ export default function LoginPage() {
         <span className="text-primary-700 font-bold text-lg">AI Invoice</span>
       </Link>
 
-      {/* Subtle background pattern */}
+      {/* Background pattern */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-0 left-0 w-96 h-96 bg-primary-200 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary-100 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
         <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-primary-50 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2" />
       </div>
 
-      {/* Login card */}
+      {/* Signup card */}
       <div className="card w-full max-w-md p-8 relative z-10 animate-slide-up">
-        {/* Logo / Icon */}
+        {/* Logo */}
         <div className="flex justify-center mb-6">
           <Link href="/landing" className="cursor-pointer hover:scale-110 transition-transform">
             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-200">
@@ -73,19 +81,34 @@ export default function LoginPage() {
 
         {/* Title */}
         <h1 className="text-2xl font-bold text-center mb-1 bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
-          AI Invoice Automation
+          Create Your Account
         </h1>
         <p className="text-center text-surface-400 mb-8 text-sm">
-          Sign in to your account
+          Start automating your invoice processing
         </p>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="alert-error">
               {error}
             </div>
           )}
+
+          <div>
+            <label htmlFor="fullName" className="label">
+              Full Name
+            </label>
+            <input
+              id="fullName"
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="input w-full"
+              placeholder="John Doe"
+            />
+          </div>
 
           <div>
             <label htmlFor="email" className="label">
@@ -110,33 +133,43 @@ export default function LoginPage() {
               id="password"
               type="password"
               required
+              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input w-full"
-              placeholder="Enter your password"
+              placeholder="Min 8 chars, uppercase, lowercase, digit, symbol"
             />
           </div>
 
-          <div className="flex justify-end">
-            <Link href="/forgot-password" className="text-sm text-primary-600 hover:underline">
-              Forgot password?
-            </Link>
+          <div>
+            <label htmlFor="companyName" className="label">
+              Company Name
+            </label>
+            <input
+              id="companyName"
+              type="text"
+              required
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="input w-full"
+              placeholder="Acme Corp"
+            />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full"
+            className="btn-primary w-full mt-2"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Creating account...' : 'Sign Up'}
           </button>
         </form>
 
-        {/* Sign up link */}
+        {/* Footer link */}
         <p className="text-center text-sm text-surface-400 mt-6">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-primary-600 hover:underline font-medium">
-            Sign up
+          Already have an account?{' '}
+          <Link href="/login" className="text-primary-600 hover:underline font-medium">
+            Sign in
           </Link>
         </p>
       </div>

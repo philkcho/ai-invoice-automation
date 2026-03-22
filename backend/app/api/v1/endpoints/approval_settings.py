@@ -26,7 +26,8 @@ async def create_approval_setting(
     if current_user["role"] != ROLE_SUPER_ADMIN:
         if data.company_id != current_user["company_id"]:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    return await approval_settings_service.create_setting(db, data)
+    created = await approval_settings_service.create_setting(db, data)
+    return ApprovalSettingResponse.model_validate(created)
 
 
 @router.get("", response_model=ApprovalSettingListResponse)
@@ -43,7 +44,8 @@ async def list_approval_settings(
     items, total = await approval_settings_service.list_settings(
         db, company_id, invoice_type_id, is_active, skip, limit
     )
-    return ApprovalSettingListResponse(items=items, total=total)
+    response_items = [ApprovalSettingResponse.model_validate(s) for s in items]
+    return ApprovalSettingListResponse(items=response_items, total=total)
 
 
 @router.get("/{setting_id}", response_model=ApprovalSettingResponse)
@@ -55,7 +57,7 @@ async def get_approval_setting(
     """승인 설정 상세 조회"""
     setting = await approval_settings_service.get_setting(db, setting_id)
     verify_company_access(current_user, setting.company_id)
-    return setting
+    return ApprovalSettingResponse.model_validate(setting)
 
 
 @router.patch("/{setting_id}", response_model=ApprovalSettingResponse)
@@ -68,7 +70,8 @@ async def update_approval_setting(
     """승인 설정 수정"""
     setting = await approval_settings_service.get_setting(db, setting_id)
     verify_company_modify(current_user, setting.company_id)
-    return await approval_settings_service.update_setting(db, setting_id, data)
+    updated = await approval_settings_service.update_setting(db, setting_id, data)
+    return ApprovalSettingResponse.model_validate(updated)
 
 
 @router.delete("/{setting_id}", status_code=204)

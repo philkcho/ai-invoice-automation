@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.middleware import CompanyContextMiddleware, RateLimiterMiddleware, AuditMiddleware
+from app.middleware import CompanyContextMiddleware, RateLimiterMiddleware, AuditMiddleware, UsageLimiterMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +134,7 @@ app.add_middleware(
 
 # ── 미들웨어 등록 (실행 순서: 아래에서 위로) ──────────
 app.add_middleware(AuditMiddleware)
+app.add_middleware(UsageLimiterMiddleware)
 # Redis 클라이언트는 lifespan에서 초기화 후 주입
 # RateLimiterMiddleware는 __init__ 시점에 redis=None으로 등록되지만,
 # dispatch에서 app.state.redis를 참조하도록 개선
@@ -148,7 +149,7 @@ from app.api.v1.endpoints import (
     approval_settings, approvals, payments,
     email_configurations, dashboard, reports,
     company_type_settings, recurring_amounts, linkage_details,
-    company_policies, chat,
+    company_policies, chat, billing,
 )
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(companies.router, prefix="/api/v1/companies", tags=["Companies"])
@@ -174,6 +175,7 @@ app.include_router(recurring_amounts.router, prefix="/api/v1/recurring-amounts",
 app.include_router(linkage_details.router, prefix="/api/v1/linkage-details", tags=["Linkage Details"])
 app.include_router(company_policies.router, prefix="/api/v1/company-policies", tags=["Company Policies"])
 app.include_router(chat.router, prefix="/api/v1/chat", tags=["Chat"])
+app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
 
 
 # ── 헬스 체크 ─────────────────────────────────────────

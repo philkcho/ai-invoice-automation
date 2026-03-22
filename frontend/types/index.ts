@@ -4,6 +4,13 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  full_name: string;
+  company_name: string;
+}
+
 export interface TokenResponse {
   access_token: string;
   refresh_token: string;
@@ -13,6 +20,10 @@ export interface TokenResponse {
 export interface AccessTokenResponse {
   access_token: string;
   token_type: string;
+}
+
+export interface MessageResponse {
+  message: string;
 }
 
 // ── User ─────────────────────────────────────────────
@@ -31,8 +42,10 @@ export interface User {
   full_name: string;
   role: UserRole;
   is_active: boolean;
+  email_verified: boolean;
   last_login: string | null;
   notification_email: boolean;
+  approval_level: number;
   created_at: string;
   updated_at: string;
 }
@@ -181,4 +194,54 @@ export interface InvoiceListItem {
 export interface InvoiceListResponse {
   items: InvoiceListItem[];
   total: number;
+}
+
+// ── Billing / Subscription ─────────────────────────
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  display_name: string;
+  monthly_price: number;
+  max_invoices_per_month: number;
+  max_users: number;
+  max_ocr_per_month: number;
+  features: string | null;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface Subscription {
+  id: string;
+  company_id: string;
+  plan_id: string;
+  plan: SubscriptionPlan | null;
+  status: string;
+  stripe_customer_id: string | null;
+  trial_ends_at: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UsageInfo {
+  year_month: string;
+  invoice_count: number;
+  ocr_count: number;
+  user_count: number;
+  max_invoices: number;
+  max_ocr: number;
+  max_users: number;
+}
+
+export interface BillingSummary {
+  subscription: Subscription | null;
+  usage: UsageInfo | null;
+  stripe_publishable_key: string | null;
+}
+
+export interface CheckoutSessionResponse {
+  checkout_url: string;
+  session_id: string;
 }

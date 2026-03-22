@@ -38,6 +38,7 @@ class ApprovalResponse(BaseModel):
 
 class ApprovalDetailResponse(ApprovalResponse):
     """승인 상세 (인보이스 요약 포함)"""
+    approver_name: Optional[str] = None
     invoice_number: Optional[str] = None
     vendor_name: Optional[str] = None
     amount_total: Optional[float] = None

@@ -16,6 +16,7 @@ interface ApprovalItem {
   step: number;
   approver_role: string;
   approver_id: string | null;
+  approver_name: string | null;
   status: string;
   action_at: string | null;
   comments: string | null;
@@ -117,7 +118,7 @@ export default function ApprovalsPage() {
                     <th className="table-th text-left">Vendor</th>
                     <th className="table-th text-right">Amount</th>
                     <th className="table-th text-center">Step</th>
-                    <th className="table-th text-left">Role</th>
+                    <th className="table-th text-left">Assigned To</th>
                     <th className="table-th text-center">Round</th>
                     <th className="table-th text-center">Status</th>
                     <th className="table-th text-left">Date</th>
@@ -142,12 +143,8 @@ export default function ApprovalsPage() {
                         </span>
                       </td>
                       <td className="table-td">
-                        <span className={
-                          a.approver_role === 'COMPANY_ADMIN'
-                            ? 'badge-purple'
-                            : 'badge-orange'
-                        }>
-                          {a.approver_role}
+                        <span className="badge-orange">
+                          {a.approver_name || a.approver_role}
                         </span>
                       </td>
                       <td className="table-td text-center text-xs text-gray-500">#{a.submission_round}</td>

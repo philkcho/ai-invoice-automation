@@ -125,6 +125,7 @@ export default function UsersPage() {
                     <th className="table-th text-left">Name</th>
                     <th className="table-th text-left">Email</th>
                     <th className="table-th text-left">Role</th>
+                    <th className="table-th text-center">Level</th>
                     <th className="table-th text-left">Company</th>
                     <th className="table-th text-left">Status</th>
                     <th className="table-th text-left">Last Login</th>
@@ -140,6 +141,13 @@ export default function UsersPage() {
                         <span className={ROLE_COLORS[u.role] || ''}>
                           {u.role}
                         </span>
+                      </td>
+                      <td className="table-td text-center">
+                        {u.approval_level > 0 ? (
+                          <span className="badge-blue">Lv.{u.approval_level}</span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
                       </td>
                       <td className="table-td text-gray-600">
                         {u.company_name || '-'}

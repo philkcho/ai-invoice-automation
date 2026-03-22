@@ -6,20 +6,76 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
 from app.models.approval_setting import ApprovalSetting
+from app.models.user import User
 from app.schemas.approval_settings import ApprovalSettingCreate, ApprovalSettingUpdate
+
+
+async def _validate_approver_user(
+    db: AsyncSession, approver_user_id: UUID, company_id: UUID,
+) -> User:
+    """지정 승인자 검증: 존재/활성/같은 회사/역할 확인"""
+    result = await db.execute(
+        select(User).where(User.id == approver_user_id)
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Approver user not found",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Approver user is not active",
+        )
+    if user.company_id != company_id and user.role != "SUPER_ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Approver must belong to the same company",
+        )
+    if user.role not in ("APPROVER", "COMPANY_ADMIN", "SUPER_ADMIN"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Approver must have APPROVER or ADMIN role",
+        )
+    return user
+
+
+def _derive_role(user: User) -> str:
+    """사용자 역할에서 approver_role_type 파생"""
+    if user.role in ("COMPANY_ADMIN", "SUPER_ADMIN"):
+        return "COMPANY_ADMIN"
+    return "APPROVER"
 
 
 async def create_setting(
     db: AsyncSession, data: ApprovalSettingCreate
 ) -> ApprovalSetting:
     """승인 설정 생성"""
+    step_approver_role = data.step_approver_role
+    approver_user_id = data.approver_user_id
+
+    # approver_user_id가 지정된 경우 검증 및 역할 자동 파생
+    if approver_user_id:
+        user = await _validate_approver_user(db, approver_user_id, data.company_id)
+        if not step_approver_role:
+            step_approver_role = _derive_role(user)
+
+    # 둘 다 없으면 에러
+    if not step_approver_role and not approver_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Either approver_user_id or step_approver_role is required",
+        )
+
     setting = ApprovalSetting(
         company_id=data.company_id,
         invoice_type_id=data.invoice_type_id,
         amount_threshold_min=data.amount_threshold_min,
         amount_threshold_max=data.amount_threshold_max,
         step=data.step,
-        step_approver_role=data.step_approver_role,
+        step_approver_role=step_approver_role,
+        approver_user_id=approver_user_id,
         is_active=data.is_active,
     )
     db.add(setting)
@@ -78,8 +134,26 @@ async def update_setting(
     db: AsyncSession, setting_id: UUID, data: ApprovalSettingUpdate
 ) -> ApprovalSetting:
     setting = await get_setting(db, setting_id)
-    for field, value in data.model_dump(exclude_unset=True).items():
+    update_data = data.model_dump(exclude_unset=True)
+
+    # approver_user_id 변경 시 검증 및 역할 자동 파생
+    if "approver_user_id" in update_data and update_data["approver_user_id"]:
+        user = await _validate_approver_user(
+            db, update_data["approver_user_id"], setting.company_id
+        )
+        if "step_approver_role" not in update_data or not update_data.get("step_approver_role"):
+            update_data["step_approver_role"] = _derive_role(user)
+
+    for field, value in update_data.items():
         setattr(setting, field, value)
+
+    # 양쪽 다 NULL이면 아무도 승인 불가 → 에러
+    if not setting.approver_user_id and not setting.step_approver_role:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Either approver_user_id or step_approver_role is required",
+        )
+
     await db.flush()
     await db.refresh(setting)
     return setting

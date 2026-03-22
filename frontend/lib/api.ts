@@ -14,6 +14,7 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,  // HttpOnly 쿠키 자동 전송
+  timeout: 10000,  // 10초 타임아웃
 });
 
 // 토큰 갱신 전용 인스턴스 (인터셉터 미적용 → 무한 루프 방지)
@@ -21,6 +22,7 @@ const refreshClient = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,  // 쿠키로 refresh token 전송
+  timeout: 10000,
 });
 
 // 요청 인터셉터: access token 자동 첨부
@@ -44,7 +46,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && retryCount < MAX_RETRY) {
       // 인증 관련 엔드포인트는 refresh 시도 없이 에러 전파
       const requestUrl = originalRequest.url || '';
-      const skipRefreshPaths = ['/auth/login', '/auth/forgot-password', '/auth/reset-password'];
+      const skipRefreshPaths = ['/auth/login', '/auth/register', '/auth/verify-email', '/auth/forgot-password', '/auth/reset-password'];
       if (skipRefreshPaths.some(p => requestUrl.includes(p))) {
         return Promise.reject(error);
       }
@@ -66,7 +68,7 @@ api.interceptors.response.use(
         }
         tokenStore.clear();
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.location.href = '/landing';
         }
       }
     }

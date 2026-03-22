@@ -30,6 +30,7 @@ class UserCreate(BaseModel):
     role: str = Field(..., pattern=r"^(SUPER_ADMIN|COMPANY_ADMIN|ACCOUNTANT|APPROVER|VIEWER)$")
     password: str = Field(..., min_length=8, max_length=128)
     notification_email: bool = True
+    approval_level: int = Field(0, ge=0, le=5)
 
     @field_validator("password")
     @classmethod
@@ -42,6 +43,7 @@ class UserUpdate(BaseModel):
     role: Optional[str] = Field(None, pattern=r"^(SUPER_ADMIN|COMPANY_ADMIN|ACCOUNTANT|APPROVER|VIEWER)$")
     is_active: Optional[bool] = None
     notification_email: Optional[bool] = None
+    approval_level: Optional[int] = Field(None, ge=0, le=5)
     company_id: Optional[UUID] = Field(None, description="Super Admin만 변경 가능 (회사 간 이동)")
 
 
@@ -66,8 +68,10 @@ class UserResponse(BaseModel):
     full_name: str
     role: str
     is_active: bool
+    email_verified: bool = False
     last_login: Optional[datetime]
     notification_email: bool
+    approval_level: int = 0
     created_at: datetime
     updated_at: datetime
 

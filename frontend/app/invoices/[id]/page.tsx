@@ -280,7 +280,7 @@ export default function InvoiceDetailPage() {
                       className="btn-secondary disabled:opacity-50">
                       {validating ? 'Validating...' : 'Run Validation'}
                     </button>
-                    {invoice.status === 'OCR_REVIEW' ? (
+                    {['RECEIVED', 'OCR_REVIEW'].includes(invoice.status) ? (
                       <button onClick={handleConfirm} disabled={confirming}
                         className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50">
                         {confirming ? 'Confirming...' : 'Confirm'}

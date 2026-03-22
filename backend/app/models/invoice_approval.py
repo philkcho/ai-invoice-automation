@@ -64,7 +64,7 @@ class InvoiceApproval(Base):
     # Relationships
     company = relationship("Company", lazy="selectin")
     invoice = relationship("Invoice", lazy="selectin")
-    approver = relationship("User", lazy="selectin")
+    approver = relationship("User", lazy="selectin", foreign_keys=[approver_id])
 
     __table_args__ = (
         Index("ix_invoice_approvals_lookup", "invoice_id", "submission_round"),

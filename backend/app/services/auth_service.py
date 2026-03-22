@@ -76,6 +76,176 @@ async def _clear_login_attempts(email: str) -> None:
         logger.warning("Login attempts clear failed: %s", e)
 
 
+async def register(
+    db: AsyncSession, email: str, password: str, full_name: str, company_name: str
+) -> User:
+    """셀프서비스 가입: 회사 자동 생성 + 사용자를 COMPANY_ADMIN으로 등록 + 이메일 인증 토큰 발송"""
+    from app.models.company import Company
+    import re
+
+    # 이메일 중복 확인
+    existing = await db.execute(select(User).where(User.email == email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email is already registered",
+        )
+
+    # company_code 자동 생성 (회사명에서 영문/숫자만 추출 + UUID 일부)
+    import uuid as _uuid
+    code_base = re.sub(r"[^a-zA-Z0-9]", "", company_name)[:10].upper()
+    if not code_base:
+        code_base = "COMP"
+    company_code = f"{code_base}-{str(_uuid.uuid4())[:4].upper()}"
+
+    # 회사 생성
+    company = Company(
+        company_code=company_code,
+        company_name=company_name,
+        contact_email=email,
+        contact_name=full_name,
+    )
+    db.add(company)
+    await db.flush()
+
+    # 사용자 생성 (COMPANY_ADMIN, email_verified=False)
+    user = User(
+        company_id=company.id,
+        email=email,
+        full_name=full_name,
+        role="COMPANY_ADMIN",
+        password_hash=hash_password(password),
+        email_verified=False,
+    )
+    db.add(user)
+    await db.flush()
+    await db.refresh(user)
+
+    # Free Trial 구독 자동 생성
+    try:
+        from app.services.billing_service import create_trial_subscription
+        await create_trial_subscription(db, company.id)
+    except Exception as e:
+        logger.warning("Failed to create trial subscription: %s", e)
+
+    # 이메일 인증 토큰 생성 및 발송
+    await _send_verification_token(email)
+
+    await db.commit()
+
+    logger.info("New user registered: %s (company: %s)", email, company_name)
+    return user
+
+
+async def _send_verification_token(email: str) -> None:
+    """이메일 인증 토큰 생성 → Redis 저장 → Celery 이메일 발송"""
+    from jose import jwt
+    from datetime import timedelta
+
+    expire = datetime.now(timezone.utc) + timedelta(hours=24)
+    token = jwt.encode(
+        {"sub": email, "type": "email_verification", "exp": expire},
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM,
+    )
+
+    # Redis에 저장 (24시간 유효)
+    redis = _get_redis()
+    if redis:
+        try:
+            await redis.setex(f"email_verify:{email}", 86400, token)
+        except Exception as e:
+            logger.warning("Redis email verification token store failed: %s", e)
+
+    # Celery 태스크로 이메일 발송
+    try:
+        from app.tasks.notification_tasks import send_verification_email
+        send_verification_email.delay(email, token)
+    except Exception as e:
+        logger.error("Failed to queue verification email: %s", e)
+
+
+async def verify_email(db: AsyncSession, token: str) -> None:
+    """이메일 인증 토큰 확인 → email_verified=True 설정"""
+    from jose import jwt, JWTError
+
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token",
+        )
+
+    if payload.get("type") != "email_verification":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid token type",
+        )
+
+    email = payload.get("sub")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token does not contain email information",
+        )
+
+    # Redis 토큰 일치 확인 (재사용 방지)
+    redis = _get_redis()
+    if redis:
+        try:
+            stored_token = await redis.get(f"email_verify:{email}")
+            if not stored_token or stored_token != token:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Token has already been used or is invalid",
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.warning("Redis email verification token check failed: %s", e)
+
+    # 사용자 조회 및 인증 상태 업데이트
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found",
+        )
+
+    if user.email_verified:
+        # 이미 인증됨 — 에러가 아니라 성공 응답
+        return
+
+    user.email_verified = True
+    await db.flush()
+
+    # Redis 키 삭제
+    if redis:
+        try:
+            await redis.delete(f"email_verify:{email}")
+        except Exception as e:
+            logger.warning("Redis email verification token delete failed: %s", e)
+
+    await db.commit()
+    logger.info("Email verified for %s", email)
+
+
+async def resend_verification(db: AsyncSession, email: str) -> None:
+    """이메일 인증 토큰 재발송"""
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+
+    if not user or user.email_verified:
+        return  # 보안상 존재 여부 노출하지 않음
+
+    await _send_verification_token(email)
+
+
 async def authenticate(db: AsyncSession, email: str, password: str) -> User:
     """이메일+비밀번호 인증 → User 반환"""
     # 로그인 시도 횟수 확인

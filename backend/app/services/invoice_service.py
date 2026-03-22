@@ -292,13 +292,13 @@ async def run_validation(db: AsyncSession, invoice_id: UUID) -> dict:
 
 
 async def confirm_invoice(db: AsyncSession, invoice_id: UUID) -> Invoice:
-    """OCR 검토 완료 후 확정 (OCR_REVIEW → PENDING)"""
+    """인보이스 확정 (RECEIVED/OCR_REVIEW → PENDING)"""
     invoice = await get_invoice(db, invoice_id)
 
-    if invoice.status != "OCR_REVIEW":
+    if invoice.status not in ("OCR_REVIEW", "RECEIVED"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot confirm invoice with status '{invoice.status}'. Only OCR_REVIEW invoices can be confirmed.",
+            detail=f"Cannot confirm invoice with status '{invoice.status}'. Only RECEIVED or OCR_REVIEW invoices can be confirmed.",
         )
 
     invoice.status = "PENDING"

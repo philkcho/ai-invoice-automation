@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.schemas.auth import (
+    RegisterRequest,
+    VerifyEmailRequest,
     LoginRequest,
     TokenResponse,
     RefreshRequest,
@@ -18,6 +20,42 @@ from app.services import auth_service
 router = APIRouter()
 
 REFRESH_COOKIE_KEY = "refresh_token"
+
+
+@router.post("/register", response_model=MessageResponse, status_code=201)
+async def register(
+    data: RegisterRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """셀프서비스 회원가입 — 회사 자동 생성 + COMPANY_ADMIN 설정 + 이메일 인증 토큰 발송"""
+    await auth_service.register(
+        db,
+        email=data.email,
+        password=data.password,
+        full_name=data.full_name,
+        company_name=data.company_name,
+    )
+    return {"message": "Registration successful. Please check your email to verify your account."}
+
+
+@router.post("/verify-email", response_model=MessageResponse)
+async def verify_email(
+    data: VerifyEmailRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """이메일 인증 확인"""
+    await auth_service.verify_email(db, data.token)
+    return {"message": "Email verified successfully. You can now sign in."}
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+async def resend_verification(
+    data: ForgotPasswordRequest,  # email만 필요하므로 기존 스키마 재사용
+    db: AsyncSession = Depends(get_db),
+):
+    """이메일 인증 토큰 재발송"""
+    await auth_service.resend_verification(db, data.email)
+    return {"message": "If the email is registered and not verified, a new verification link will be sent."}
 
 
 def _set_refresh_cookie(response: Response, token: str) -> None:

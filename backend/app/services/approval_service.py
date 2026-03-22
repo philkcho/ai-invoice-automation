@@ -3,12 +3,13 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func, update, cast, String
+from sqlalchemy import select, func, update, cast, String, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
 from app.models.invoice import Invoice
 from app.models.invoice_approval import InvoiceApproval
+from app.models.user import User
 from app.services.approval_settings_service import lookup_approval_steps
 from app.services import notification_service
 
@@ -18,6 +19,18 @@ logger = logging.getLogger(__name__)
 DEFAULT_APPROVER_ROLE = "COMPANY_ADMIN"
 
 
+async def _find_fallback_admin(db: AsyncSession, company_id: UUID) -> UUID | None:
+    """폴백: 회사의 활성 COMPANY_ADMIN 첫 사용자 ID 반환"""
+    result = await db.execute(
+        select(User.id).where(
+            User.company_id == company_id,
+            User.role == "COMPANY_ADMIN",
+            User.is_active.is_(True),
+        ).order_by(User.created_at.asc()).limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
 async def start_approval_workflow(
     db: AsyncSession, invoice: Invoice
 ) -> list[InvoiceApproval]:
@@ -25,19 +38,34 @@ async def start_approval_workflow(
 
     1. approval_settings 조회
     2. 매칭 없으면 기본 1단계 COMPANY_ADMIN
-    3. invoice_approvals 레코드 생성
-    4. 첫 번째 단계 역할에 알림 발송
+    3. invoice_approvals 레코드 생성 (approver_id 미리 지정)
+    4. 첫 번째 단계 승인자에게 알림 발송
     """
     steps = await lookup_approval_steps(
         db, invoice.company_id, invoice.invoice_type_id, float(invoice.amount_total)
     )
 
     if not steps:
-        # 기본 폴백: 1단계 COMPANY_ADMIN
-        step_configs = [{"step": 1, "role": DEFAULT_APPROVER_ROLE}]
+        # 기본 폴백: 1단계 COMPANY_ADMIN, 첫 COMPANY_ADMIN 사용자 지정
+        fallback_admin_id = await _find_fallback_admin(db, invoice.company_id)
+        if not fallback_admin_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No active COMPANY_ADMIN found. Configure approval settings first.",
+            )
+        step_configs = [{
+            "step": 1,
+            "role": DEFAULT_APPROVER_ROLE,
+            "approver_id": fallback_admin_id,
+        }]
     else:
         step_configs = [
-            {"step": s.step, "role": s.step_approver_role} for s in steps
+            {
+                "step": s.step,
+                "role": s.step_approver_role or DEFAULT_APPROVER_ROLE,
+                "approver_id": s.approver_user_id,
+            }
+            for s in steps
         ]
 
     approvals = []
@@ -48,6 +76,7 @@ async def start_approval_workflow(
             submission_round=invoice.submission_round,
             step=cfg["step"],
             approver_role=cfg["role"],
+            approver_id=cfg["approver_id"],
             status="PENDING",
         )
         db.add(approval)
@@ -59,18 +88,30 @@ async def start_approval_workflow(
     for a in approvals:
         await db.refresh(a)
 
-    # 첫 번째 단계 역할에게 알림
-    first_role = step_configs[0]["role"]
-    await notification_service.create_role_notifications(
-        db,
-        company_id=invoice.company_id,
-        role=first_role,
-        type="APPROVAL_REQUEST",
-        title=f"승인 요청: Invoice #{invoice.invoice_number or invoice.id}",
-        message=f"인보이스 금액 ${float(invoice.amount_total):,.2f} — 승인이 필요합니다.",
-        entity_type="invoice",
-        entity_id=invoice.id,
-    )
+    # 첫 번째 단계: 특정 사용자 지정 시 개인 알림, 아니면 역할 알림
+    first_cfg = step_configs[0]
+    if first_cfg["approver_id"]:
+        await notification_service.create_notification(
+            db,
+            company_id=invoice.company_id,
+            user_id=first_cfg["approver_id"],
+            type="APPROVAL_REQUEST",
+            title=f"Approval request: Invoice #{invoice.invoice_number or invoice.id}",
+            message=f"Invoice amount ${float(invoice.amount_total):,.2f} — your approval is required.",
+            entity_type="invoice",
+            entity_id=invoice.id,
+        )
+    else:
+        await notification_service.create_role_notifications(
+            db,
+            company_id=invoice.company_id,
+            role=first_cfg["role"],
+            type="APPROVAL_REQUEST",
+            title=f"Approval request: Invoice #{invoice.invoice_number or invoice.id}",
+            message=f"Invoice amount ${float(invoice.amount_total):,.2f} — approval is required.",
+            entity_type="invoice",
+            entity_id=invoice.id,
+        )
 
     logger.info(
         "Approval workflow started: invoice=%s round=%d steps=%d",
@@ -107,13 +148,23 @@ async def process_approval_action(
             detail=f"Approval already processed: {approval.status}",
         )
 
-    # 역할 검증: 해당 단계의 역할과 사용자 역할 일치 확인
+    # 권한 검증: 특정 사용자 지정된 경우 해당 사용자만, 아니면 역할 검증
     # SUPER_ADMIN은 모든 단계 처리 가능
-    if user_role != "SUPER_ADMIN" and user_role != approval.approver_role:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"This step requires role: {approval.approver_role}",
-        )
+    if user_role != "SUPER_ADMIN":
+        if approval.approver_id:
+            # 특정 사용자 지정: 해당 사용자만 처리 가능
+            if user_id != approval.approver_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="This step is assigned to a specific approver",
+                )
+        else:
+            # 역할 기반 폴백: 기존 로직
+            if user_role != approval.approver_role:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"This step requires role: {approval.approver_role}",
+                )
 
     # 인보이스 조회
     inv_result = await db.execute(
@@ -162,17 +213,29 @@ async def _handle_approved(
     next_step = result.scalar_one_or_none()
 
     if next_step:
-        # 다음 단계 승인자에게 알림
-        await notification_service.create_role_notifications(
-            db,
-            company_id=invoice.company_id,
-            role=next_step.approver_role,
-            type="APPROVAL_REQUEST",
-            title=f"승인 요청 (Step {next_step.step}): Invoice #{invoice.invoice_number or invoice.id}",
-            message=f"이전 단계 승인 완료. 다음 승인이 필요합니다.",
-            entity_type="invoice",
-            entity_id=invoice.id,
-        )
+        # 다음 단계: 특정 사용자 지정 시 개인 알림, 아니면 역할 알림
+        if next_step.approver_id:
+            await notification_service.create_notification(
+                db,
+                company_id=invoice.company_id,
+                user_id=next_step.approver_id,
+                type="APPROVAL_REQUEST",
+                title=f"Approval request (Step {next_step.step}): Invoice #{invoice.invoice_number or invoice.id}",
+                message=f"Previous step approved. Your approval is required.",
+                entity_type="invoice",
+                entity_id=invoice.id,
+            )
+        else:
+            await notification_service.create_role_notifications(
+                db,
+                company_id=invoice.company_id,
+                role=next_step.approver_role,
+                type="APPROVAL_REQUEST",
+                title=f"Approval request (Step {next_step.step}): Invoice #{invoice.invoice_number or invoice.id}",
+                message=f"Previous step approved. Next approval is required.",
+                entity_type="invoice",
+                entity_id=invoice.id,
+            )
     else:
         # 모든 단계 승인 완료 → APPROVED
         invoice.status = "APPROVED"
@@ -185,8 +248,8 @@ async def _handle_approved(
                 company_id=invoice.company_id,
                 user_id=invoice.created_by,
                 type="INVOICE_APPROVED",
-                title=f"인보이스 승인 완료: #{invoice.invoice_number or invoice.id}",
-                message=f"인보이스가 최종 승인되었습니다. 결제를 스케줄링할 수 있습니다.",
+                title=f"Invoice approved: #{invoice.invoice_number or invoice.id}",
+                message=f"Invoice has been fully approved. You can now schedule payment.",
                 entity_type="invoice",
                 entity_id=invoice.id,
             )
@@ -223,8 +286,8 @@ async def _handle_rejected(
             company_id=invoice.company_id,
             user_id=invoice.created_by,
             type="INVOICE_REJECTED",
-            title=f"인보이스 거절: #{invoice.invoice_number or invoice.id}",
-            message=f"사유: {rejection_reason or '(사유 없음)'}",
+            title=f"Invoice rejected: #{invoice.invoice_number or invoice.id}",
+            message=f"Reason: {rejection_reason or '(No reason provided)'}",
             entity_type="invoice",
             entity_id=invoice.id,
         )
@@ -275,12 +338,16 @@ async def resubmit_invoice(
 async def list_pending_approvals(
     db: AsyncSession,
     company_id: Optional[UUID] = None,
+    approver_user_id: Optional[UUID] = None,
     approver_role: Optional[str] = None,
     status_filter: Optional[str] = None,
     skip: int = 0,
     limit: int = 20,
 ) -> tuple[list[dict], int]:
-    """승인 대기/처리 목록 조회 (인보이스 요약 포함)"""
+    """승인 대기/처리 목록 조회 (인보이스 요약 포함)
+
+    approver_user_id가 지정되면: 해당 사용자에게 지정된 건 + 역할 기반 미지정 건
+    """
     query = (
         select(InvoiceApproval, Invoice)
         .join(Invoice, InvoiceApproval.invoice_id == Invoice.id)
@@ -295,7 +362,19 @@ async def list_pending_approvals(
         query = query.where(InvoiceApproval.company_id == company_id)
         count_query = count_query.where(InvoiceApproval.company_id == company_id)
 
-    if approver_role:
+    if approver_user_id:
+        # 사용자 지정 건 OR (approver_id가 NULL이고 역할 매칭)
+        if approver_role:
+            user_filter = or_(
+                InvoiceApproval.approver_id == approver_user_id,
+                (InvoiceApproval.approver_id.is_(None))
+                & (InvoiceApproval.approver_role.cast(String) == approver_role),
+            )
+        else:
+            user_filter = InvoiceApproval.approver_id == approver_user_id
+        query = query.where(user_filter)
+        count_query = count_query.where(user_filter)
+    elif approver_role:
         query = query.where(InvoiceApproval.approver_role.cast(String) == approver_role)
         count_query = count_query.where(InvoiceApproval.approver_role.cast(String) == approver_role)
 
@@ -311,6 +390,9 @@ async def list_pending_approvals(
     items = []
     for approval, invoice in result.all():
         vendor_name = invoice.vendor.company_name if invoice.vendor else None
+        approver_name = None
+        if approval.approver:
+            approver_name = approval.approver.full_name
         items.append({
             "id": approval.id,
             "company_id": approval.company_id,
@@ -319,6 +401,7 @@ async def list_pending_approvals(
             "step": approval.step,
             "approver_role": approval.approver_role,
             "approver_id": approval.approver_id,
+            "approver_name": approver_name,
             "status": approval.status,
             "action_at": approval.action_at,
             "comments": approval.comments,
