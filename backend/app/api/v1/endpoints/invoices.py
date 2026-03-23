@@ -131,6 +131,7 @@ async def list_invoices(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     vendor_id: Optional[UUID] = None,
+    invoice_type_id: Optional[UUID] = None,
     status: Optional[str] = None,
     search: Optional[str] = Query(None, max_length=255),
     db: AsyncSession = Depends(get_db),
@@ -139,7 +140,7 @@ async def list_invoices(
     """인보이스 목록 조회"""
     company_id = None if current_user["role"] == ROLE_SUPER_ADMIN else current_user["company_id"]
     items, total = await invoice_service.list_invoices(
-        db, skip, limit, company_id, vendor_id, status, search
+        db, skip, limit, company_id, vendor_id, status, search, invoice_type_id
     )
     return InvoiceListResponse(items=items, total=total)
 

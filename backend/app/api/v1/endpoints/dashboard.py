@@ -1,4 +1,6 @@
 """대시보드 API — KPI 통계, 트렌드, 차트 데이터"""
+from datetime import date
+from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -44,6 +46,8 @@ async def get_invoice_trend(
 
 @router.get("/spend-by-type")
 async def get_spend_by_type(
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_any),
 ):
@@ -51,12 +55,14 @@ async def get_spend_by_type(
     company_id = current_user.get("company_id")
     if not company_id:
         return []
-    return await dashboard_service.get_spend_by_type(db, company_id)
+    return await dashboard_service.get_spend_by_type(db, company_id, date_from, date_to)
 
 
 @router.get("/top-vendors")
 async def get_top_vendors(
     limit: int = Query(10, ge=1, le=50),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_any),
 ):
@@ -64,7 +70,7 @@ async def get_top_vendors(
     company_id = current_user.get("company_id")
     if not company_id:
         return []
-    return await dashboard_service.get_top_vendors(db, company_id, limit)
+    return await dashboard_service.get_top_vendors(db, company_id, limit, date_from, date_to)
 
 
 @router.get("/recent-activity")
@@ -106,3 +112,28 @@ async def get_action_items(
     return await dashboard_service.get_action_items(
         db, company_id, current_user["user_id"], limit
     )
+
+
+@router.get("/cashflow")
+async def get_cashflow_forecast(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any),
+):
+    """캐시플로우 예측 (due_date 구간별 미결제 금액)"""
+    company_id = current_user.get("company_id")
+    if not company_id:
+        return []
+    return await dashboard_service.get_cashflow_forecast(db, company_id)
+
+
+@router.get("/cashflow-detail")
+async def get_cashflow_detail(
+    bucket: str = Query(..., regex="^(overdue|this_week|next_week|this_month|next_month|later|no_due_date)$"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any),
+):
+    """캐시플로우 구간별 인보이스 상세 목록"""
+    company_id = current_user.get("company_id")
+    if not company_id:
+        return []
+    return await dashboard_service.get_cashflow_detail(db, company_id, bucket)

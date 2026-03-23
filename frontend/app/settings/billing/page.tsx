@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
@@ -37,6 +37,16 @@ function UsageBar({ label, current, max }: { label: string; current: number; max
 }
 
 export default function BillingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col"><Header /><div className="flex flex-1"><Sidebar /><main className="flex-1 bg-surface-50 p-8"><div className="text-center py-20 text-surface-400">Loading...</div></main></div></div>
+    }>
+      <BillingContent />
+    </Suspense>
+  );
+}
+
+function BillingContent() {
   const searchParams = useSearchParams();
   const addToast = useToastStore((s) => s.addToast);
 

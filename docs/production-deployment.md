@@ -235,7 +235,7 @@ Add A record in Hostinger DNS management:
 
 ### 7-1. Verify Checklist
 
-- [ ] `curl https://ai-invoice.chopaul.com/health` → `{"status": "healthy", "environment": "production", "checks": {"database": "connected", "redis": "connected"}}`
+- [ ] `curl https://ai-invoice.chopaul.com/health` → `{"status": "healthy", "checks": {"redis": "connected"}}` (상세 체크: `/health/detail`)
 - [ ] Browser → Landing page renders
 - [ ] Sign up → Login → Dashboard access
 - [ ] Invoice file upload → saved to `/app/media/`

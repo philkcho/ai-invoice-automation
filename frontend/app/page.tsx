@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth';
 import api from '@/lib/api';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
 } from 'recharts';
 
 /* ---------- Types ---------- */
@@ -58,6 +59,52 @@ interface KpiDetailItem {
 }
 
 type KpiCategory = 'this_month' | 'unpaid' | 'overdue' | 'paid_this_month';
+
+interface SpendByTypeItem { type_id: string; type_name: string; count: number; amount: number; }
+interface TopVendorItem { vendor_id: string; vendor_name: string; invoice_count: number; total_spend: number; }
+
+type PeriodPreset = 'this_month' | '3m' | '6m' | 'ytd' | 'all';
+
+const PERIOD_LABELS: Record<PeriodPreset, string> = {
+  this_month: 'This Month',
+  '3m': 'Last 3 Months',
+  '6m': 'Last 6 Months',
+  ytd: 'YTD',
+  all: 'All Time',
+};
+
+function getPeriodDates(preset: PeriodPreset): { date_from?: string; date_to?: string } {
+  const today = new Date();
+  const toStr = (d: Date) => d.toISOString().split('T')[0];
+  if (preset === 'all') return {};
+  if (preset === 'this_month') {
+    return { date_from: toStr(new Date(today.getFullYear(), today.getMonth(), 1)) };
+  }
+  if (preset === '3m') {
+    const d = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+    return { date_from: toStr(d) };
+  }
+  if (preset === '6m') {
+    const d = new Date(today.getFullYear(), today.getMonth() - 6, 1);
+    return { date_from: toStr(d) };
+  }
+  // ytd
+  return { date_from: toStr(new Date(today.getFullYear(), 0, 1)) };
+}
+
+const DONUT_COLORS = ['#4F46E5', '#06B6D4', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6'];
+
+interface CashFlowBucket { key: string; label: string; count: number; amount: number; }
+
+const CASHFLOW_COLORS: Record<string, string> = {
+  overdue: '#EF4444',
+  this_week: '#F97316',
+  next_week: '#EAB308',
+  this_month: '#3B82F6',
+  next_month: '#4F46E5',
+  later: '#9CA3AF',
+  no_due_date: '#D1D5DB',
+};
 
 /* ---------- Constants ---------- */
 
@@ -123,6 +170,13 @@ function fmtMonth(item: TrendItem) {
   return `${item.year}-${String(item.month).padStart(2, '0')}`;
 }
 
+function fmtCompact(n: number): string {
+  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n}`;
+}
+
 function calcMomChange(trend: TrendItem[]): number | null {
   if (trend.length < 2) return null;
   const prev = trend[trend.length - 2].amount;
@@ -155,6 +209,20 @@ export default function DashboardPage() {
   const [vendorMap, setVendorMap] = useState<Record<string, string>>({});
   const [typeMap, setTypeMap] = useState<Record<string, string>>({});
 
+  // Spend by Type + Top Vendors
+  const [period, setPeriod] = useState<PeriodPreset>('all');
+  const [spendByType, setSpendByType] = useState<SpendByTypeItem[]>([]);
+  const [topVendors, setTopVendors] = useState<TopVendorItem[]>([]);
+  const [chartsLoading, setChartsLoading] = useState(false);
+
+  // Chart detail modal (type / vendor click)
+  const [chartModalTitle, setChartModalTitle] = useState<string | null>(null);
+  const [chartModalData, setChartModalData] = useState<KpiDetailItem[]>([]);
+  const [chartModalLoading, setChartModalLoading] = useState(false);
+
+  // Cash Flow
+  const [cashflow, setCashflow] = useState<CashFlowBucket[]>([]);
+
   useEffect(() => {
     // Load vendor/type maps for pipeline popup
     api.get('/api/v1/vendors', { params: { limit: 200, status: 'ACTIVE' } })
@@ -177,13 +245,68 @@ export default function DashboardPage() {
         api.get('/api/v1/dashboard/summary'),
         api.get('/api/v1/dashboard/invoice-trend'),
         api.get('/api/v1/dashboard/action-items'),
+        api.get('/api/v1/dashboard/cashflow'),
       ]);
       if (results[0].status === 'fulfilled') setSummary(results[0].value.data);
       if (results[1].status === 'fulfilled') setTrend(results[1].value.data);
       if (results[2].status === 'fulfilled') setActionItems(results[2].value.data);
+      if (results[3].status === 'fulfilled') setCashflow(results[3].value.data);
       setLoading(false);
     };
     fetchAll();
+  }, []);
+
+  // Fetch charts (spend-by-type + top-vendors) on period change
+  const fetchCharts = useCallback(async (p: PeriodPreset) => {
+    setChartsLoading(true);
+    const params = getPeriodDates(p);
+    const [res1, res2] = await Promise.allSettled([
+      api.get('/api/v1/dashboard/spend-by-type', { params }),
+      api.get('/api/v1/dashboard/top-vendors', { params: { ...params, limit: 5 } }),
+    ]);
+    if (res1.status === 'fulfilled') setSpendByType(res1.value.data);
+    if (res2.status === 'fulfilled') setTopVendors(res2.value.data);
+    setChartsLoading(false);
+  }, []);
+
+  useEffect(() => { fetchCharts(period); }, [period, fetchCharts]);
+
+  const openChartDetail = useCallback(async (
+    title: string,
+    filter: { vendor_id?: string; invoice_type_id?: string },
+  ) => {
+    setChartModalTitle(title);
+    setChartModalLoading(true);
+    try {
+      const res = await api.get('/api/v1/invoices', { params: { ...filter, limit: 50 } });
+      setChartModalData(res.data.items.map((inv: Record<string, unknown>) => ({
+        id: inv.id as string,
+        invoice_number: inv.invoice_number as string | null,
+        vendor_name: (inv.vendor_name || vendorMap[inv.vendor_id as string]) as string | null,
+        amount_total: inv.amount_total as number,
+        invoice_type: (inv.invoice_type_name || typeMap[inv.invoice_type_id as string]) as string | null,
+        status: inv.status as string,
+        due_date: inv.due_date as string | null,
+        days_overdue: inv.due_date
+          ? Math.max(0, Math.floor((Date.now() - new Date(inv.due_date as string).getTime()) / 86400000))
+          : null,
+      })));
+    } catch {
+      setChartModalData([]);
+    }
+    setChartModalLoading(false);
+  }, [vendorMap, typeMap]);
+
+  const openCashflowDetail = useCallback(async (bucket: CashFlowBucket) => {
+    setChartModalTitle(`Cash Flow — ${bucket.label}`);
+    setChartModalLoading(true);
+    try {
+      const res = await api.get(`/api/v1/dashboard/cashflow-detail?bucket=${bucket.key}`);
+      setChartModalData(res.data);
+    } catch {
+      setChartModalData([]);
+    }
+    setChartModalLoading(false);
   }, []);
 
   const openKpiDetail = useCallback(async (category: KpiCategory) => {
@@ -279,18 +402,212 @@ export default function DashboardPage() {
                 />
               </div>
 
-              {/* Section 2: Invoice Pipeline */}
-              <div className="bg-white rounded-lg shadow-sm border p-5 mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-4">Invoice Processing Pipeline</h3>
-                <PipelineBar
-                  statusCounts={summary.status_counts}
-                  statusAmounts={summary.status_amounts || {}}
-                  onStepClick={openPipelineDetail}
-                />
+              {/* Section 2: Pipeline + Cash Flow */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Invoice Pipeline */}
+                <div className="bg-white rounded-lg shadow-sm border p-5">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-4">Invoice Processing Pipeline</h3>
+                  <PipelineBar
+                    statusCounts={summary.status_counts}
+                    statusAmounts={summary.status_amounts || {}}
+                    onStepClick={openPipelineDetail}
+                  />
+                </div>
+
+                {/* Cash Flow Forecast */}
+                <div className="bg-white rounded-lg shadow-sm border p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-700">Cash Flow Forecast</h3>
+                    <span className="text-xs font-medium text-gray-400">
+                      Total: {fmt(cashflow.reduce((s, b) => s + b.amount, 0))}
+                    </span>
+                  </div>
+                  {cashflow.filter(b => b.count > 0).length > 0 ? (
+                    <div>
+                      {/* Stacked bar */}
+                      {(() => {
+                        const total = cashflow.reduce((s, b) => s + b.amount, 0) || 1;
+                        const active = cashflow.filter(b => b.count > 0);
+                        return (
+                          <div className="flex h-8 rounded-lg overflow-hidden mb-4">
+                            {active.map((b) => (
+                              <button
+                                key={b.key}
+                                className="h-full hover:opacity-80 transition-opacity cursor-pointer relative group"
+                                style={{
+                                  width: `${Math.max((b.amount / total) * 100, 3)}%`,
+                                  background: CASHFLOW_COLORS[b.key] || '#9CA3AF',
+                                }}
+                                onClick={() => openCashflowDetail(b)}
+                                title={`${b.label}: ${fmt(b.amount)} (${b.count})`}
+                              />
+                            ))}
+                          </div>
+                        );
+                      })()}
+                      {/* Bucket list */}
+                      <div className="space-y-2">
+                        {cashflow.filter(b => b.count > 0).map((b) => (
+                          <button
+                            key={b.key}
+                            className="w-full flex items-center gap-3 text-left hover:bg-gray-50 rounded-lg px-2 py-1.5 transition cursor-pointer"
+                            onClick={() => openCashflowDetail(b)}
+                          >
+                            <span
+                              className="w-3 h-3 rounded-sm flex-shrink-0"
+                              style={{ background: CASHFLOW_COLORS[b.key] || '#9CA3AF' }}
+                            />
+                            <span className="text-sm text-gray-600 flex-1">{b.label}</span>
+                            <span className="text-xs text-gray-400">{b.count} inv.</span>
+                            <span className={`text-sm font-semibold ${b.key === 'overdue' ? 'text-red-600' : 'text-gray-900'}`}>
+                              {fmt(b.amount)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-40 flex items-center justify-center text-gray-400 text-sm">
+                      No upcoming payments
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Section 3 & 4: Trend + Action Items */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Section 3 & 4: Spend by Type + Top Vendors */}
+              <div className="mt-6">
+                {/* Period selector */}
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-xs font-medium text-gray-500 mr-1">Period:</span>
+                  {(Object.keys(PERIOD_LABELS) as PeriodPreset[]).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPeriod(p)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                        period === p
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {PERIOD_LABELS[p]}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Spend by Type — Donut */}
+                  <div className="bg-white rounded-lg shadow-sm border p-5">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-4">Spend by Invoice Type</h3>
+                    {chartsLoading ? (
+                      <div className="h-64 flex items-center justify-center text-gray-400 text-sm">Loading...</div>
+                    ) : spendByType.length > 0 ? (
+                      <div className="flex flex-col items-center">
+                        <div className="relative">
+                          <ResponsiveContainer width={260} height={260}>
+                            <PieChart>
+                              <Pie
+                                data={spendByType}
+                                dataKey="amount"
+                                nameKey="type_name"
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={70}
+                                outerRadius={110}
+                                paddingAngle={2}
+                                stroke="none"
+                                className="cursor-pointer"
+                                onClick={(_: unknown, idx: number) => {
+                                  const item = spendByType[idx];
+                                  if (item) openChartDetail(`${item.type_name} Invoices`, { invoice_type_id: item.type_id });
+                                }}
+                              >
+                                {spendByType.map((_, i) => (
+                                  <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(v: number) => fmt(v)} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          {/* Center total */}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="text-center">
+                              <p className="text-xs text-gray-400">Total</p>
+                              <p className="text-lg font-bold text-gray-900">
+                                {fmtCompact(spendByType.reduce((s, i) => s + i.amount, 0))}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Legend */}
+                        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 w-full">
+                          {spendByType.map((item, i) => {
+                            const total = spendByType.reduce((s, x) => s + x.amount, 0);
+                            const pct = total > 0 ? ((item.amount / total) * 100).toFixed(1) : '0';
+                            return (
+                              <button
+                                key={item.type_name}
+                                className="flex items-center gap-2 text-xs hover:bg-gray-50 rounded px-1 py-0.5 transition cursor-pointer"
+                                onClick={() => openChartDetail(`${item.type_name} Invoices`, { invoice_type_id: item.type_id })}
+                              >
+                                <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+                                <span className="text-gray-600 truncate flex-1 text-left">{item.type_name}</span>
+                                <span className="text-gray-400">{pct}%</span>
+                                <span className="font-medium text-gray-700">{fmt(item.amount)}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-64 flex items-center justify-center text-gray-400 text-sm">No data</div>
+                    )}
+                  </div>
+
+                  {/* Top Vendors — Horizontal Bar */}
+                  <div className="bg-white rounded-lg shadow-sm border p-5">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-4">Top Vendors by Spend</h3>
+                    {chartsLoading ? (
+                      <div className="h-64 flex items-center justify-center text-gray-400 text-sm">Loading...</div>
+                    ) : topVendors.length > 0 ? (
+                      <div className="space-y-3">
+                        {(() => {
+                          const maxSpend = Math.max(...topVendors.map(v => v.total_spend), 1);
+                          return topVendors.map((v, i) => (
+                            <button
+                              key={v.vendor_name}
+                              className="w-full text-left hover:bg-gray-50 rounded-lg p-2 -mx-2 transition cursor-pointer"
+                              onClick={() => openChartDetail(`${v.vendor_name} Invoices`, { vendor_id: v.vendor_id })}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm text-gray-700 truncate flex-1 mr-3">
+                                  <span className="text-xs text-gray-400 font-medium mr-1.5">{i + 1}.</span>
+                                  {v.vendor_name}
+                                </span>
+                                <span className="text-sm font-semibold text-gray-900 flex-shrink-0">{fmt(v.total_spend)}</span>
+                              </div>
+                              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{
+                                    width: `${(v.total_spend / maxSpend) * 100}%`,
+                                    background: DONUT_COLORS[i % DONUT_COLORS.length],
+                                  }}
+                                />
+                              </div>
+                              <p className="text-[11px] text-gray-400 mt-0.5">{v.invoice_count} invoice{v.invoice_count !== 1 ? 's' : ''}</p>
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="h-64 flex items-center justify-center text-gray-400 text-sm">No data</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 5 & 6: Trend + Action Items */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                 {/* Monthly Spend Trend */}
                 <div className="bg-white rounded-lg shadow-sm border p-5">
                   <div className="flex items-center justify-between mb-4">
@@ -308,7 +625,7 @@ export default function DashboardPage() {
                       <BarChart data={trend.map(t => ({ ...t, label: fmtMonth(t) }))}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                         <XAxis dataKey="label" fontSize={11} />
-                        <YAxis fontSize={11} />
+                        <YAxis fontSize={11} tickFormatter={fmtCompact} />
                         <Tooltip formatter={(v: number) => fmt(v)} />
                         <Bar dataKey="amount" fill="#4F46E5" radius={[4, 4, 0, 0]} />
                       </BarChart>
@@ -377,6 +694,17 @@ export default function DashboardPage() {
               loading={modalLoading}
               onClose={() => setModalCategory(null)}
               onRowClick={(id) => { setModalCategory(null); router.push(`/invoices/${id}`); }}
+            />
+          )}
+
+          {/* Chart Detail Modal (Type / Vendor click) */}
+          {chartModalTitle && (
+            <KpiDetailModal
+              title={chartModalTitle}
+              data={chartModalData}
+              loading={chartModalLoading}
+              onClose={() => setChartModalTitle(null)}
+              onRowClick={(id) => { setChartModalTitle(null); router.push(`/invoices/${id}`); }}
             />
           )}
         </main>

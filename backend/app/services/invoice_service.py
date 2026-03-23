@@ -160,6 +160,7 @@ async def list_invoices(
     db: AsyncSession, skip: int = 0, limit: int = 20,
     company_id: Optional[UUID] = None, vendor_id: Optional[UUID] = None,
     status_filter: Optional[str] = None, search: Optional[str] = None,
+    invoice_type_id: Optional[UUID] = None,
 ) -> tuple[list[Invoice], int]:
     query = select(Invoice)
     count_query = select(func.count()).select_from(Invoice)
@@ -171,6 +172,10 @@ async def list_invoices(
     if vendor_id:
         query = query.where(Invoice.vendor_id == vendor_id)
         count_query = count_query.where(Invoice.vendor_id == vendor_id)
+
+    if invoice_type_id:
+        query = query.where(Invoice.invoice_type_id == invoice_type_id)
+        count_query = count_query.where(Invoice.invoice_type_id == invoice_type_id)
 
     if status_filter:
         query = query.where(Invoice.status == status_filter)

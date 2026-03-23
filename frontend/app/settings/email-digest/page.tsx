@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
@@ -185,15 +187,26 @@ export default function EmailDigestPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex flex-1">
+          <Sidebar />
+          <main className="flex-1 bg-gray-50 p-6 flex items-center justify-center">
+            <div className="text-gray-500">Loading...</div>
+          </main>
+        </div>
       </div>
     );
   }
 
   return (
-    <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN']}>
-      <div className="p-8 max-w-4xl">
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex flex-1">
+        <Sidebar />
+        <main className="flex-1 bg-gray-50 p-6">
+          <RequireRole roles={['SUPER_ADMIN', 'COMPANY_ADMIN']}>
+            <div className="max-w-4xl">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Email Digest</h1>
         <p className="text-gray-500 mb-8">Receive periodic summaries of your invoice processing status via email.</p>
 
@@ -463,7 +476,10 @@ export default function EmailDigestPage() {
             </div>
           </div>
         )}
+            </div>
+          </RequireRole>
+        </main>
       </div>
-    </RequireRole>
+    </div>
   );
 }

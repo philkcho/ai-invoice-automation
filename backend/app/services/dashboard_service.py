@@ -1,6 +1,6 @@
 """대시보드 KPI 통계 서비스"""
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -164,46 +164,60 @@ async def get_invoice_trend(
 
 
 async def get_spend_by_type(
-    db: AsyncSession, company_id: UUID
+    db: AsyncSession, company_id: UUID,
+    date_from: Optional[date] = None, date_to: Optional[date] = None,
 ) -> list[dict]:
     """인보이스 타입별 지출 (파이 차트)"""
     from app.models.invoice_type import InvoiceType
 
-    result = await db.execute(
+    query = (
         select(
+            InvoiceType.id.label("type_id"),
             InvoiceType.type_name,
             func.count(Invoice.id).label("count"),
             func.coalesce(func.sum(Invoice.amount_total), 0).label("amount"),
         )
         .join(InvoiceType, Invoice.invoice_type_id == InvoiceType.id)
         .where(Invoice.company_id == company_id)
-        .group_by(InvoiceType.type_name)
-        .order_by(func.sum(Invoice.amount_total).desc())
     )
+    if date_from:
+        query = query.where(Invoice.created_at >= date_from)
+    if date_to:
+        query = query.where(Invoice.created_at <= date_to)
+    query = query.group_by(InvoiceType.id, InvoiceType.type_name).order_by(func.sum(Invoice.amount_total).desc())
+
+    result = await db.execute(query)
     return [
-        {"type_name": row.type_name, "count": row.count, "amount": float(row.amount)}
+        {"type_id": str(row.type_id), "type_name": row.type_name, "count": row.count, "amount": float(row.amount)}
         for row in result.all()
     ]
 
 
 async def get_top_vendors(
-    db: AsyncSession, company_id: UUID, limit: int = 10
+    db: AsyncSession, company_id: UUID, limit: int = 10,
+    date_from: Optional[date] = None, date_to: Optional[date] = None,
 ) -> list[dict]:
     """Top N 벤더별 지출"""
-    result = await db.execute(
+    query = (
         select(
+            Vendor.id.label("vendor_id"),
             Vendor.company_name.label("vendor_name"),
             func.count(Invoice.id).label("invoice_count"),
             func.coalesce(func.sum(Invoice.amount_total), 0).label("total_spend"),
         )
         .join(Vendor, Invoice.vendor_id == Vendor.id)
         .where(Invoice.company_id == company_id)
-        .group_by(Vendor.company_name)
-        .order_by(func.sum(Invoice.amount_total).desc())
-        .limit(limit)
     )
+    if date_from:
+        query = query.where(Invoice.created_at >= date_from)
+    if date_to:
+        query = query.where(Invoice.created_at <= date_to)
+    query = query.group_by(Vendor.id, Vendor.company_name).order_by(func.sum(Invoice.amount_total).desc()).limit(limit)
+
+    result = await db.execute(query)
     return [
         {
+            "vendor_id": str(row.vendor_id),
             "vendor_name": row.vendor_name,
             "invoice_count": row.invoice_count,
             "total_spend": float(row.total_spend),
@@ -492,6 +506,131 @@ async def get_kpi_detail(
         return []
 
     result = await db.execute(query.limit(50))
+    invoices = result.scalars().all()
+
+    return [
+        {
+            "id": str(inv.id),
+            "invoice_number": inv.invoice_number,
+            "vendor_name": inv.vendor.company_name if inv.vendor else None,
+            "amount_total": float(inv.amount_total),
+            "invoice_type": inv.invoice_type.type_name if inv.invoice_type else None,
+            "status": inv.status,
+            "due_date": inv.due_date.isoformat() if inv.due_date else None,
+            "days_overdue": (today - inv.due_date).days if inv.due_date and inv.due_date < today else None,
+        }
+        for inv in invoices
+    ]
+
+
+def _cashflow_buckets(today: date) -> list[dict]:
+    """캐시플로우 구간 날짜 범위 계산"""
+    # 이번 주 월~일
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+    next_week_start = week_end + timedelta(days=1)
+    next_week_end = next_week_start + timedelta(days=6)
+    # 이번 달 나머지 (next_week 이후 ~ 월말)
+    month_end = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+    # 다음 달
+    next_month_start = month_end + timedelta(days=1)
+    next_month_end = (next_month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+
+    return [
+        {"key": "overdue", "label": "Overdue", "start": None, "end": today - timedelta(days=1)},
+        {"key": "this_week", "label": "This Week", "start": today, "end": week_end},
+        {"key": "next_week", "label": "Next Week", "start": next_week_start, "end": next_week_end},
+        {"key": "this_month", "label": "This Month", "start": next_week_end + timedelta(days=1), "end": month_end},
+        {"key": "next_month", "label": "Next Month", "start": next_month_start, "end": next_month_end},
+        {"key": "later", "label": "Later", "start": next_month_end + timedelta(days=1), "end": None},
+    ]
+
+
+async def get_cashflow_forecast(
+    db: AsyncSession, company_id: UUID
+) -> list[dict]:
+    """미결제 인보이스 기반 캐시플로우 예측 (due_date 구간별)"""
+    today = date.today()
+    buckets = _cashflow_buckets(today)
+
+    # 미결제 인보이스 (PAID, VOID 제외)
+    result = await db.execute(
+        select(Invoice.due_date, Invoice.amount_total)
+        .where(
+            Invoice.company_id == company_id,
+            Invoice.status.cast(String).notin_(["PAID", "VOID"]),
+        )
+    )
+    rows = result.all()
+
+    output = []
+    for b in buckets:
+        count = 0
+        amount = 0.0
+        for row in rows:
+            dd = row[0]  # due_date
+            amt = float(row[1] or 0)
+            if dd is None:
+                continue
+            if b["key"] == "overdue" and dd < today:
+                count += 1
+                amount += amt
+            elif b["start"] and b["end"] and b["start"] <= dd <= b["end"]:
+                count += 1
+                amount += amt
+            elif b["key"] == "later" and b["start"] and dd >= b["start"]:
+                count += 1
+                amount += amt
+        output.append({
+            "key": b["key"],
+            "label": b["label"],
+            "count": count,
+            "amount": amount,
+        })
+
+    # due_date가 없는 인보이스
+    no_due = sum(1 for r in rows if r[0] is None)
+    no_due_amt = sum(float(r[1] or 0) for r in rows if r[0] is None)
+    if no_due > 0:
+        output.append({
+            "key": "no_due_date",
+            "label": "No Due Date",
+            "count": no_due,
+            "amount": no_due_amt,
+        })
+
+    return output
+
+
+async def get_cashflow_detail(
+    db: AsyncSession, company_id: UUID, bucket: str
+) -> list[dict]:
+    """캐시플로우 구간별 인보이스 상세 목록"""
+    today = date.today()
+    buckets = _cashflow_buckets(today)
+
+    query = (
+        select(Invoice)
+        .where(
+            Invoice.company_id == company_id,
+            Invoice.status.cast(String).notin_(["PAID", "VOID"]),
+        )
+    )
+
+    if bucket == "no_due_date":
+        query = query.where(Invoice.due_date.is_(None))
+    elif bucket == "overdue":
+        query = query.where(Invoice.due_date < today)
+    else:
+        b = next((x for x in buckets if x["key"] == bucket), None)
+        if not b or not b["start"]:
+            return []
+        query = query.where(Invoice.due_date >= b["start"])
+        if b["end"]:
+            query = query.where(Invoice.due_date <= b["end"])
+
+    query = query.order_by(Invoice.due_date.asc().nulls_last()).limit(50)
+    result = await db.execute(query)
     invoices = result.scalars().all()
 
     return [

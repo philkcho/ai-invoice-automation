@@ -9,24 +9,8 @@
 		reverse_proxy backend:8000
 	}
 
-	# ── Backend docs ──
-	handle /docs* {
-		reverse_proxy backend:8000
-	}
-	handle /redoc* {
-		reverse_proxy backend:8000
-	}
-	handle /openapi.json {
-		reverse_proxy backend:8000
-	}
-
-	# ── Media files (개발용 로컬 파일 서빙) ──
+	# ── Media files ──
 	handle /media/* {
-		reverse_proxy backend:8000
-	}
-
-	# ── Stripe webhook ──
-	handle /webhook* {
 		reverse_proxy backend:8000
 	}
 
@@ -41,6 +25,8 @@
 		X-Frame-Options DENY
 		X-XSS-Protection "1; mode=block"
 		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
 		-Server
 	}
 

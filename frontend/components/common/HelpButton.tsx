@@ -19,7 +19,7 @@ export default function HelpButton() {
   return (
     <button
       onClick={toggle}
-      className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-primary-600 text-white shadow-lg shadow-primary-600/30 hover:bg-primary-700 hover:shadow-primary-600/50 transition-all flex items-center justify-center"
+      className="fixed bottom-6 right-24 z-40 w-12 h-12 rounded-full bg-primary-600 text-white shadow-lg shadow-primary-600/30 hover:bg-primary-700 hover:shadow-primary-600/50 transition-all flex items-center justify-center"
       title="Help"
     >
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

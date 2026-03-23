@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
 import { useTranslation } from '@/lib/i18n';
 import { getAllTopics } from '@/lib/help-content';
 
@@ -68,7 +70,12 @@ export default function HelpCenterPage() {
     : CATEGORIES;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex flex-1">
+        <Sidebar />
+        <main className="flex-1 bg-surface-50 p-8">
+    <div className="max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -181,6 +188,9 @@ export default function HelpCenterPage() {
         >
           {isKo ? '문의하기' : 'Contact Us'}
         </Link>
+      </div>
+    </div>
+        </main>
       </div>
     </div>
   );
