@@ -153,7 +153,7 @@ export default function PricingPage() {
               <span className="font-bold text-lg">{t('common.aiInvoice')}</span>
             </Link>
             <div className="flex items-center gap-4">
-              <LanguageSwitcher />
+              <LanguageSwitcher className="text-gray-600 border-gray-300 hover:bg-gray-100" />
               <Link href="/login" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
                 {t('common.signIn')}
               </Link>

@@ -23,15 +23,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # AWS S3
-    AWS_ACCESS_KEY_ID: str
-    AWS_SECRET_ACCESS_KEY: str
-    AWS_REGION: str = "us-east-1"
-    AWS_S3_BUCKET: str
-    S3_PRESIGNED_URL_EXPIRY: int = 900  # 15분
-
-    # Claude API
-    ANTHROPIC_API_KEY: str
+    # Claude API (미설정 시 OCR mock fallback)
+    ANTHROPIC_API_KEY: Optional[str] = None
 
     # Google Document AI
     GOOGLE_PROJECT_ID: Optional[str] = None

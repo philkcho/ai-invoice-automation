@@ -59,6 +59,12 @@ def send_telegram(level: str, message: str):
 @celery_app.task(name="app.tasks.backup_tasks.backup_database")
 def backup_database():
     """PostgreSQL automatic backup (daily/weekly/monthly + rotation)."""
+    # 외부 DB (Supabase 등) 사용 시 pg_dump 불가 — 프로바이더 자체 백업 사용
+    db_host = os.environ.get("POSTGRES_HOST", "")
+    if not db_host or db_host not in ("db", "localhost", "127.0.0.1"):
+        logger.info("External DB detected (host=%s), skipping pg_dump — use provider backups", db_host)
+        return {"skipped": True, "reason": "external_db"}
+
     backup_dir = Path(settings.BACKUP_DIR) / "db"
     daily_dir = backup_dir / "daily"
     weekly_dir = backup_dir / "weekly"

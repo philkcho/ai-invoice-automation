@@ -127,7 +127,7 @@ export default function LandingPage() {
               >
                 {t('common.pricing')}
               </Link>
-              <LanguageSwitcher />
+              <LanguageSwitcher className="text-white border-white/20 hover:bg-white/10" />
               <Link
                 href="/login"
                 className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"

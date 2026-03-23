@@ -1,0 +1,54 @@
+{$DOMAIN:ai-invoice.chopaul.com} {
+	# ── Backend API ──
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	# ── Backend health check ──
+	handle /health {
+		reverse_proxy backend:8000
+	}
+
+	# ── Backend docs ──
+	handle /docs* {
+		reverse_proxy backend:8000
+	}
+	handle /redoc* {
+		reverse_proxy backend:8000
+	}
+	handle /openapi.json {
+		reverse_proxy backend:8000
+	}
+
+	# ── Media files (개발용 로컬 파일 서빙) ──
+	handle /media/* {
+		reverse_proxy backend:8000
+	}
+
+	# ── Stripe webhook ──
+	handle /webhook* {
+		reverse_proxy backend:8000
+	}
+
+	# ── Frontend (기본) ──
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	# ── 보안 헤더 ──
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# ── 로그 ──
+	log {
+		output file /data/access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+	}
+}
