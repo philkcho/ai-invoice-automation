@@ -221,8 +221,8 @@ async def list_payments(
         count_query = count_query.where(InvoicePayment.invoice_id == invoice_id)
 
     if payment_status:
-        query = query.where(InvoicePayment.payment_status == payment_status)
-        count_query = count_query.where(InvoicePayment.payment_status == payment_status)
+        query = query.where(InvoicePayment.payment_status.cast(String) == payment_status)
+        count_query = count_query.where(InvoicePayment.payment_status.cast(String) == payment_status)
 
     total = (await db.execute(count_query)).scalar()
     result = await db.execute(

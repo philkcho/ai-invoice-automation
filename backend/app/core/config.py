@@ -23,8 +23,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # Claude API (미설정 시 OCR mock fallback)
+    # Claude API (OCR fallback용)
     ANTHROPIC_API_KEY: Optional[str] = None
+
+    # Gemini API (AI 채팅용)
+    GEMINI_API_KEY: Optional[str] = None
 
     # Google Document AI
     GOOGLE_PROJECT_ID: Optional[str] = None

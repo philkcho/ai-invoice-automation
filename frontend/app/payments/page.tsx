@@ -336,10 +336,10 @@ export default function PaymentsPage() {
                             <div className="flex gap-1 justify-center">
                               {p.payment_status === 'SCHEDULED' && (
                                 <button onClick={() => handleStatusAction(p.id, 'complete')}
-                                  className="text-green-600 hover:text-green-800 text-xs font-medium">Pay</button>
+                                  className="px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition">PAY</button>
                               )}
                               {p.payment_status === 'PAID' && (
-                                <span className="text-xs text-gray-400">Done</span>
+                                <span className="text-xs text-gray-400">DONE</span>
                               )}
                             </div>
                           </td>

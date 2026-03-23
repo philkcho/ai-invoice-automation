@@ -175,12 +175,12 @@ nano .env.prod
 | `GOOGLE_PROCESSOR_ID` | Document AI 프로세서 ID |
 | `GOOGLE_APPLICATION_CREDENTIALS` | 서비스 계정 키 파일 경로 (컨테이너 내부) |
 | `GOOGLE_LOCATION` | `us` (기본값) |
-| `DOMAIN` | `ai-invoice.chopaul.com` |
-| `FRONTEND_URL` | `https://ai-invoice.chopaul.com` |
-| `CORS_ORIGINS` | `https://ai-invoice.chopaul.com` |
-| `NEXT_PUBLIC_API_URL` | `https://ai-invoice.chopaul.com` (NO `/api` suffix!) |
+| `DOMAIN` | `ai-invoice.araverus.com` |
+| `FRONTEND_URL` | `https://ai-invoice.araverus.com` |
+| `CORS_ORIGINS` | `https://ai-invoice.araverus.com` |
+| `NEXT_PUBLIC_API_URL` | `https://ai-invoice.araverus.com` (NO `/api` suffix!) |
 | `COOKIE_SECURE` | `true` (HTTPS 필수 — false면 로그인 불가) |
-| `COOKIE_DOMAIN` | `ai-invoice.chopaul.com` |
+| `COOKIE_DOMAIN` | `ai-invoice.araverus.com` |
 | `FLOWER_PASSWORD` | Strong password |
 
 ### 5-3. Run Alembic Migration
@@ -214,7 +214,7 @@ docker compose -f docker-compose.prod.yml logs -f backend
 curl http://localhost:8000/health
 
 # After DNS setup
-curl https://ai-invoice.chopaul.com/health
+curl https://ai-invoice.araverus.com/health
 ```
 
 ---
@@ -235,7 +235,7 @@ Add A record in Hostinger DNS management:
 
 ### 7-1. Verify Checklist
 
-- [ ] `curl https://ai-invoice.chopaul.com/health` → `{"status": "healthy", "checks": {"redis": "connected"}}` (상세 체크: `/health/detail`)
+- [ ] `curl https://ai-invoice.araverus.com/health` → `{"status": "healthy", "checks": {"redis": "connected"}}` (상세 체크: `/health/detail`)
 - [ ] Browser → Landing page renders
 - [ ] Sign up → Login → Dashboard access
 - [ ] Invoice file upload → saved to `/app/media/`
@@ -246,14 +246,14 @@ Add A record in Hostinger DNS management:
 
 Update Gmail OAuth redirect URI:
 ```
-https://ai-invoice.chopaul.com/settings/email/callback
+https://ai-invoice.araverus.com/settings/email/callback
 ```
 
 ### 7-3. Stripe Webhook
 
 Update webhook endpoint URL in Stripe Dashboard:
 ```
-https://ai-invoice.chopaul.com/api/v1/billing/webhook
+https://ai-invoice.araverus.com/api/v1/billing/webhook
 ```
 
 ### 7-4. Monitoring

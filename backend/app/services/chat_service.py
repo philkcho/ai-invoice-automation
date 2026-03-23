@@ -1,4 +1,4 @@
-"""AI 채팅 서비스 — 자연어 질의 → SQL 생성 → 결과 자연어 변환"""
+"""AI 채팅 서비스 — Gemini 기반 자연어 질의 → SQL 생성 → 결과 자연어 변환"""
 import json
 import logging
 import re
@@ -12,7 +12,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# ── DB 스키마 설명 (Claude에게 전달) ──────────────────
+# ── DB 스키마 설명 (AI에게 전달) ──────────────────
 DB_SCHEMA = """
 Tables:
 
@@ -147,6 +147,24 @@ Answer the user's question concisely in the same language they used.
 If the question is about invoice data, let them know they can ask specific data questions and you'll look it up.
 Keep answers brief (2-3 sentences)."""
 
+GEMINI_MODEL = "gemini-2.0-flash"
+
+
+def _gemini_generate(system_prompt: str, user_message: str, max_tokens: int = 1024) -> str:
+    """Gemini REST API 직접 호출"""
+    import httpx
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
+    payload = {
+        "system_instruction": {"parts": [{"text": system_prompt}]},
+        "contents": [{"parts": [{"text": user_message}]}],
+        "generationConfig": {"maxOutputTokens": max_tokens},
+    }
+    resp = httpx.post(url, json=payload, timeout=30.0)
+    resp.raise_for_status()
+    data = resp.json()
+    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+
 
 async def process_chat_message(
     db: AsyncSession,
@@ -155,51 +173,36 @@ async def process_chat_message(
     chat_mode: str = "invoice_only",
 ) -> dict:
     """자연어 질의 처리: 질문 → SQL 생성 → 실행 → 자연어 답변"""
-    import anthropic
 
-    if not settings.ANTHROPIC_API_KEY or settings.ANTHROPIC_API_KEY == "your-anthropic-api-key":
-        return {"answer": "AI service is not configured. Please set ANTHROPIC_API_KEY.", "sql": None, "data": None}
-
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    if not settings.GEMINI_API_KEY:
+        return {"answer": "AI service is not configured. Please set GEMINI_API_KEY.", "sql": None, "data": None}
 
     # Hybrid 모드: 먼저 질문이 DB 관련인지 판별
     if chat_mode == "hybrid":
         try:
-            classify_response = client.messages.create(
-                model="claude-sonnet-4-20250514",
+            classification = _gemini_generate(
+                "Classify if this question is about invoice/payment/vendor/company DATA that requires a database query. Reply ONLY 'DB' or 'GENERAL'. Nothing else.",
+                message,
                 max_tokens=10,
-                system="Classify if this question is about invoice/payment/vendor/company DATA that requires a database query. Reply ONLY 'DB' or 'GENERAL'. Nothing else.",
-                messages=[{"role": "user", "content": message}],
             )
-            classification = classify_response.content[0].text.strip().upper()
+            classification = classification.upper().strip()
         except Exception:
             classification = "DB"
 
         if classification == "GENERAL":
             try:
-                general_response = client.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=1024,
-                    system=GENERAL_SYSTEM_PROMPT,
-                    messages=[{"role": "user", "content": message}],
-                )
-                return {"answer": general_response.content[0].text.strip(), "sql": None, "data": None}
+                answer = _gemini_generate(GENERAL_SYSTEM_PROMPT, message)
+                return {"answer": answer, "sql": None, "data": None}
             except Exception as e:
-                logger.error("Claude API error (general): %s", e)
+                logger.error("Gemini API error (general): %s", e)
                 return {"answer": "Failed to process your question.", "sql": None, "data": None}
 
     # invoice_only 모드이거나 DB 질문인 경우
     # Step 1: 질문 → SQL 생성
     try:
-        sql_response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=1024,
-            system=SQL_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": message}],
-        )
-        generated_sql = sql_response.content[0].text.strip()
+        generated_sql = _gemini_generate(SQL_SYSTEM_PROMPT, message)
     except Exception as e:
-        logger.error("Claude API error (SQL generation): %s", e)
+        logger.error("Gemini API error (SQL generation): %s", e)
         return {"answer": "Failed to process your question. Please try again.", "sql": None, "data": None}
 
     # Step 2: SQL 검증
@@ -243,18 +246,12 @@ async def process_chat_message(
     # Step 4: 결과 → 자연어 답변
     try:
         result_summary = json.dumps(data[:20], ensure_ascii=False, default=str)
-        answer_response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=1024,
-            system=ANSWER_SYSTEM_PROMPT,
-            messages=[{
-                "role": "user",
-                "content": f"Question: {message}\n\nQuery results ({len(data)} rows):\n{result_summary}",
-            }],
+        answer = _gemini_generate(
+            ANSWER_SYSTEM_PROMPT,
+            f"Question: {message}\n\nQuery results ({len(data)} rows):\n{result_summary}",
         )
-        answer = answer_response.content[0].text.strip()
     except Exception as e:
-        logger.error("Claude API error (answer generation): %s", e)
+        logger.error("Gemini API error (answer generation): %s", e)
         answer = f"Query returned {len(data)} rows."
 
     return {"answer": answer, "sql": validated_sql, "data": data[:20]}

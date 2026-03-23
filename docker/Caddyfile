@@ -1,4 +1,4 @@
-{$DOMAIN:ai-invoice.chopaul.com} {
+{$DOMAIN:ai-invoice.araverus.com} {
 	# ── Backend API ──
 	handle /api/* {
 		reverse_proxy backend:8000
