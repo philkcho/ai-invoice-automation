@@ -31,11 +31,10 @@ Oracle Cloud (ARM) + Supabase PostgreSQL + Docker Compose + Caddy SSL
 
 **External Services:**
 - Supabase PostgreSQL — Database (managed)
-- Claude API — Invoice OCR/extraction
-- Stripe — Subscription billing
+- Google Document AI — Invoice OCR/extraction (primary)
+- Claude API — OCR fallback + AI chat (natural language queries)
 - Gmail API — Email invoice collection
 - Sentry — Error monitoring (optional)
-- Telegram — Alert notifications (optional)
 
 ---
 
@@ -169,12 +168,16 @@ nano .env.prod
 | `DATABASE_URL_SYNC` | Transaction pooler URL (psycopg2, port 6543) |
 | `SECRET_KEY` | `openssl rand -hex 32` |
 | `ENCRYPTION_KEY` | `openssl rand -hex 32` |
-| `ANTHROPIC_API_KEY` | Claude API key |
+| `ANTHROPIC_API_KEY` | Claude API key (OCR fallback) |
+| `GOOGLE_PROJECT_ID` | Google Cloud 프로젝트 ID |
+| `GOOGLE_PROCESSOR_ID` | Document AI 프로세서 ID |
+| `GOOGLE_APPLICATION_CREDENTIALS` | 서비스 계정 키 파일 경로 (컨테이너 내부) |
+| `GOOGLE_LOCATION` | `us` (기본값) |
 | `DOMAIN` | `ai-invoice.chopaul.com` |
-| `CORS_ORIGINS` | `https://ai-invoice.chopaul.com` |
 | `FRONTEND_URL` | `https://ai-invoice.chopaul.com` |
+| `CORS_ORIGINS` | `https://ai-invoice.chopaul.com` |
 | `NEXT_PUBLIC_API_URL` | `https://ai-invoice.chopaul.com` (NO `/api` suffix!) |
-| `COOKIE_SECURE` | `true` |
+| `COOKIE_SECURE` | `true` (HTTPS 필수 — false면 로그인 불가) |
 | `COOKIE_DOMAIN` | `ai-invoice.chopaul.com` |
 | `FLOWER_PASSWORD` | Strong password |
 
@@ -230,7 +233,7 @@ Add A record in Hostinger DNS management:
 
 ### 7-1. Verify Checklist
 
-- [ ] `curl https://ai-invoice.chopaul.com/health` → `{"status": "healthy"}`
+- [ ] `curl https://ai-invoice.chopaul.com/health` → `{"status": "healthy", "environment": "production", "checks": {"database": "connected", "redis": "connected"}}`
 - [ ] Browser → Landing page renders
 - [ ] Sign up → Login → Dashboard access
 - [ ] Invoice file upload → saved to `/app/media/`
@@ -244,23 +247,15 @@ Update Gmail OAuth redirect URI:
 https://ai-invoice.chopaul.com/settings/email/callback
 ```
 
-### 7-3. Stripe Webhook
-
-Update webhook endpoint URL in Stripe Dashboard:
-```
-https://ai-invoice.chopaul.com/api/v1/billing/webhook
-```
-
-### 7-4. Monitoring
+### 7-3. Monitoring
 
 | What | How |
 |------|-----|
 | DB Backup | Supabase manages automatically |
-| Media Backup | Celery `backup_media` task (daily) |
-| Health Check | Celery `health_check_all` task (every 5 min) |
-| Disk Monitor | Celery `monitor_disk` task (hourly) |
 | Error Tracking | Sentry (optional, set `SENTRY_DSN`) |
-| Alerts | Telegram (optional, set `TELEGRAM_BOT_TOKEN`) |
+| Email Polling | Celery `poll_all_email_accounts` (every 5 min) |
+| Contract Expiry | Celery `check_contract_expiry` (daily 8am UTC) |
+| Payment Reminders | Celery `send_payment_due_reminders` (daily 8am UTC) |
 
 ---
 
