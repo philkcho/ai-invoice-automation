@@ -33,8 +33,10 @@ Oracle Cloud (ARM) + Supabase PostgreSQL + Docker Compose + Caddy SSL
 - Supabase PostgreSQL — Database (managed)
 - Google Document AI — Invoice OCR/extraction (primary)
 - Claude API — OCR fallback + AI chat (natural language queries)
+- Stripe — Subscription billing
 - Gmail API — Email invoice collection
 - Sentry — Error monitoring (optional)
+- Telegram — Alert notifications (optional)
 
 ---
 
@@ -247,15 +249,29 @@ Update Gmail OAuth redirect URI:
 https://ai-invoice.chopaul.com/settings/email/callback
 ```
 
-### 7-3. Monitoring
+### 7-3. Stripe Webhook
+
+Update webhook endpoint URL in Stripe Dashboard:
+```
+https://ai-invoice.chopaul.com/api/v1/billing/webhook
+```
+
+### 7-4. Monitoring
 
 | What | How |
 |------|-----|
-| DB Backup | Supabase manages automatically |
-| Error Tracking | Sentry (optional, set `SENTRY_DSN`) |
+| DB Backup | Celery `backup_database` (daily 3am KST / 18:00 UTC) |
+| Media Backup | Celery `backup_media` (daily 3:30am KST / 18:30 UTC) |
+| Backup Rotation | Celery `rotate_backups` (daily 4am KST / 19:00 UTC) |
+| Config Backup | Celery `backup_config` (every Sunday 4am KST) |
+| Health Check | Celery `health_check_all` (every 5 min) |
+| Disk Monitor | Celery `monitor_disk` (every hour) |
 | Email Polling | Celery `poll_all_email_accounts` (every 5 min) |
 | Contract Expiry | Celery `check_contract_expiry` (daily 8am UTC) |
+| Tax Exempt Expiry | Celery `check_tax_exempt_expiry` (daily 8am UTC) |
 | Payment Reminders | Celery `send_payment_due_reminders` (daily 8am UTC) |
+| Error Tracking | Sentry (optional, set `SENTRY_DSN`) |
+| Alerts | Telegram (optional, set `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`) |
 
 ---
 
