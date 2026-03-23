@@ -11,7 +11,7 @@ PDF나 이미지로 수신된 인보이스를 OCR(Google Document AI) + AI(Claud
 - **프론트엔드**: Next.js 14 (App Router) + TypeScript + Tailwind CSS — React 기반 SPA
 - **상태 관리**: Zustand (클라이언트 상태) + TanStack React Query (서버 상태/캐싱)
 - **폼/검증**: React Hook Form + Zod — 프론트엔드 폼 처리 및 입력값 검증
-- **데이터베이스**: PostgreSQL 15 — 메인 데이터 저장소 (22개 테이블 계획)
+- **데이터베이스**: PostgreSQL 15 — 메인 데이터 저장소 (28개 테이블)
 - **메시지 큐**: Redis 7 + Celery 5.4.0 — 비동기 작업 처리 (OCR, 이메일 폴링, 알림 등)
 - **작업 모니터링**: Flower — Celery 작업 상태 웹 UI
 - **OCR**: Google Document AI (google-cloud-documentai 2.29.0) — 인보이스 이미지/PDF 텍스트 추출 (메인)
@@ -19,8 +19,11 @@ PDF나 이미지로 수신된 인보이스를 OCR(Google Document AI) + AI(Claud
 - **파일 저장소**: 로컬 파일시스템 (Docker volume) — 인보이스 원본 파일 저장 (S3 Optional)
 - **인증**: JWT (access + refresh token) + bcrypt — 토큰 기반 인증 및 비밀번호 해싱
 - **이메일**: Gmail API + Microsoft Graph API — 인보이스 이메일 자동 수집
+- **결제**: Stripe (stripe 9.12.0) — 구독 결제 처리 및 웹훅
+- **i18n**: React Context 기반 다국어 (영어/한국어)
 - **모니터링**: Sentry — 에러 추적 및 알림
-- **컨테이너**: Docker Compose — 7개 서비스 오케스트레이션
+- **CI/CD**: GitHub Actions — pytest + jest + Docker 빌드 검증
+- **컨테이너**: Docker Compose — 8개 서비스 오케스트레이션
 
 ## 개발 명령어
 ```bash
@@ -85,19 +88,25 @@ backend/
 frontend/
   app/                  # Next.js App Router 페이지 및 레이아웃
   components/           # 공통 UI 컴포넌트
-    common/             # Button, Modal, Table, StatusBadge 등
+    common/             # Button, Modal, Table, StatusBadge, I18nProvider 등
     layout/             # Header, Sidebar, Footer
   hooks/                # 커스텀 훅 (useAuth, useApi 등)
   lib/                  # API 클라이언트, 유틸리티
-  stores/               # Zustand 상태 관리
+    i18n/               # 다국어 번역 파일 (en.json, ko.json)
+  stores/               # Zustand 상태 관리 (auth, toast, help 등)
   types/                # TypeScript 타입 정의
+  __tests__/            # Jest 테스트 (로그인, 회원가입)
   public/               # 정적 파일 (favicon, 이미지 등)
   package.json          # Node.js 패키지 의존성
   tailwind.config.ts    # Tailwind CSS 테마 설정
   tsconfig.json         # TypeScript 컴파일러 설정
   Dockerfile            # 프론트엔드 컨테이너 이미지 정의
 
-설계서/                  # 시스템 설계 문서 (v12 최신, Overview)
+docker/                   # Docker 설정 (Caddyfile, redis.conf)
+docs/                     # 운영 문서 (재해복구, 배포 가이드)
+scripts/                  # 유틸리티 스크립트 (백업, 모니터링, 복원)
+.github/workflows/        # GitHub Actions CI 파이프라인
+설계서/                    # 시스템 설계 문서 (v12 최신, Overview)
 ```
 
 ## 코드 컨벤션
@@ -127,6 +136,14 @@ frontend/
 - **계약 만료 확인** — 매일 오전 8시 UTC
 - **면세 만료 확인** — 매일 오전 8시 UTC
 - **결제 기한 알림** — 매일 오전 8시 UTC
+- **DB 백업** — 매일 03:00 KST (pg_dump, 로컬 DB 전용)
+- **미디어 백업** — 매일 03:30 KST
+- **백업 로테이션** — 매일 04:00 KST
+- **헬스체크** — 5분마다
+- **디스크 모니터링** — 매시 정각
+- **설정 백업** — 매주 일요일 04:00 KST
+- **이메일 다이제스트 (Daily)** — 매시 :05 (회사별 설정 시간 매칭)
+- **이메일 다이제스트 (Weekly)** — 매시 :05 (회사별 설정 요일+시간 매칭)
 
 ## 개발 단계 (로드맵)
 - **Phase 1**: Docker 환경 + 프로젝트 구조 셋업 ✅ 완료
@@ -134,14 +151,19 @@ frontend/
 - **Phase 3**: 거래처(Vendor) 마스터 데이터 관리 ✅ 완료
 - **Phase 4**: 세금 & 구매주문서(PO) 관리 ✅ 완료
 - **Phase 5**: 인보이스 검증 엔진 (규칙 기반 유효성 검사) ✅ 완료
-- **Phase 6**: 인보이스 처리 + OCR (Claude API 연동) ✅ 완료
+- **Phase 6**: 인보이스 처리 + OCR (Google Document AI + Claude API fallback) ✅ 완료
 - **Phase 7**: 승인 워크플로우 & 결제 추적 ✅ 완료
 - **Phase 8**: 이메일 연동 (자동 인보이스 수집) ✅ 완료
 - **Phase 9**: 대시보드 & 리포트 (차트, 통계, Excel/PDF 내보내기) ✅ 완료
-- **Phase 10**: 최종화 & 프로덕션 배포
+- **Phase 10**: 최종화 & 프로덕션 배포 🔄 진행 중
 
 ## 참고 사항
 - 설계 문서는 `설계서/` 폴더에 위치 (v12가 최신)
-- 구현된 엔드포인트: auth, companies, users, vendors, tax-rates, purchase-orders, invoice-types, invoices, exchange-rates, global-rules, type-rules, vendor-contracts, notifications, approval-settings, approvals, payments, email-configurations, dashboard, reports
-- 테스트: 아직 미구현 (Phase 2부터 pytest + jest 추가 예정)
+- 구현된 엔드포인트: auth, companies, users, vendors, tax-rates, purchase-orders, invoice-types, invoices, exchange-rates, global-rules, type-rules, vendor-contracts, notifications, approval-settings, approvals, payments, email-configurations, dashboard, reports, billing, chat, company-policies, company-type-settings, linkage-details, recurring-amounts, contact, email-digest
+- 테스트: pytest (백엔드 70+개) + Jest (프론트엔드 16개) 구현 완료
 - Docker 서비스 간 의존성과 헬스체크가 docker-compose.yml에 정의되어 있음
+- **공개 페이지** (인증 불필요): Landing, FAQ, Guide, Pricing, Contact, Demo
+- **Email Digest**: 회사별 SMTP 설정 + 외부 이메일 수신자 지원 (Settings > Email Digest)
+- **인앱 도움말**: 각 대시보드 페이지에 "?" 플로팅 버튼 → 사이드 패널 (10개 페이지 커버리지)
+- **Help Center**: `/help` 페이지에 5개 카테고리별 문서 + 검색 기능
+- **Interactive Demo**: `/demo` 페이지에서 가입 없이 AI OCR 체험 (mock 데이터 + AI Confidence Score)

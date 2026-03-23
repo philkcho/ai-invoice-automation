@@ -49,7 +49,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          memory: 64M
     logging: *default-logging
 
   # ── FastAPI Backend ─────────────────────────────────
@@ -60,7 +60,7 @@ services:
     container_name: invoice_backend
     restart: unless-stopped
     # 프로덕션: --reload 제거, 워커 수 설정
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
     env_file:
       - .env.prod
     volumes:
@@ -82,8 +82,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2"
-          memory: 2G
+          cpus: "1"
+          memory: 256M
     logging: *default-logging
 
   # ── Celery Worker ───────────────────────────────────
@@ -93,7 +93,7 @@ services:
       dockerfile: Dockerfile
     container_name: invoice_celery_worker
     restart: unless-stopped
-    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=1
     env_file:
       - .env.prod
     volumes:
@@ -113,8 +113,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2"
-          memory: 2G
+          cpus: "1"
+          memory: 256M
     logging: *default-logging
 
   # ── Celery Beat (스케줄러) ──────────────────────────
@@ -146,28 +146,6 @@ services:
           memory: 256M
     logging: *default-logging
 
-  # ── Flower (Celery 모니터링) ────────────────────────
-  flower:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: invoice_flower
-    restart: unless-stopped
-    command: celery -A app.tasks.celery_app flower --port=5555 --basic-auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-changeme}
-    env_file:
-      - .env.prod
-    # 프로덕션: 외부 노출 안 함 (필요시 SSH 터널로 접근)
-    expose:
-      - "5555"
-    depends_on:
-      - redis
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-    logging: *default-logging
-
   # ── Next.js Frontend ────────────────────────────────
   frontend:
     build:
@@ -189,7 +167,7 @@ services:
       resources:
         limits:
           cpus: "1"
-          memory: 512M
+          memory: 256M
     logging: *default-logging
 
 volumes:

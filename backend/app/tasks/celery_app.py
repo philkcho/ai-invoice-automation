@@ -92,6 +92,15 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.backup_tasks.backup_config",
         "schedule": crontab(day_of_week=0, hour=19, minute=0),
     },
+    # Email Digest — 매시 정각 (회사별 시간 매칭은 태스크 내부에서)
+    "send-daily-digests": {
+        "task": "app.tasks.digest_tasks.send_daily_digests",
+        "schedule": crontab(minute=5),
+    },
+    "send-weekly-digests": {
+        "task": "app.tasks.digest_tasks.send_weekly_digests",
+        "schedule": crontab(minute=5),
+    },
 }
 
 

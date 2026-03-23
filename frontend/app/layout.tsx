@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import AuthProvider from '@/components/layout/AuthProvider';
 import ChatWidget from '@/components/chat/ChatWidget';
+import HelpButton from '@/components/common/HelpButton';
+import HelpPanel from '@/components/common/HelpPanel';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import ToastContainer from '@/components/common/ToastContainer';
 import QueryProvider from '@/components/common/QueryProvider';
@@ -25,6 +27,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <AuthProvider>
               {children}
               <ChatWidget />
+              <HelpButton />
+              <HelpPanel />
             </AuthProvider>
             <ToastContainer />
           </QueryProvider>

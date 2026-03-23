@@ -149,7 +149,7 @@ from app.api.v1.endpoints import (
     approval_settings, approvals, payments,
     email_configurations, dashboard, reports,
     company_type_settings, recurring_amounts, linkage_details,
-    company_policies, chat, billing,
+    company_policies, chat, billing, contact, email_digest,
 )
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(companies.router, prefix="/api/v1/companies", tags=["Companies"])
@@ -176,6 +176,8 @@ app.include_router(linkage_details.router, prefix="/api/v1/linkage-details", tag
 app.include_router(company_policies.router, prefix="/api/v1/company-policies", tags=["Company Policies"])
 app.include_router(chat.router, prefix="/api/v1/chat", tags=["Chat"])
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
+app.include_router(contact.router, prefix="/api/v1/contact", tags=["Contact"])
+app.include_router(email_digest.router, prefix="/api/v1/email-digest", tags=["Email Digest"])
 
 
 # ── 헬스 체크 ─────────────────────────────────────────

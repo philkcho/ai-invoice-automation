@@ -23,3 +23,4 @@ from app.models.company_type_setting import CompanyTypeSetting  # noqa: F401
 from app.models.recurring_amount import RecurringAmount  # noqa: F401
 from app.models.linkage_detail import LinkageDetail  # noqa: F401
 from app.models.company_policy import CompanyPolicy  # noqa: F401
+from app.models.email_digest_setting import EmailDigestSetting, EmailDigestRecipient  # noqa: F401

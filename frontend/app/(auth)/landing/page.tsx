@@ -93,6 +93,10 @@ function CheckIcon({ className = 'w-5 h-5' }: { className?: string }) {
 export default function LandingPage() {
   const { t } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [demoState, setDemoState] = useState<'idle' | 'loading' | 'result'>('idle');
+  const [demoIndex, setDemoIndex] = useState(0);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -122,10 +126,28 @@ export default function LandingPage() {
             {/* Nav buttons */}
             <div className="flex items-center gap-3">
               <Link
+                href="/faq"
+                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                FAQ
+              </Link>
+              <Link
+                href="/guide"
+                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                Guide
+              </Link>
+              <Link
                 href="/pricing"
-                className="px-5 py-2 text-sm font-medium text-white hover:text-primary-200 transition-colors"
+                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
               >
                 {t('common.pricing')}
+              </Link>
+              <Link
+                href="/contact"
+                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                Contact
               </Link>
               <LanguageSwitcher className="text-white border-white/20 hover:bg-white/10" />
               <Link
@@ -185,12 +207,13 @@ export default function LandingPage() {
               >
                 {t('common.startFreeTrial')}
               </Link>
-              <button className="inline-flex items-center px-6 py-3 rounded-lg border border-white/20 text-white font-semibold hover:bg-white/5 transition-colors">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                {t('common.watchDemo')}
-              </button>
+              <Link
+                href="/demo"
+                className="inline-flex items-center px-6 py-3 rounded-lg border border-white/20 text-white font-semibold hover:bg-white/5 transition-colors"
+              >
+                <SparklesIcon className="w-5 h-5 mr-2" />
+                Try Demo
+              </Link>
             </div>
           </div>
 
@@ -299,6 +322,104 @@ export default function LandingPage() {
                 <div className="text-sm text-gray-500 mt-1 font-medium">{stat.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Section 3.5: Why Teams Switch (도입 효과) ────────────────────── */}
+      <section className="bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Left — Impact list */}
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+                {t('landing.impact.title')}
+              </h2>
+              <p className="text-lg text-gray-500 mb-10">
+                {t('landing.impact.subtitle')}
+              </p>
+
+              <div className="space-y-6">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <div key={n} className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-primary-500/25">
+                      {n}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1">
+                        {t(`landing.impact.item${n}Title`)}
+                      </h3>
+                      <p className="text-sm text-gray-500 leading-relaxed">
+                        {t(`landing.impact.item${n}Desc`)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — Pipeline mockup */}
+            <div className="hidden lg:block">
+              <div className="relative bg-gray-50 rounded-2xl p-6 shadow-card border border-gray-100">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-400" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                    <div className="w-3 h-3 rounded-full bg-green-400" />
+                  </div>
+                  <span className="text-xs font-semibold text-gray-500">{t('landing.impact.mockupTitle')}</span>
+                </div>
+
+                {/* Pipeline bars */}
+                <div className="space-y-3">
+                  {[
+                    { stage: 'RECEIVED', count: 42, pct: 100, color: 'from-gray-400 to-gray-500' },
+                    { stage: 'PENDING', count: 28, pct: 67, color: 'from-blue-400 to-blue-500' },
+                    { stage: 'IN APPROVAL', count: 15, pct: 36, color: 'from-purple-400 to-purple-500' },
+                    { stage: 'APPROVED', count: 124, pct: 95, color: 'from-emerald-400 to-emerald-500' },
+                    { stage: 'PAID', count: 1284, pct: 100, color: 'from-primary-400 to-primary-500' },
+                  ].map((item) => (
+                    <div key={item.stage}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-gray-600">{item.stage}</span>
+                        <span className="text-xs font-bold text-gray-900">{item.count}</span>
+                      </div>
+                      <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full bg-gradient-to-r ${item.color} rounded-full`}
+                          style={{ width: `${item.pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-3 mt-6">
+                  {[
+                    { label: 'Avg. Processing', value: '< 30s' },
+                    { label: 'Accuracy', value: '99.2%' },
+                    { label: 'Time Saved', value: '80%' },
+                  ].map((stat) => (
+                    <div key={stat.label} className="bg-white rounded-lg p-3 border border-gray-100 text-center">
+                      <div className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-primary-600">
+                        {stat.value}
+                      </div>
+                      <div className="text-[10px] text-gray-500 mt-0.5">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Floating badge */}
+                <div className="absolute -top-3 -right-3 bg-white rounded-xl px-4 py-2 shadow-lg border border-gray-100">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-gray-600 font-medium">{t('landing.impact.mockupBadge')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -540,7 +661,312 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Section 7: Final CTA + Footer ──────────────────────────────────── */}
+      {/* ── Section 7: Interactive Demo ─────────────────────────────────────── */}
+      <section className="relative bg-gradient-to-br from-[#0f0a2e] to-[#1e1b4b] overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(139,92,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.5) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
+          }}
+        />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            {/* Left — Upload area */}
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-300 text-sm font-medium">
+                <SparklesIcon className="w-4 h-4" />
+                {t('landing.demo.badge')}
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl font-bold text-white">
+                {t('landing.demo.title')}
+              </h2>
+              <p className="text-lg text-gray-300">
+                {t('landing.demo.subtitle')}
+              </p>
+
+              {/* Drop zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  setDemoState('loading');
+                  setDemoIndex(Math.floor(Math.random() * 3));
+                  setTimeout(() => setDemoState('result'), 1500);
+                }}
+                className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
+                  dragOver
+                    ? 'border-primary-400 bg-primary-500/10'
+                    : 'border-white/20 hover:border-white/40'
+                }`}
+              >
+                <svg className="w-10 h-10 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                </svg>
+                <p className="text-gray-300 font-medium">{t('landing.demo.dropzone')}</p>
+                <p className="text-sm text-gray-500 mt-1">{t('landing.demo.dropzoneOr')}</p>
+              </div>
+
+              {/* Sample buttons */}
+              <div className="flex flex-wrap gap-3">
+                {[0, 1, 2].map((i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setDemoIndex(i);
+                      setDemoState('loading');
+                      setTimeout(() => setDemoState('result'), 1500);
+                    }}
+                    className="px-4 py-2.5 rounded-lg bg-white/[0.07] border border-white/[0.12] text-sm text-gray-300 hover:bg-white/[0.12] hover:text-white transition-colors"
+                  >
+                    {t(`landing.demo.sample${i + 1}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — Result card */}
+            <div className="bg-white/[0.07] backdrop-blur-xl border border-white/[0.12] rounded-2xl p-6 shadow-2xl min-h-[480px] flex flex-col">
+              {demoState === 'idle' && (
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center mb-4">
+                    <SparklesIcon className="w-8 h-8 text-gray-500" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-300">{t('landing.demo.idleTitle')}</h3>
+                  <p className="text-sm text-gray-500 mt-1">{t('landing.demo.idleDesc')}</p>
+                </div>
+              )}
+
+              {demoState === 'loading' && (
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                  <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mb-4" />
+                  <p className="text-gray-300 font-medium">{t('landing.demo.loading')}</p>
+                </div>
+              )}
+
+              {demoState === 'result' && (() => {
+                const samples = [
+                  {
+                    vendor: 'Acme Consulting Group',
+                    invoiceNumber: 'INV-2026-0847',
+                    date: '2026-03-15',
+                    dueDate: '2026-04-14',
+                    poNumber: 'PO-2026-0312',
+                    conf: { vendor: 97, invoiceNumber: 99, date: 98, dueDate: 95 },
+                    lineItems: [
+                      { desc: 'Strategic Consulting — Q1', qty: 1, price: 15000.00, conf: 96 },
+                      { desc: 'Market Research Report', qty: 2, price: 3500.00, conf: 94 },
+                      { desc: 'Workshop Facilitation', qty: 3, price: 2000.00, conf: 72 },
+                    ],
+                    subtotal: 28000.00, tax: 1875.00, total: 29875.00, avgConf: 93,
+                  },
+                  {
+                    vendor: 'TechSupply International',
+                    invoiceNumber: 'TS-88421',
+                    date: '2026-03-10',
+                    dueDate: '2026-04-09',
+                    poNumber: 'PO-2026-0298',
+                    conf: { vendor: 95, invoiceNumber: 99, date: 97, dueDate: 96 },
+                    lineItems: [
+                      { desc: 'Laptop — Dell XPS 15', qty: 5, price: 1899.00, conf: 98 },
+                      { desc: 'Monitor — LG 27" 4K', qty: 5, price: 449.00, conf: 97 },
+                      { desc: 'Keyboard & Mouse Set', qty: 10, price: 89.00, conf: 85 },
+                    ],
+                    subtotal: 11740.00, tax: 1021.30, total: 12761.30, avgConf: 95,
+                  },
+                  {
+                    vendor: 'CloudServ Inc',
+                    invoiceNumber: 'CS-2026-3391',
+                    date: '2026-03-01',
+                    dueDate: '2026-03-31',
+                    poNumber: null,
+                    conf: { vendor: 92, invoiceNumber: 98, date: 99, dueDate: 94 },
+                    lineItems: [
+                      { desc: 'AWS Hosting — March', qty: 1, price: 4200.00, conf: 99 },
+                      { desc: 'SSL Certificate Renewal', qty: 3, price: 150.00, conf: 68 },
+                      { desc: '24/7 Support Plan', qty: 1, price: 800.00, conf: 91 },
+                    ],
+                    subtotal: 5450.00, tax: 437.50, total: 5887.50, avgConf: 90,
+                  },
+                ];
+                const inv = samples[demoIndex];
+                return (
+                  <div className="flex-1 flex flex-col">
+                    {/* Overall confidence */}
+                    <div className="flex items-center gap-3 mb-4 bg-white/[0.06] rounded-lg px-3 py-2 border border-white/[0.08]">
+                      <span className="text-[10px] text-gray-400">AI Confidence</span>
+                      <div className="flex-1 h-1.5 bg-white/[0.1] rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${inv.avgConf}%` }} />
+                      </div>
+                      <span className="text-xs font-bold text-emerald-400">{inv.avgConf}%</span>
+                    </div>
+
+                    {/* Header fields */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      {[
+                        { label: t('landing.demo.vendor'), value: inv.vendor, c: inv.conf.vendor },
+                        { label: t('landing.demo.invoiceNo'), value: inv.invoiceNumber, c: inv.conf.invoiceNumber },
+                        { label: t('landing.demo.date'), value: inv.date, c: inv.conf.date },
+                        { label: t('landing.demo.dueDate'), value: inv.dueDate, c: inv.conf.dueDate },
+                      ].map((f) => (
+                        <div key={f.label} className="bg-white/[0.06] rounded-lg px-3 py-2 border border-white/[0.08]">
+                          <div className="flex items-center justify-between">
+                            <div className="text-[10px] text-gray-500 uppercase tracking-wider">{f.label}</div>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              f.c >= 90 ? 'bg-emerald-500/20 text-emerald-400' : f.c >= 70 ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'
+                            }`}>{f.c}%</span>
+                          </div>
+                          <div className="text-sm font-medium text-white mt-0.5">{f.value}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {inv.poNumber && (
+                      <div className="bg-white/[0.06] rounded-lg px-3 py-2 border border-white/[0.08] mb-4">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider">{t('landing.demo.poNumber')}</div>
+                        <div className="text-sm font-medium text-emerald-400 mt-0.5">{inv.poNumber}</div>
+                      </div>
+                    )}
+
+                    {/* Line items */}
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">{t('landing.demo.lineItems')}</div>
+                    <div className="bg-white/[0.04] rounded-lg border border-white/[0.06] overflow-hidden mb-4">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-white/[0.08]">
+                            <th className="text-left px-3 py-2 text-[10px] text-gray-500 font-medium">{t('landing.demo.description')}</th>
+                            <th className="text-right px-3 py-2 text-[10px] text-gray-500 font-medium">{t('landing.demo.qty')}</th>
+                            <th className="text-right px-3 py-2 text-[10px] text-gray-500 font-medium">{t('landing.demo.unitPrice')}</th>
+                            <th className="text-right px-3 py-2 text-[10px] text-gray-500 font-medium">{t('landing.demo.amount')}</th>
+                            <th className="text-center px-3 py-2 text-[10px] text-gray-500 font-medium">AI</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inv.lineItems.map((li, idx) => (
+                            <tr key={idx} className="border-b border-white/[0.04]">
+                              <td className="px-3 py-2 text-gray-300 text-xs">{li.desc}</td>
+                              <td className="px-3 py-2 text-gray-300 text-xs text-right">{li.qty}</td>
+                              <td className="px-3 py-2 text-gray-300 text-xs text-right">${li.price.toLocaleString()}</td>
+                              <td className="px-3 py-2 text-white text-xs text-right font-medium">${(li.qty * li.price).toLocaleString()}</td>
+                              <td className="px-3 py-2 text-center">
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                  li.conf >= 90 ? 'bg-emerald-500/20 text-emerald-400' : li.conf >= 70 ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'
+                                }`}>{li.conf}%</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Totals */}
+                    <div className="mt-auto space-y-1.5">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">{t('landing.demo.subtotal')}</span>
+                        <span className="text-gray-300">${inv.subtotal.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">{t('landing.demo.tax')}</span>
+                        <span className="text-gray-300">${inv.tax.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-base font-bold border-t border-white/[0.1] pt-2">
+                        <span className="text-white">{t('landing.demo.total')}</span>
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-500">${inv.total.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.08]">
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        {t('landing.demo.extractedIn')}
+                      </div>
+                      <button
+                        onClick={() => setDemoState('idle')}
+                        className="text-xs text-primary-300 hover:text-primary-200 transition-colors"
+                      >
+                        {t('landing.demo.tryAnother')}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Bottom CTA */}
+          {demoState === 'result' && (
+            <div className="mt-10 text-center">
+              <p className="text-gray-300 mb-4">{t('landing.demo.ctaText')}</p>
+              <Link
+                href="/signup"
+                className="inline-flex items-center px-7 py-3.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:from-primary-400 hover:to-primary-500 transition-all"
+              >
+                {t('common.startFreeTrial')}
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Section 8: FAQ ──────────────────────────────────────────────────── */}
+      <section className="bg-surface-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+              {t('landing.faq.title')}
+            </h2>
+            <p className="mt-4 text-lg text-gray-500">
+              {t('landing.faq.subtitle')}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <div
+                key={n}
+                className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+              >
+                <button
+                  onClick={() => setOpenFaq(openFaq === n ? null : n)}
+                  className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-semibold text-gray-900 pr-4">
+                    {t(`landing.faq.q${n}`)}
+                  </span>
+                  <svg
+                    className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${
+                      openFaq === n ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </button>
+                <div
+                  className={`overflow-hidden transition-all duration-200 ${
+                    openFaq === n ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className="px-6 pb-5 text-gray-500 leading-relaxed">
+                    {t(`landing.faq.a${n}`)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Section 8: Final CTA + Footer ──────────────────────────────────── */}
       <section className="relative bg-gradient-to-br from-[#0f0a2e] to-[#1e1b4b] overflow-hidden">
         {/* Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-500/10 rounded-full blur-[200px]" />
