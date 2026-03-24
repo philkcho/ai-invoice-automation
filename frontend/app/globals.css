@@ -6,7 +6,9 @@
 
 @layer base {
   body {
-    @apply font-sans antialiased text-gray-700 bg-surface-50;
+    @apply font-sans antialiased;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 
   ::selection {
@@ -26,6 +28,86 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-primary-300;
+  }
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+  }
+  :root {
+    /* Rose Warm Theme */
+    --background: 356 100% 97%;
+    --foreground: 20 14% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14% 4%;
+    --primary: 347 77% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 356 100% 95%;
+    --secondary-foreground: 347 77% 40%;
+    --muted: 20 6% 93%;
+    --muted-foreground: 25 6% 45%;
+    --accent: 356 100% 95%;
+    --accent-foreground: 347 77% 40%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 6% 90%;
+    --input: 20 6% 90%;
+    --ring: 347 77% 50%;
+    --chart-1: 347 77% 50%;
+    --chart-2: 10 78% 54%;
+    --chart-3: 43 96% 56%;
+    --chart-4: 160 84% 39%;
+    --chart-5: 217 91% 60%;
+    --radius: 0.75rem;
+    --sidebar: 20 14% 4%;
+    --sidebar-foreground: 20 5% 65%;
+    --sidebar-primary: 347 77% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 20 10% 12%;
+    --sidebar-accent-foreground: 20 5% 85%;
+    --sidebar-border: 20 10% 15%;
+    --sidebar-ring: 347 77% 50%;
+  }
+  .dark {
+    --background: 20 14% 4%;
+    --foreground: 0 0% 95%;
+    --card: 20 10% 8%;
+    --card-foreground: 0 0% 95%;
+    --popover: 20 10% 8%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 347 77% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 20 10% 15%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 20 10% 15%;
+    --muted-foreground: 20 5% 65%;
+    --accent: 20 10% 15%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 10% 15%;
+    --input: 20 10% 15%;
+    --ring: 347 77% 55%;
+    --chart-1: 347 77% 55%;
+    --chart-2: 10 78% 60%;
+    --chart-3: 43 96% 60%;
+    --chart-4: 160 84% 45%;
+    --chart-5: 217 91% 65%;
+    --sidebar: 20 14% 6%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 347 77% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 20 10% 10%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 20 10% 12%;
+    --sidebar-ring: 347 77% 55%;
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
@@ -111,6 +193,9 @@
   }
   .badge-orange {
     @apply badge bg-orange-50 text-orange-700;
+  }
+  .badge-rose {
+    @apply badge bg-rose-50 text-rose-700;
   }
 
   /* ─── Tables ─── */

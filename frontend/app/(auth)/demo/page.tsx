@@ -125,12 +125,12 @@ export default function DemoPage() {
       </nav>
 
       {/* ── Hero ────────────────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#0f0a2e] to-[#1e1b4b] overflow-hidden">
+      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(139,92,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(244,63,94,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.5) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
@@ -351,7 +351,7 @@ export default function DemoPage() {
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────── */}
-      <section className="bg-gradient-to-br from-[#0f0a2e] to-[#1e1b4b]">
+      <section className="bg-gradient-to-br from-[#1c1917] to-[#292524]">
         <div className="border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
             <p className="text-sm text-gray-500">

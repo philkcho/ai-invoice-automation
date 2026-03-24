@@ -11,7 +11,7 @@ import { getErrorMessage } from '@/lib/error';
 import RequireRole from '@/components/common/RequireRole';
 
 const ROLE_COLORS: Record<string, string> = {
-  SUPER_ADMIN: 'badge-purple',
+  SUPER_ADMIN: 'badge-rose',
   COMPANY_ADMIN: 'badge-blue',
   ACCOUNTANT: 'badge-green',
   APPROVER: 'badge-yellow',

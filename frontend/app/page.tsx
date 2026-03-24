@@ -92,7 +92,7 @@ function getPeriodDates(preset: PeriodPreset): { date_from?: string; date_to?: s
   return { date_from: toStr(new Date(today.getFullYear(), 0, 1)) };
 }
 
-const DONUT_COLORS = ['#4F46E5', '#06B6D4', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6'];
+const DONUT_COLORS = ['#e11d48', '#06B6D4', '#F59E0B', '#10B981', '#EF4444', '#fb7185'];
 
 interface CashFlowBucket { key: string; label: string; count: number; amount: number; }
 
@@ -101,7 +101,7 @@ const CASHFLOW_COLORS: Record<string, string> = {
   this_week: '#F97316',
   next_week: '#EAB308',
   this_month: '#3B82F6',
-  next_month: '#4F46E5',
+  next_month: '#e11d48',
   later: '#9CA3AF',
   no_due_date: '#D1D5DB',
 };
@@ -376,21 +376,21 @@ export default function DashboardPage() {
                   label="Invoices This Month"
                   count={summary.invoices_this_month}
                   amount={summary.spend_this_month}
-                  accent="indigo"
+                  accent="rose"
                   onClick={() => openKpiDetail('this_month')}
                 />
                 <KpiCard
                   label="Unpaid"
                   count={summary.unpaid_count}
                   amount={summary.unpaid_amount}
-                  accent={summary.unpaid_count > 0 ? 'yellow' : 'indigo'}
+                  accent={summary.unpaid_count > 0 ? 'yellow' : 'rose'}
                   onClick={() => openKpiDetail('unpaid')}
                 />
                 <KpiCard
                   label="Overdue"
                   count={summary.overdue_payments}
                   amount={summary.overdue_amount}
-                  accent={summary.overdue_payments > 0 ? 'red' : 'indigo'}
+                  accent={summary.overdue_payments > 0 ? 'red' : 'rose'}
                   onClick={() => openKpiDetail('overdue')}
                 />
                 <KpiCard
@@ -485,7 +485,7 @@ export default function DashboardPage() {
                       onClick={() => setPeriod(p)}
                       className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
                         period === p
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-rose-600 text-white'
                           : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                       }`}
                     >
@@ -627,7 +627,7 @@ export default function DashboardPage() {
                         <XAxis dataKey="label" fontSize={11} />
                         <YAxis fontSize={11} tickFormatter={fmtCompact} />
                         <Tooltip formatter={(v: number) => fmt(v)} />
-                        <Bar dataKey="amount" fill="#4F46E5" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="amount" fill="#e11d48" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
@@ -719,17 +719,17 @@ function KpiCard({
   label,
   count,
   amount,
-  accent = 'indigo',
+  accent = 'rose',
   onClick,
 }: {
   label: string;
   count: number;
   amount: number;
-  accent?: 'indigo' | 'yellow' | 'red' | 'green';
+  accent?: 'rose' | 'yellow' | 'red' | 'green';
   onClick?: () => void;
 }) {
   const borderColors = {
-    indigo: 'border-l-indigo-500',
+    rose: 'border-l-rose-500',
     yellow: 'border-l-yellow-500',
     red: 'border-l-red-500',
     green: 'border-l-green-500',
@@ -801,7 +801,7 @@ function KpiDetailModal({
                     className="border-b last:border-0 hover:bg-gray-50 cursor-pointer transition"
                     onClick={() => onRowClick(item.id)}
                   >
-                    <td className="py-2.5 font-medium text-indigo-600">{item.invoice_number || '—'}</td>
+                    <td className="py-2.5 font-medium text-rose-600">{item.invoice_number || '—'}</td>
                     <td className="py-2.5 text-gray-700">{item.vendor_name || '—'}</td>
                     <td className="py-2.5 text-gray-500">{item.invoice_type || '—'}</td>
                     <td className="py-2.5 text-right font-medium text-gray-900">{fmt(item.amount_total)}</td>
@@ -837,7 +837,7 @@ function StatusBadge({ status }: { status: string }) {
     RECEIVED: 'bg-blue-50 text-blue-700',
     OCR_REVIEW: 'bg-blue-50 text-blue-700',
     PENDING: 'bg-gray-100 text-gray-700',
-    SUBMITTED: 'bg-indigo-50 text-indigo-700',
+    SUBMITTED: 'bg-rose-50 text-rose-700',
     IN_APPROVAL: 'bg-yellow-50 text-yellow-700',
     APPROVED: 'bg-green-50 text-green-700',
     SCHEDULED: 'bg-emerald-50 text-emerald-700',
@@ -882,14 +882,14 @@ function PipelineBar({
             onClick={() => count > 0 && onStepClick(step)}
           >
             {/* Count + Amount */}
-            <span className={`text-lg font-bold ${isTop ? 'text-indigo-600' : 'text-gray-800'}`}>
+            <span className={`text-lg font-bold ${isTop ? 'text-rose-600' : 'text-gray-800'}`}>
               {count}
             </span>
-            <span className={`text-lg font-bold mb-1 ${isTop ? 'text-indigo-600' : 'text-gray-800'}`}>
+            <span className={`text-lg font-bold mb-1 ${isTop ? 'text-rose-600' : 'text-gray-800'}`}>
               {fmt(amount)}
             </span>
             {/* Bar — based on amount */}
-            <div className={`w-full rounded-t-md ${isTop ? 'bg-indigo-500' : 'bg-indigo-300'}`}
+            <div className={`w-full rounded-t-md ${isTop ? 'bg-rose-500' : 'bg-rose-300'}`}
               style={{ height: `${Math.max((amount / maxAmount) * 80, 8)}px`, transition: 'height 0.3s' }}
             />
             {/* Label */}

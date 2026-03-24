@@ -111,7 +111,7 @@ export default function LandingPage() {
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? 'bg-[#0f0a2e]/80 backdrop-blur-xl shadow-lg'
+            ? 'bg-[#1c1917]/80 backdrop-blur-xl shadow-lg'
             : 'bg-transparent'
         }`}
       >
@@ -184,7 +184,7 @@ export default function LandingPage() {
         </div>
         {/* Mobile menu dropdown */}
         {mobileMenuOpen && (
-          <div className="lg:hidden bg-[#0f0a2e]/95 backdrop-blur-xl border-t border-white/10">
+          <div className="lg:hidden bg-[#1c1917]/95 backdrop-blur-xl border-t border-white/10">
             <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-2">
               <Link href="/faq" className="px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white/10 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 FAQ
@@ -214,13 +214,13 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Section 2: Hero ────────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex items-center bg-gradient-to-br from-[#0f0a2e] to-[#1e1b4b] overflow-hidden">
+      <section className="relative min-h-screen flex items-center bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
         {/* Grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.07]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(139,92,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(244,63,94,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.5) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
@@ -228,7 +228,7 @@ export default function LandingPage() {
         {/* Glow orbs */}
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-primary-500/20 rounded-full blur-[120px] animate-glow" />
         <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-primary-600/15 rounded-full blur-[150px] animate-glow-delayed" />
-        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] animate-glow" />
+        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-rose-500/10 rounded-full blur-[100px] animate-glow" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 grid lg:grid-cols-2 gap-12 items-center">
           {/* Left — Text */}
@@ -422,7 +422,7 @@ export default function LandingPage() {
                   {[
                     { stage: 'RECEIVED', count: 42, pct: 100, color: 'from-gray-400 to-gray-500' },
                     { stage: 'PENDING', count: 28, pct: 67, color: 'from-blue-400 to-blue-500' },
-                    { stage: 'IN APPROVAL', count: 15, pct: 36, color: 'from-purple-400 to-purple-500' },
+                    { stage: 'IN APPROVAL', count: 15, pct: 36, color: 'from-rose-400 to-rose-500' },
                     { stage: 'APPROVED', count: 124, pct: 95, color: 'from-emerald-400 to-emerald-500' },
                     { stage: 'PAID', count: 1284, pct: 100, color: 'from-primary-400 to-primary-500' },
                   ].map((item) => (
@@ -523,13 +523,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── Section 5: How It Works ────────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#0f0a2e] to-[#1e1b4b] overflow-hidden">
+      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
         {/* Subtle grid */}
         <div
           className="absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(139,92,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(244,63,94,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.5) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
@@ -708,12 +708,12 @@ export default function LandingPage() {
       </section>
 
       {/* ── Section 7: Interactive Demo ─────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#0f0a2e] to-[#1e1b4b] overflow-hidden">
+      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(139,92,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(244,63,94,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.5) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
@@ -1013,7 +1013,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Section 8: Final CTA + Footer ──────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#0f0a2e] to-[#1e1b4b] overflow-hidden">
+      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
         {/* Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-500/10 rounded-full blur-[200px]" />
 

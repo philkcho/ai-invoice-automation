@@ -107,7 +107,7 @@ export default function VendorsPage() {
                         <div className="text-xs text-gray-400">{v.contact_email || ''}</div>
                       </td>
                       <td className="table-td">
-                        <span className={v.company_id ? 'badge-blue' : 'badge-purple'}>
+                        <span className={v.company_id ? 'badge-blue' : 'badge-rose'}>
                           {v.company_id ? 'Company' : 'Shared'}
                         </span>
                       </td>
