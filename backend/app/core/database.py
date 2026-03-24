@@ -10,6 +10,7 @@ engine = create_async_engine(
     pool_size=5,
     max_overflow=5,
     pool_recycle=3600,  # 1시간마다 stale connection 재생성
+    connect_args={"statement_cache_size": 0},  # Supabase Pooler(pgbouncer) 호환
 )
 
 # 세션 팩토리
