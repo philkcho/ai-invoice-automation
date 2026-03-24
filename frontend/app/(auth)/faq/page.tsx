@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
-import LanguageSwitcher from '@/components/common/LanguageSwitcher';
+import PublicNav from '@/components/layout/PublicNav';
 
 function ChevronDownIcon({ className = 'w-5 h-5' }: { className?: string }) {
   return (
@@ -33,41 +33,8 @@ export default function FaqPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <div className="min-h-screen font-sans text-gray-900 bg-white">
-      {/* ── Navigation ──────────────────────────────────────────────── */}
-      <nav className="border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/landing" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-                <SparklesIcon className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-lg">{t('common.aiInvoice')}</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link href="/faq" className="px-4 py-2 text-sm font-medium text-primary-600 border border-primary-200 rounded-lg bg-primary-50">
-                FAQ
-              </Link>
-              <Link href="/guide" className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:text-gray-900 hover:border-gray-300 transition-colors">
-                Guide
-              </Link>
-              <Link href="/pricing" className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:text-gray-900 hover:border-gray-300 transition-colors">
-                {t('common.pricing')}
-              </Link>
-              <Link href="/contact" className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:text-gray-900 hover:border-gray-300 transition-colors">
-                Contact
-              </Link>
-              <LanguageSwitcher className="text-gray-600 border-gray-300 hover:bg-gray-100" />
-              <Link href="/login" className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:text-gray-900 hover:border-gray-300 transition-colors">
-                {t('common.signIn')}
-              </Link>
-              <Link href="/signup" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors">
-                {t('common.startFreeTrial')}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen font-sans text-gray-900 bg-white overflow-x-hidden">
+      <PublicNav activePage="faq" />
 
       {/* ── Hero ────────────────────────────────────────────────────── */}
       <section className="relative bg-gradient-to-br from-[#0f0a2e] to-[#1e1b4b] overflow-hidden">
@@ -82,7 +49,7 @@ export default function FaqPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-500/10 rounded-full blur-[200px]" />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+          <h1 className="text-3xl sm:text-5xl font-bold text-white mb-4">
             {t('landing.faq.title')}
           </h1>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto">

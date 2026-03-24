@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
-import LanguageSwitcher from '@/components/common/LanguageSwitcher';
+import PublicNav from '@/components/layout/PublicNav';
 import type { SubscriptionPlan } from '@/types';
 
 const FALLBACK_PLANS: SubscriptionPlan[] = [
@@ -139,47 +139,12 @@ export default function PricingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900">
-      {/* Nav */}
-      <nav className="border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/landing" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <span className="font-bold text-lg">{t('common.aiInvoice')}</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link href="/faq" className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:text-gray-900 hover:border-gray-300 transition-colors">
-                FAQ
-              </Link>
-              <Link href="/guide" className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:text-gray-900 hover:border-gray-300 transition-colors">
-                Guide
-              </Link>
-              <Link href="/pricing" className="px-4 py-2 text-sm font-medium text-primary-600 border border-primary-200 rounded-lg bg-primary-50">
-                {t('common.pricing')}
-              </Link>
-              <Link href="/contact" className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:text-gray-900 hover:border-gray-300 transition-colors">
-                Contact
-              </Link>
-              <LanguageSwitcher className="text-gray-600 border-gray-300 hover:bg-gray-100" />
-              <Link href="/login" className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:text-gray-900 hover:border-gray-300 transition-colors">
-                {t('common.signIn')}
-              </Link>
-              <Link href="/signup" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors">
-                {t('common.startFreeTrial')}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-white font-sans text-gray-900 overflow-x-hidden">
+      <PublicNav activePage="pricing" />
 
       {/* Header */}
       <div className="pt-16 pb-14 text-center">
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
+        <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3">
           {t('pricing.title')}
         </h1>
         <p className="text-base text-gray-500 max-w-lg mx-auto">
