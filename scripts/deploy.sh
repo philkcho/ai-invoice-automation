@@ -5,15 +5,18 @@ set -e
 #  AI Invoice Automation — Production Deploy Script
 # ─────────────────────────────────────────────────
 #  Usage:
-#    ./scripts/deploy.sh              # 코드만 배포 (마이그레이션 스킵)
-#    ./scripts/deploy.sh --migrate    # 코드 + DB 마이그레이션
-#    ./scripts/deploy.sh --quick      # 빌드 없이 재시작만
+#    ./scripts/deploy.sh              # 최신 이미지 pull + 재시작
+#    ./scripts/deploy.sh --migrate    # 이미지 pull + DB 마이그레이션
+#    ./scripts/deploy.sh --quick      # pull 없이 재시작만
 # ─────────────────────────────────────────────────
 
 COMPOSE="docker compose -f docker-compose.prod.yml"
 PROJECT_DIR=~/ai-invoice-automation
 HEALTH_URL="http://localhost:8000/health"
 MAX_HEALTH_WAIT=300  # seconds
+
+BACKEND_IMAGE="ghcr.io/philkcho/ai-invoice-automation/backend:latest"
+FRONTEND_IMAGE="ghcr.io/philkcho/ai-invoice-automation/frontend:latest"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -36,11 +39,10 @@ done
 
 cd "$PROJECT_DIR"
 
-# Load .env.prod so NEXT_PUBLIC_* vars are available during docker build
+# Load NEXT_PUBLIC_* vars from .env.prod for Docker build args
 if [ -f .env.prod ]; then
-    set -a
-    source .env.prod
-    set +a
+    export NEXT_PUBLIC_API_URL=$(grep '^NEXT_PUBLIC_API_URL=' .env.prod | cut -d'=' -f2-)
+    export NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$(grep '^NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=' .env.prod | cut -d'=' -f2-)
 fi
 
 echo ""
@@ -51,7 +53,7 @@ echo "========================================="
 echo ""
 
 # ── Step 1: Git Pull ──
-log "[1/6] Pulling latest code..."
+log "[1/5] Pulling latest code..."
 BEFORE=$(git rev-parse HEAD)
 git pull --ff-only
 AFTER=$(git rev-parse HEAD)
@@ -65,34 +67,25 @@ else
     echo ""
 fi
 
-# ── Step 2: Check for new migrations ──
-if [ "$DO_MIGRATE" = false ]; then
-    NEW_MIGRATIONS=$(git diff --name-only "$BEFORE" "$AFTER" -- backend/alembic/versions/ 2>/dev/null | wc -l)
-    if [ "$NEW_MIGRATIONS" -gt 0 ]; then
-        warn "New migration files detected ($NEW_MIGRATIONS files)!"
-        warn "Re-run with --migrate flag to apply them."
-        echo ""
-    fi
-fi
-
-# ── Step 3: Quick mode (restart only) ──
+# ── Step 2: Quick mode (restart only) ──
 if [ "$QUICK_MODE" = true ]; then
-    log "[QUICK] Restarting containers (no rebuild)..."
+    log "[QUICK] Restarting containers (no pull)..."
     $COMPOSE restart backend celery_worker celery_beat frontend
     log "Done! Skipping health check in quick mode."
     exit 0
 fi
 
-# ── Step 4: Build ──
-log "[2/6] Building Docker images..."
-BUILD_START=$(date +%s)
-$COMPOSE build
-BUILD_END=$(date +%s)
-log "Build completed in $((BUILD_END - BUILD_START))s"
+# ── Step 3: Pull images ──
+log "[2/5] Pulling latest images..."
+PULL_START=$(date +%s)
+docker pull "$BACKEND_IMAGE"
+docker pull "$FRONTEND_IMAGE"
+PULL_END=$(date +%s)
+log "Pull completed in $((PULL_END - PULL_START))s"
 
-# ── Step 5: Migration (optional) ──
+# ── Step 4: Migration (optional) ──
 if [ "$DO_MIGRATE" = true ]; then
-    log "[3/6] Running DB migration..."
+    log "[3/5] Running DB migration..."
 
     # Swap to Session pooler (port 5432) for Alembic
     log "  Switching to Session pooler (port 5432)..."
@@ -112,15 +105,15 @@ if [ "$DO_MIGRATE" = true ]; then
     fi
     log "  Migration completed successfully."
 else
-    log "[3/6] Migration skipped (use --migrate to run)"
+    log "[3/5] Migration skipped (use --migrate to run)"
 fi
 
-# ── Step 6: Start services ──
-log "[4/6] Starting services..."
+# ── Step 5: Start services ──
+log "[4/5] Starting services..."
 $COMPOSE up -d
 
-# ── Step 7: Health check ──
-log "[5/6] Waiting for health check..."
+# ── Step 6: Health check ──
+log "[5/5] Waiting for health check..."
 WAITED=0
 while [ $WAITED -lt $MAX_HEALTH_WAIT ]; do
     STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" 2>/dev/null || echo "000")
@@ -140,8 +133,7 @@ if [ $WAITED -ge $MAX_HEALTH_WAIT ]; then
     exit 1
 fi
 
-# ── Step 8: Status report ──
-log "[6/6] Final status:"
+# ── Status report ──
 echo ""
 $COMPOSE ps --format "table {{.Name}}\t{{.Status}}"
 echo ""
