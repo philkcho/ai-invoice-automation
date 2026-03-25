@@ -9,9 +9,10 @@ PDF나 이미지로 수신된 인보이스를 OCR(Google Document AI) + AI(Claud
 - **백엔드**: Python 3.11 + FastAPI 0.111.0 — 비동기(async/await) 기반 REST API 서버
 - **ORM/마이그레이션**: SQLAlchemy (asyncpg 드라이버) + Alembic — 비동기 DB 접근 및 스키마 버전 관리
 - **프론트엔드**: Next.js 14 (App Router) + TypeScript + Tailwind CSS — React 기반 SPA
+- **UI 컴포넌트**: shadcn/ui 4.1 (class-variance-authority, clsx, tailwindcss-animate) — 대시보드 UI 기반
 - **상태 관리**: Zustand (클라이언트 상태) + TanStack React Query (서버 상태/캐싱)
 - **폼/검증**: React Hook Form + Zod — 프론트엔드 폼 처리 및 입력값 검증
-- **데이터베이스**: PostgreSQL 15 — 메인 데이터 저장소 (28개 테이블)
+- **데이터베이스**: Supabase PostgreSQL (프로덕션) / PostgreSQL 15 (로컬) — 메인 데이터 저장소 (28개 테이블)
 - **메시지 큐**: Redis 7 + Celery 5.4.0 — 비동기 작업 처리 (OCR, 이메일 폴링, 알림 등)
 - **작업 모니터링**: Flower — Celery 작업 상태 웹 UI
 - **OCR**: Google Document AI (google-cloud-documentai 2.29.0) — 인보이스 이미지/PDF 텍스트 추출 (메인)
@@ -24,6 +25,8 @@ PDF나 이미지로 수신된 인보이스를 OCR(Google Document AI) + AI(Claud
 - **모니터링**: Sentry — 에러 추적 및 알림
 - **CI/CD**: GitHub Actions — pytest + jest + Docker 빌드 검증
 - **컨테이너**: Docker Compose — 8개 서비스 오케스트레이션
+- **리버스 프록시**: Caddy — 자동 SSL (Let's Encrypt) + 리버스 프록시
+- **인프라**: Oracle Cloud (ARM A1 Always Free) — 프로덕션 서버
 
 ## 개발 명령어
 ```bash
@@ -47,9 +50,16 @@ docker-compose exec db psql -U invoice_user -d invoice_db
 cd frontend && npm run dev    # 개발 서버 실행
 cd frontend && npm run build  # 프로덕션 빌드
 cd frontend && npm run lint   # ESLint 코드 검사
+
+# 프로덕션 배포
+scripts/deploy.sh             # 기본 배포 (git pull → build → restart)
+scripts/deploy.sh --migrate   # DB 마이그레이션 포함 배포
+scripts/deploy.sh --quick     # 빌드 스킵, 컨테이너 재시작만
 ```
 
 ## 서비스 접속 정보
+
+### 로컬 개발
 | 서비스 | URL | 설명 |
 |--------|-----|------|
 | 프론트엔드 | http://localhost:3000 | Next.js 웹 UI |
@@ -59,6 +69,12 @@ cd frontend && npm run lint   # ESLint 코드 검사
 | Flower | http://localhost:5555 | Celery 작업 모니터링 대시보드 |
 | PostgreSQL | localhost:5432 | DB 직접 접속 (user: invoice_user) |
 | Redis | localhost:6379 | 캐시 및 메시지 브로커 |
+
+### 프로덕션
+| 서비스 | URL | 설명 |
+|--------|-----|------|
+| 프로덕션 사이트 | https://ai-invoice.araverus.com | Caddy 리버스 프록시 (자동 SSL) |
+| 프로덕션 API | https://ai-invoice.araverus.com/api/ | 백엔드 API (Caddy 경유) |
 
 ## 프로젝트 구조
 ```
@@ -118,6 +134,20 @@ scripts/                  # 유틸리티 스크립트 (백업, 모니터링, 복
 - **언어**: 커밋 메시지, 주석, 문서는 한국어 사용 가능
 - **UI 언어**: 모든 사용자 대면 텍스트(에러 메시지, 버튼, 라벨, 이메일 본문 등)는 **영어**로 작성
 
+## 프론트엔드 디자인 시스템
+- **대시보드 (내부 페이지)**: shadcn/ui + CSS 변수 기반 테마 — Rose Warm (라이트) / Navy-Rose (다크)
+  - 색상: `globals.css`의 `:root` / `.dark` CSS 변수 (`--background`, `--primary`, `--card` 등)
+  - 컴포넌트 스타일: `.card`, `.btn-primary`, `.btn-secondary`, `.badge-*`, `.input`, `.table-*` 등
+- **공개 페이지**: Navy-Coral Playful 다크 테마 (mix-08 기반)
+  - 배경: `bg-base` (#1a1a2e) + `dot-grid` (산호색 도트 패턴)
+  - 강조색: `coral` (#f87171) — 버튼, 배지, 그래디언트 텍스트
+  - 효과: `coral-glow` (떠다니는 빛 블롭), `coral-gradient-text` (shimmer 텍스트)
+  - 카드: `window-card` (macOS 스타일 3색 dots + hover 리프트), `stat-card`, `price-card`
+  - 버튼: `btn-coral` (conic gradient hover + 글로우 섀도우)
+  - 네비게이션: `PublicNav` (fixed, backdrop-blur) — FAQ/Guide/Pricing/Contact 공유
+  - 푸터: 4컬럼 (Product, Company, Legal) + 로고 + 저작권
+  - 타이포: Inter 300–900, `font-extrabold`/`font-black` 헤딩
+
 ## 보안 규칙
 - `.env` 파일은 절대 Git에 커밋하지 않음 (`.env.dev`는 개발용 템플릿, 실제 키 포함 금지)
 - 인증: JWT access token (60분 만료) + refresh token (7일 만료) 이중 토큰 방식
@@ -144,6 +174,17 @@ scripts/                  # 유틸리티 스크립트 (백업, 모니터링, 복
 - **설정 백업** — 매주 일요일 04:00 KST
 - **이메일 다이제스트 (Daily)** — 매시 :05 (회사별 설정 시간 매칭)
 - **이메일 다이제스트 (Weekly)** — 매시 :05 (회사별 설정 요일+시간 매칭)
+
+## 프로덕션 배포 환경
+- **서버**: Oracle Cloud ARM A1 (Always Free Tier)
+- **DB**: Supabase PostgreSQL (Transaction Pooler port 6543, Session Pooler port 5432)
+  - Transaction Pooler: 앱 런타임 (`prepared_statement_cache_size=0` 필수)
+  - Session Pooler: Alembic 마이그레이션 전용
+- **리버스 프록시**: Caddy (자동 Let's Encrypt SSL)
+- **도메인**: `ai-invoice.araverus.com` (Hostinger DNS → Oracle Cloud IP)
+- **Docker 구성**: `docker-compose.prod.yml` — Caddy, Redis, Backend, Celery Worker/Beat, Frontend
+- **배포 스크립트**: `scripts/deploy.sh` — git pull → Docker build → 헬스체크 (최대 300초)
+- **배포 문서**: `docs/production-deployment.md`
 
 ## 개발 단계 (로드맵)
 - **Phase 1**: Docker 환경 + 프로젝트 구조 셋업 ✅ 완료

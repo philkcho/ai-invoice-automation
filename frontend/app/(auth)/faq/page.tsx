@@ -33,24 +33,31 @@ export default function FaqPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <div className="min-h-screen font-sans text-white bg-base overflow-x-hidden">
+    <div className="min-h-screen font-sans text-white bg-base dot-grid overflow-x-hidden">
       <PublicNav activePage="faq" />
 
       {/* ── Hero ────────────────────────────────────────────────────── */}
-      <section className="relative bg-base overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-[0.05]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(248,113,113,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(248,113,113,0.5) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
-        />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-coral/10 rounded-full blur-[200px]" />
+      <section className="relative pt-16 overflow-hidden">
+        {/* Coral glow blob */}
+        <div className="coral-glow -top-40 -right-40" />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <h1 className="text-3xl sm:text-5xl font-bold text-white mb-4">
-            {t('landing.faq.title')}
+          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
+            {t('landing.faq.title').split(' ').length > 2 ? (
+              <>
+                {t('landing.faq.title').split(' ').slice(0, -1).join(' ')}{' '}
+                <span className="coral-gradient-text">
+                  {t('landing.faq.title').split(' ').slice(-1)[0]}
+                </span>
+              </>
+            ) : (
+              <>
+                {t('landing.faq.title').split(' ')[0]}{' '}
+                <span className="coral-gradient-text">
+                  {t('landing.faq.title').split(' ').slice(1).join(' ')}
+                </span>
+              </>
+            )}
           </h1>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto">
             {t('landing.faq.subtitle')}
@@ -71,13 +78,19 @@ export default function FaqPage() {
               {category.items.map((n) => (
                 <div
                   key={n}
-                  className="bg-surface-dark rounded-xl border border-white/5 overflow-hidden"
+                  className="window-card bg-surface-dark/60 rounded-2xl border border-white/5 overflow-hidden"
                 >
                   <button
                     onClick={() => setOpenFaq(openFaq === n ? null : n)}
                     className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-surface-dark-light transition-colors"
                   >
-                    <span className="font-semibold text-white pr-4">
+                    <span className="flex items-center gap-3 font-semibold text-white pr-4">
+                      {/* macOS dots */}
+                      <span className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className="w-2.5 h-2.5 rounded-full bg-coral/80" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                      </span>
                       {t(`landing.faq.q${n}`)}
                     </span>
                     <ChevronDownIcon
@@ -104,7 +117,8 @@ export default function FaqPage() {
 
       {/* ── CTA ─────────────────────────────────────────────────────── */}
       <section className="relative bg-surface-dark overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-coral/10 rounded-full blur-[200px]" />
+        {/* Coral glow blob */}
+        <div className="coral-glow top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
@@ -116,7 +130,7 @@ export default function FaqPage() {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/signup"
-              className="inline-flex items-center px-8 py-4 rounded-xl bg-coral text-white font-semibold text-lg shadow-lg shadow-coral/25 hover:bg-coral-dark hover:shadow-coral/40 transition-all"
+              className="btn-coral inline-flex items-center px-8 py-4 rounded-xl bg-coral text-white font-semibold text-lg shadow-lg shadow-coral/25 hover:bg-coral-dark hover:shadow-coral/40 transition-all"
             >
               {t('common.getStarted')}
             </Link>
@@ -128,16 +142,66 @@ export default function FaqPage() {
             </Link>
           </div>
         </div>
+      </section>
 
-        {/* Footer */}
-        <div className="border-t border-white/5">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
+      {/* ── Footer ──────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/5 bg-base">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
+            {/* Brand */}
+            <div className="col-span-2 md:col-span-1">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center">
+                  <SparklesIcon className="w-5 h-5 text-white" />
+                </div>
+                <span className="font-bold text-white text-lg">AI Invoice</span>
+              </div>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Invoice automation that actually works.
+              </p>
+            </div>
+
+            {/* Product */}
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-4">Product</h4>
+              <ul className="space-y-2.5">
+                <li><Link href="/guide" className="text-sm text-gray-500 hover:text-coral transition-colors">Features</Link></li>
+                <li><Link href="/pricing" className="text-sm text-gray-500 hover:text-coral transition-colors">Pricing</Link></li>
+                <li><span className="text-sm text-gray-600">Integrations</span></li>
+                <li><span className="text-sm text-gray-600">Changelog</span></li>
+              </ul>
+            </div>
+
+            {/* Company */}
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
+              <ul className="space-y-2.5">
+                <li><span className="text-sm text-gray-600">About</span></li>
+                <li><span className="text-sm text-gray-600">Blog</span></li>
+                <li><span className="text-sm text-gray-600">Careers</span></li>
+                <li><Link href="/contact" className="text-sm text-gray-500 hover:text-coral transition-colors">Contact</Link></li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-4">Legal</h4>
+              <ul className="space-y-2.5">
+                <li><span className="text-sm text-gray-600">Privacy</span></li>
+                <li><span className="text-sm text-gray-600">Terms</span></li>
+                <li><span className="text-sm text-gray-600">Security</span></li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Copyright */}
+          <div className="border-t border-white/5 mt-12 pt-8 text-center">
             <p className="text-sm text-gray-500">
               {t('common.copyright')}
             </p>
           </div>
         </div>
-      </section>
+      </footer>
     </div>
   );
 }

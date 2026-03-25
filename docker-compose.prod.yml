@@ -54,9 +54,7 @@ services:
 
   # ── FastAPI Backend ─────────────────────────────────
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/philkcho/ai-invoice-automation/backend:latest
     container_name: invoice_backend
     restart: unless-stopped
     # 프로덕션: --reload 제거, 워커 수 설정 (Oracle ARM OCPU 수에 맞게 조정)
@@ -88,9 +86,7 @@ services:
 
   # ── Celery Worker ───────────────────────────────────
   celery_worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/philkcho/ai-invoice-automation/backend:latest
     container_name: invoice_celery_worker
     restart: unless-stopped
     command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
@@ -119,9 +115,7 @@ services:
 
   # ── Celery Beat (스케줄러) ──────────────────────────
   celery_beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/philkcho/ai-invoice-automation/backend:latest
     container_name: invoice_celery_beat
     restart: unless-stopped
     command: celery -A app.tasks.celery_app beat --loglevel=info
@@ -148,12 +142,7 @@ services:
 
   # ── Next.js Frontend ────────────────────────────────
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.prod
-      args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-        - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+    image: ghcr.io/philkcho/ai-invoice-automation/frontend:latest
     container_name: invoice_frontend
     restart: unless-stopped
     env_file:

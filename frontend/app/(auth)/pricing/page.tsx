@@ -7,6 +7,14 @@ import { useTranslation } from '@/lib/i18n';
 import PublicNav from '@/components/layout/PublicNav';
 import type { SubscriptionPlan } from '@/types';
 
+function DocumentIcon({ className = 'w-5 h-5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  );
+}
+
 const FALLBACK_PLANS: SubscriptionPlan[] = [
   {
     id: 'free_trial', name: 'free_trial', display_name: 'Free Trial',
@@ -85,44 +93,6 @@ const PLAN_FEATURE_KEYS: Record<string, { prefixKey?: string; items: FeatureItem
   },
 };
 
-function PlanIcon({ plan }: { plan: string }) {
-  const cls = 'w-10 h-10 text-gray-300';
-  if (plan === 'free_trial') {
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-      </svg>
-    );
-  }
-  if (plan === 'starter') {
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-      </svg>
-    );
-  }
-  if (plan === 'professional') {
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
-      </svg>
-    );
-  }
-  return (
-    <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" />
-    </svg>
-  );
-}
-
-function CheckMark() {
-  return (
-    <svg className="w-4 h-4 text-coral shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-    </svg>
-  );
-}
-
 export default function PricingPage() {
   const { t } = useTranslation();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -135,133 +105,149 @@ export default function PricingPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const planNameKey: Record<string, string> = {
+    free_trial: 'pricing.plans.freeTrial',
+    starter: 'pricing.plans.starter',
+    professional: 'pricing.plans.professional',
+    enterprise: 'pricing.plans.enterprise',
+  };
+
   return (
-    <div className="min-h-screen bg-base font-sans text-white overflow-x-hidden">
+    <div className="min-h-screen font-sans text-white bg-base dot-grid overflow-x-hidden">
       <PublicNav activePage="pricing" />
 
-      {/* Header */}
-      <div className="pt-16 pb-14 text-center">
-        <h1 className="text-2xl sm:text-4xl font-bold text-white mb-3">
-          {t('pricing.title')}
-        </h1>
-        <p className="text-base text-gray-400 max-w-lg mx-auto">
-          {t('pricing.subtitle')}
-        </p>
-      </div>
+      {/* ── Hero ──────────────────────────────────────────────────── */}
+      <section className="relative pt-28 pb-16 overflow-hidden">
+        <div className="coral-glow top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ opacity: 0.25 }} />
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">
+            Plans for every <span className="coral-gradient-text">team</span>
+          </h2>
+          <p className="text-lg text-gray-400">{t('pricing.subtitle')}</p>
+        </div>
+      </section>
 
-      {/* Plans grid */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-28">
+      {/* ── Plans ─────────────────────────────────────────────────── */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
         {loading ? (
           <div className="text-center py-20 text-gray-500">{t('common.loadingPlans')}</div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-0 border border-white/5 rounded-2xl overflow-hidden">
-            {plans.map((plan, idx) => {
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {plans.map((plan) => {
               const featureInfo = PLAN_FEATURE_KEYS[plan.name] || { items: [] };
-              const isLast = idx === plans.length - 1;
               const isFeatured = plan.name === 'professional';
-              const planNameKeyMap: Record<string, string> = {
-                free_trial: 'pricing.plans.freeTrial',
-                starter: 'pricing.plans.starter',
-                professional: 'pricing.plans.professional',
-                enterprise: 'pricing.plans.enterprise',
-              };
-              const ctaKeyMap: Record<string, string> = {
-                starter: 'pricing.plans.getStarter',
-                professional: 'pricing.plans.getProfessional',
-              };
 
               return (
                 <div
                   key={plan.id}
-                  className={`flex flex-col p-7 bg-surface-dark ${
-                    isFeatured ? 'ring-1 ring-coral/30 relative' : ''
-                  } ${
-                    !isLast ? 'lg:border-r border-b lg:border-b-0 border-white/5' : ''
+                  className={`price-card flex flex-col rounded-2xl p-8 ${
+                    isFeatured
+                      ? 'bg-surface-dark/80 border-2 border-coral/20 relative'
+                      : 'bg-surface-dark/60 border border-white/5'
                   }`}
                 >
                   {isFeatured && (
-                    <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-coral to-coral-light" />
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="bg-coral text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg shadow-coral/30">Popular</span>
+                    </div>
                   )}
 
-                  {/* Icon */}
-                  <div className="mb-5">
-                    <PlanIcon plan={plan.name} />
-                  </div>
-
-                  {/* Plan name + subtitle */}
-                  <h3 className="text-xl font-bold text-white">
-                    {planNameKeyMap[plan.name] ? t(planNameKeyMap[plan.name]) : plan.display_name}
+                  <h3 className="text-lg font-bold mb-1">
+                    {planNameKey[plan.name] ? t(planNameKey[plan.name]) : plan.display_name}
                   </h3>
-                  <p className="text-sm text-gray-500 mt-0.5 mb-5">
+                  <p className={`text-sm mb-6 ${isFeatured ? 'text-coral/70' : 'text-gray-500'}`}>
                     {PLAN_SUBTITLE_KEYS[plan.name] ? t(PLAN_SUBTITLE_KEYS[plan.name]) : ''}
                   </p>
 
-                  {/* Price */}
-                  <div className="mb-6">
+                  <div className="mb-8">
                     {plan.name === 'enterprise' ? (
-                      <div className="text-3xl font-bold text-white">{t('common.custom')}</div>
+                      <span className="text-4xl font-black">{t('common.custom')}</span>
+                    ) : plan.monthly_price === 0 ? (
+                      <span className="text-4xl font-black">Free</span>
                     ) : (
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-white">
-                          ${plan.monthly_price}
-                        </span>
-                        {plan.monthly_price > 0 && (
-                          <span className="text-sm text-gray-500">/ {t('common.month')}</span>
-                        )}
-                      </div>
+                      <>
+                        <span className="text-4xl font-black">${plan.monthly_price}</span>
+                        <span className="text-gray-500 text-sm">/{t('common.month')}</span>
+                      </>
                     )}
                   </div>
 
-                  {/* CTA Button */}
-                  {plan.name === 'free_trial' ? (
-                    <Link
-                      href="/signup"
-                      className="block w-full py-2.5 text-center text-sm font-medium border border-white/10 text-gray-300 rounded-full hover:bg-white/5 hover:border-white/20 transition-colors mb-7"
-                    >
+                  <ul className="space-y-3 mb-8 text-sm text-gray-400 flex-1">
+                    {featureInfo.prefixKey && (
+                      <li className="font-semibold text-gray-300 mb-1">{t(featureInfo.prefixKey)}</li>
+                    )}
+                    {featureInfo.items.map((item) => (
+                      <li key={item.key} className="flex items-center gap-2.5">
+                        <svg className="w-4 h-4 text-coral flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {t(item.key, item.params)}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {isFeatured ? (
+                    <Link href="/signup" className="btn-coral block text-center bg-coral text-white font-bold py-3 rounded-xl text-sm relative z-10">
                       {t('common.startFreeTrial')}
                     </Link>
                   ) : plan.name === 'enterprise' ? (
-                    <button className="w-full py-2.5 text-sm font-medium border border-white/10 text-gray-300 rounded-full hover:bg-white/5 hover:border-white/20 transition-colors mb-7">
+                    <Link href="/contact" className="block text-center border border-white/10 hover:border-coral/30 text-white font-semibold py-3 rounded-xl text-sm transition-all">
                       {t('common.contactSales')}
-                    </button>
-                  ) : isFeatured ? (
-                    <Link
-                      href="/signup"
-                      className="block w-full py-2.5 text-center text-sm font-medium bg-coral text-white rounded-full hover:bg-coral-dark transition-colors mb-7"
-                    >
-                      {ctaKeyMap[plan.name] ? t(ctaKeyMap[plan.name]) : `Get ${plan.display_name}`}
                     </Link>
                   ) : (
-                    <Link
-                      href="/signup"
-                      className="block w-full py-2.5 text-center text-sm font-medium border border-white/10 text-gray-300 rounded-full hover:bg-white/5 hover:border-white/20 transition-colors mb-7"
-                    >
-                      {ctaKeyMap[plan.name] ? t(ctaKeyMap[plan.name]) : `Get ${plan.display_name}`}
+                    <Link href="/signup" className="block text-center border border-white/10 hover:border-coral/30 text-white font-semibold py-3 rounded-xl text-sm transition-all">
+                      {t('common.getStarted')}
                     </Link>
                   )}
-
-                  {/* Features list */}
-                  <div className="flex-1">
-                    {featureInfo.prefixKey && (
-                      <p className="text-sm font-semibold text-gray-300 mb-3">
-                        {t(featureInfo.prefixKey)}
-                      </p>
-                    )}
-                    <ul className="space-y-2.5">
-                      {featureInfo.items.map((item) => (
-                        <li key={item.key} className="flex items-start gap-2.5 text-sm text-gray-400">
-                          <CheckMark />
-                          <span>{t(item.key, item.params)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
                 </div>
               );
             })}
           </div>
         )}
-      </div>
+      </section>
+
+      {/* ── Footer ────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/5 py-16">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid md:grid-cols-4 gap-10">
+            <div>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-coral/10 border border-coral/20 flex items-center justify-center">
+                  <DocumentIcon className="w-4 h-4 text-coral" />
+                </div>
+                <span className="font-bold">{t('common.aiInvoice')}</span>
+              </div>
+              <p className="text-sm text-gray-500 leading-relaxed">Invoice automation that actually works. Built for modern teams.</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-4">Product</h4>
+              <ul className="space-y-2.5 text-sm text-gray-500">
+                <li><Link href="/guide" className="hover:text-coral transition-colors">Features</Link></li>
+                <li><Link href="/pricing" className="hover:text-coral transition-colors">{t('common.pricing')}</Link></li>
+                <li><Link href="/demo" className="hover:text-coral transition-colors">Demo</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-4">Company</h4>
+              <ul className="space-y-2.5 text-sm text-gray-500">
+                <li><Link href="/faq" className="hover:text-coral transition-colors">FAQ</Link></li>
+                <li><Link href="/contact" className="hover:text-coral transition-colors">Contact</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-4">Legal</h4>
+              <ul className="space-y-2.5 text-sm text-gray-500">
+                <li><span className="cursor-default">Privacy</span></li>
+                <li><span className="cursor-default">Terms</span></li>
+                <li><span className="cursor-default">Security</span></li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t border-white/5 text-center text-sm text-gray-600">
+            {t('common.copyright')}
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

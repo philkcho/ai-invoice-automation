@@ -6,10 +6,10 @@ import PublicNav from '@/components/layout/PublicNav';
 
 // ─── Inline Icons ────────────────────────────────────────────────────────────
 
-function SparklesIcon({ className = 'w-5 h-5' }: { className?: string }) {
+function DocumentIcon({ className = 'w-5 h-5' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
   );
 }
@@ -94,7 +94,13 @@ function BuildingIcon({ className = 'w-6 h-6' }: { className?: string }) {
   );
 }
 
-// ─── Step Icons by Index ─────────────────────────────────────────────────────
+function SparklesIcon({ className = 'w-5 h-5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+    </svg>
+  );
+}
 
 const STEP_ICONS = [
   <InboxIcon key="s1" className="w-6 h-6 text-white" />,
@@ -119,66 +125,49 @@ export default function GuidePage() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen font-sans text-white bg-base overflow-x-hidden">
+    <div className="min-h-screen font-sans text-white bg-base dot-grid overflow-x-hidden">
       <PublicNav activePage="guide" />
 
-      {/* ── Section 1: Hero ─────────────────────────────────────── */}
-      <section className="relative bg-base overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-[0.05]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(248,113,113,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(248,113,113,0.5) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
-        />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-coral/10 rounded-full blur-[200px]" />
-
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
-          <h1 className="text-3xl sm:text-5xl font-bold text-white mb-5">
-            {t('guide.heroTitle')}
+      {/* ── Hero ─────────────────────────────────────────── */}
+      <section className="relative pt-28 pb-16 overflow-hidden">
+        <div className="coral-glow -top-40 -right-40" />
+        <div className="coral-glow bottom-0 -left-40" style={{ animationDelay: '-3s' }} />
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-5">
+            {t('guide.heroTitle').split(' ').slice(0, -1).join(' ')}{' '}
+            <span className="coral-gradient-text">{t('guide.heroTitle').split(' ').slice(-1)}</span>
           </h1>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-10">
             {t('guide.heroSubtitle')}
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link
-              href="/signup"
-              className="inline-flex items-center px-7 py-3.5 rounded-xl bg-coral text-white font-semibold shadow-lg shadow-coral/25 hover:bg-coral-dark hover:shadow-coral/40 transition-all"
-            >
-              {t('common.startFreeTrial')}
-            </Link>
-          </div>
+          <Link
+            href="/signup"
+            className="btn-coral inline-flex items-center bg-coral text-white font-bold px-8 py-3.5 rounded-xl text-sm relative z-10"
+          >
+            {t('common.startFreeTrial')}
+          </Link>
         </div>
       </section>
 
-      {/* ── Section 2: Before vs After ──────────────────────────── */}
-      <section className="bg-surface-dark">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      {/* ── Before vs After ──────────────────────────────── */}
+      <section className="py-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
               {t('guide.beforeAfterTitle')}
             </h2>
-            <p className="mt-4 text-lg text-gray-400">
-              {t('guide.beforeAfterSubtitle')}
-            </p>
+            <p className="mt-4 text-lg text-gray-400">{t('guide.beforeAfterSubtitle')}</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Before column */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <XCircleIcon className="w-5 h-5 text-red-400" />
-                <span className="font-bold text-red-400 text-sm uppercase tracking-wide">
-                  {t('guide.before')}
-                </span>
+                <span className="font-bold text-red-400 text-sm uppercase tracking-wide">{t('guide.before')}</span>
               </div>
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((n) => (
-                  <div
-                    key={n}
-                    className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-5 py-4"
-                  >
+                  <div key={n} className="window-card flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-2xl px-5 py-4">
                     <XCircleIcon className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                     <span className="text-gray-300">{t(`guide.ba${n}Before`)}</span>
                   </div>
@@ -186,20 +175,14 @@ export default function GuidePage() {
               </div>
             </div>
 
-            {/* After column */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <CheckCircleIcon className="w-5 h-5 text-emerald-400" />
-                <span className="font-bold text-emerald-400 text-sm uppercase tracking-wide">
-                  {t('guide.after')}
-                </span>
+                <span className="font-bold text-emerald-400 text-sm uppercase tracking-wide">{t('guide.after')}</span>
               </div>
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((n) => (
-                  <div
-                    key={n}
-                    className="flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-5 py-4"
-                  >
+                  <div key={n} className="window-card flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-5 py-4">
                     <CheckCircleIcon className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                     <span className="text-gray-300">{t(`guide.ba${n}After`)}</span>
                   </div>
@@ -210,51 +193,46 @@ export default function GuidePage() {
         </div>
       </section>
 
-      {/* ── Section 3: 5-Step Guide ─────────────────────────────── */}
-      <section className="bg-base">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      {/* ── 5-Step Guide ─────────────────────────────────── */}
+      <section className="py-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">
-              {t('guide.stepsTitle')}
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
+              {t('guide.stepsTitle').split(' ').slice(0, -1).join(' ')}{' '}
+              <span className="coral-gradient-text">{t('guide.stepsTitle').split(' ').slice(-1)}</span>
             </h2>
-            <p className="mt-4 text-lg text-gray-400">
-              {t('guide.stepsSubtitle')}
-            </p>
+            <p className="mt-4 text-lg text-gray-400">{t('guide.stepsSubtitle')}</p>
           </div>
 
           <div className="space-y-8">
             {[1, 2, 3, 4, 5].map((n, i) => (
               <div
                 key={n}
-                className={`flex flex-col md:flex-row items-center gap-8 ${
-                  i % 2 === 1 ? 'md:flex-row-reverse' : ''
-                }`}
+                className={`flex flex-col md:flex-row items-center gap-8 ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}
               >
-                {/* Step number + icon */}
                 <div className="flex-shrink-0 w-full md:w-48 text-center">
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-coral/10 border border-coral/20 mb-3">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center shadow-lg shadow-coral/25">
                       {STEP_ICONS[i]}
                     </div>
                   </div>
-                  <div className="text-sm font-bold text-coral uppercase tracking-wider">
-                    Step {n}
-                  </div>
+                  <div className="text-sm font-bold text-coral uppercase tracking-wider">Step {n}</div>
                 </div>
 
-                {/* Content card */}
-                <div className="flex-1 bg-surface-dark rounded-2xl p-8 border border-white/5">
-                  <h3 className="text-xl font-bold text-white mb-3">
-                    {t(`guide.step${n}Title`)}
-                  </h3>
-                  <p className="text-gray-400 leading-relaxed mb-4">
-                    {t(`guide.step${n}Desc`)}
-                  </p>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-coral/10 border border-coral/20">
-                    <SparklesIcon className="w-4 h-4 text-coral" />
-                    <span className="text-sm font-medium text-coral-light italic">
-                      {t(`guide.step${n}Quote`)}
-                    </span>
+                <div className="flex-1 window-card bg-surface-dark/60 rounded-2xl border border-white/5 overflow-hidden">
+                  <div className="flex items-center gap-2 px-5 py-3 border-b border-white/5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-coral/80" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/40" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-400/40" />
+                    <span className="ml-2 text-xs text-gray-600 font-mono">step-{n}</span>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-white mb-3">{t(`guide.step${n}Title`)}</h3>
+                    <p className="text-gray-400 leading-relaxed mb-4">{t(`guide.step${n}Desc`)}</p>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-coral/10 border border-coral/20">
+                      <SparklesIcon className="w-4 h-4 text-coral" />
+                      <span className="text-sm font-medium text-coral-light italic">{t(`guide.step${n}Quote`)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -263,27 +241,14 @@ export default function GuidePage() {
         </div>
       </section>
 
-      {/* ── Section 4: Dashboard Preview ────────────────────────── */}
-      <section className="relative bg-surface-dark overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-[0.05]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(248,113,113,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(248,113,113,0.5) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
-        />
-
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      {/* ── Dashboard Preview ────────────────────────────── */}
+      <section className="relative py-24 overflow-hidden">
+        <div className="coral-glow top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ opacity: 0.15 }} />
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">
-              {t('guide.dashboardTitle')}
-            </h2>
-            <p className="mt-4 text-lg text-gray-300">
-              {t('guide.dashboardSubtitle')}
-            </p>
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">{t('guide.dashboardTitle')}</h2>
+            <p className="mt-4 text-lg text-gray-300">{t('guide.dashboardSubtitle')}</p>
           </div>
-
           <div className="grid sm:grid-cols-2 gap-4">
             {(['dashKpi', 'dashPipeline', 'dashTrends', 'dashActions'] as const).map((key, i) => {
               const icons = [
@@ -293,16 +258,9 @@ export default function GuidePage() {
                 <ShieldCheckIcon key="d4" className="w-5 h-5 text-coral" />,
               ];
               return (
-                <div
-                  key={key}
-                  className="flex items-start gap-4 bg-surface-dark-light border border-white/10 rounded-xl p-5"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-coral/15 flex items-center justify-center flex-shrink-0">
-                    {icons[i]}
-                  </div>
-                  <p className="text-gray-300 text-sm leading-relaxed">
-                    {t(`guide.${key}`)}
-                  </p>
+                <div key={key} className="window-card flex items-start gap-4 bg-surface-dark/60 border border-white/5 rounded-2xl p-5">
+                  <div className="w-10 h-10 rounded-lg bg-coral/15 flex items-center justify-center flex-shrink-0">{icons[i]}</div>
+                  <p className="text-gray-300 text-sm leading-relaxed">{t(`guide.${key}`)}</p>
                 </div>
               );
             })}
@@ -310,98 +268,116 @@ export default function GuidePage() {
         </div>
       </section>
 
-      {/* ── Section 5: Features Grid ────────────────────────────── */}
-      <section className="bg-base">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      {/* ── Features Grid ────────────────────────────────── */}
+      <section className="py-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
               {t('guide.featuresTitle')}
             </h2>
           </div>
-
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((n, i) => (
-              <div
-                key={n}
-                className="bg-surface-dark rounded-2xl p-6 hover:bg-surface-dark-light transition-all duration-300 hover:-translate-y-1 border border-white/5 hover:border-coral/20"
-              >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center mb-4 shadow-lg shadow-coral/20">
-                  {FEATURE_ICONS[i]}
+              <div key={n} className="window-card bg-surface-dark/60 rounded-2xl border border-white/5 overflow-hidden">
+                <div className="flex items-center gap-2 px-5 py-3 border-b border-white/5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-coral/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/40" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-400/40" />
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2">
-                  {t(`guide.feat${n}Title`)}
-                </h3>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  {t(`guide.feat${n}Desc`)}
-                </p>
+                <div className="p-6">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center mb-4 shadow-lg shadow-coral/20">
+                    {FEATURE_ICONS[i]}
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">{t(`guide.feat${n}Title`)}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{t(`guide.feat${n}Desc`)}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Section 6: Quick Start ──────────────────────────────── */}
-      <section className="bg-surface-dark">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-12">
+      {/* ── Quick Start ──────────────────────────────────── */}
+      <section className="py-24">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-12">
             {t('guide.quickStartTitle')}
           </h2>
-
           <div className="grid md:grid-cols-3 gap-6 mb-10">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="relative">
+              <div key={n}>
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-coral to-coral-dark text-white text-xl font-bold mb-4 shadow-lg shadow-coral/25">
                   {n}
                 </div>
-                <p className="text-gray-300 font-medium">
-                  {t(`guide.min${n}`)}
-                </p>
+                <p className="text-gray-300 font-medium">{t(`guide.min${n}`)}</p>
               </div>
             ))}
           </div>
-
-          <p className="text-gray-500 italic">
-            {t('guide.quickStartNote')}
-          </p>
+          <p className="text-gray-500 italic">{t('guide.quickStartNote')}</p>
         </div>
       </section>
 
-      {/* ── Section 7: CTA ──────────────────────────────────────── */}
-      <section className="relative bg-base overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-coral/10 rounded-full blur-[200px]" />
-
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+      {/* ── CTA ──────────────────────────────────────────── */}
+      <section className="relative py-20 overflow-hidden">
+        <div className="coral-glow top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ opacity: 0.3 }} />
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-4">
             {t('guide.ctaTitle')}
           </h2>
-          <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-            {t('guide.ctaSubtitle')}
-          </p>
+          <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">{t('guide.ctaSubtitle')}</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link
-              href="/signup"
-              className="inline-flex items-center px-8 py-4 rounded-xl bg-coral text-white font-semibold text-lg shadow-lg shadow-coral/25 hover:bg-coral-dark hover:shadow-coral/40 transition-all"
-            >
+            <Link href="/signup" className="btn-coral inline-flex items-center px-8 py-4 rounded-xl bg-coral text-white font-bold text-lg relative z-10">
               {t('common.getStarted')}
             </Link>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center px-8 py-4 rounded-xl border border-white/10 text-white font-semibold text-lg hover:bg-white/5 transition-colors"
-            >
+            <Link href="/pricing" className="inline-flex items-center px-8 py-4 rounded-xl border border-white/10 text-white font-semibold text-lg hover:bg-white/5 transition-colors">
               {t('common.pricing')}
             </Link>
           </div>
         </div>
+      </section>
 
-        {/* Footer */}
-        <div className="border-t border-white/5">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-            <p className="text-sm text-gray-500">
-              {t('common.copyright')}
-            </p>
+      {/* ── Footer ───────────────────────────────────────── */}
+      <footer className="border-t border-white/5 py-16">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid md:grid-cols-4 gap-10">
+            <div>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-coral/10 border border-coral/20 flex items-center justify-center">
+                  <DocumentIcon className="w-4 h-4 text-coral" />
+                </div>
+                <span className="font-bold">{t('common.aiInvoice')}</span>
+              </div>
+              <p className="text-sm text-gray-500 leading-relaxed">Invoice automation that actually works. Built for modern teams.</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-4">Product</h4>
+              <ul className="space-y-2.5 text-sm text-gray-500">
+                <li><Link href="/guide" className="hover:text-coral transition-colors">Features</Link></li>
+                <li><Link href="/pricing" className="hover:text-coral transition-colors">{t('common.pricing')}</Link></li>
+                <li><Link href="/demo" className="hover:text-coral transition-colors">Demo</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-4">Company</h4>
+              <ul className="space-y-2.5 text-sm text-gray-500">
+                <li><Link href="/faq" className="hover:text-coral transition-colors">FAQ</Link></li>
+                <li><Link href="/contact" className="hover:text-coral transition-colors">Contact</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-4">Legal</h4>
+              <ul className="space-y-2.5 text-sm text-gray-500">
+                <li><span className="cursor-default">Privacy</span></li>
+                <li><span className="cursor-default">Terms</span></li>
+                <li><span className="cursor-default">Security</span></li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t border-white/5 text-center text-sm text-gray-600">
+            {t('common.copyright')}
           </div>
         </div>
-      </section>
+      </footer>
     </div>
   );
 }
