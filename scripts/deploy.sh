@@ -13,7 +13,7 @@ set -e
 COMPOSE="docker compose -f docker-compose.prod.yml"
 PROJECT_DIR=~/ai-invoice-automation
 HEALTH_URL="http://localhost:8000/health"
-MAX_HEALTH_WAIT=120  # seconds
+MAX_HEALTH_WAIT=300  # seconds
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -35,6 +35,13 @@ for arg in "$@"; do
 done
 
 cd "$PROJECT_DIR"
+
+# Load .env.prod so NEXT_PUBLIC_* vars are available during docker build
+if [ -f .env.prod ]; then
+    set -a
+    source .env.prod
+    set +a
+fi
 
 echo ""
 echo "========================================="
