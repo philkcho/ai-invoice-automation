@@ -549,55 +549,47 @@ def _cashflow_buckets(today: date) -> list[dict]:
 async def get_cashflow_forecast(
     db: AsyncSession, company_id: UUID
 ) -> list[dict]:
-    """미결제 인보이스 기반 캐시플로우 예측 (due_date 구간별)"""
+    """미결제 인보이스 기반 캐시플로우 예측 — SQL 집계로 O(n) DB 1회 처리"""
     today = date.today()
     buckets = _cashflow_buckets(today)
 
-    # 미결제 인보이스 (PAID, VOID 제외)
+    # SQL CASE로 버킷 분류 후 GROUP BY — Python 루프 대신 DB에서 집계
+    from sqlalchemy import case, literal_column
+    bucket_case = case(
+        (Invoice.due_date.is_(None), literal_column("'no_due_date'")),
+        (Invoice.due_date < today, literal_column("'overdue'")),
+        *[
+            (Invoice.due_date.between(b["start"], b["end"]), literal_column(f"'{b['key']}'"))
+            for b in buckets
+            if b["start"] and b["end"]
+        ],
+        else_=literal_column("'later'"),
+    ).label("bucket")
+
     result = await db.execute(
-        select(Invoice.due_date, Invoice.amount_total)
+        select(
+            bucket_case,
+            func.count().label("count"),
+            func.coalesce(func.sum(Invoice.amount_total), 0).label("amount"),
+        )
         .where(
             Invoice.company_id == company_id,
             Invoice.status.cast(String).notin_(["PAID", "VOID"]),
         )
+        .group_by(bucket_case)
     )
-    rows = result.all()
+    agg = {row[0]: {"count": row[1], "amount": float(row[2])} for row in result.all()}
 
+    # 버킷 순서 유지
     output = []
     for b in buckets:
-        count = 0
-        amount = 0.0
-        for row in rows:
-            dd = row[0]  # due_date
-            amt = float(row[1] or 0)
-            if dd is None:
-                continue
-            if b["key"] == "overdue" and dd < today:
-                count += 1
-                amount += amt
-            elif b["start"] and b["end"] and b["start"] <= dd <= b["end"]:
-                count += 1
-                amount += amt
-            elif b["key"] == "later" and b["start"] and dd >= b["start"]:
-                count += 1
-                amount += amt
-        output.append({
-            "key": b["key"],
-            "label": b["label"],
-            "count": count,
-            "amount": amount,
-        })
+        data = agg.get(b["key"], {"count": 0, "amount": 0.0})
+        output.append({"key": b["key"], "label": b["label"], **data})
 
-    # due_date가 없는 인보이스
-    no_due = sum(1 for r in rows if r[0] is None)
-    no_due_amt = sum(float(r[1] or 0) for r in rows if r[0] is None)
-    if no_due > 0:
-        output.append({
-            "key": "no_due_date",
-            "label": "No Due Date",
-            "count": no_due,
-            "amount": no_due_amt,
-        })
+    # due_date 없는 인보이스
+    no_due = agg.get("no_due_date")
+    if no_due and no_due["count"] > 0:
+        output.append({"key": "no_due_date", "label": "No Due Date", **no_due})
 
     return output
 

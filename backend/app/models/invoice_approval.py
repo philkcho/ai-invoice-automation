@@ -13,6 +13,9 @@ from app.core.database import Base
 
 class InvoiceApproval(Base):
     __tablename__ = "invoice_approvals"
+    __table_args__ = (
+        Index("idx_approvals_company_status", "company_id", "status"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

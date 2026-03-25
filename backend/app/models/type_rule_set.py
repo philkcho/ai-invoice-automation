@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     String, Text, Boolean,
-    DateTime, ForeignKey, func,
+    DateTime, ForeignKey, func, Index,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -13,6 +13,9 @@ from app.core.database import Base
 
 class TypeRuleSet(Base):
     __tablename__ = "type_rule_sets"
+    __table_args__ = (
+        Index("idx_type_rules_company_type", "company_id", "invoice_type_id", "is_active"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

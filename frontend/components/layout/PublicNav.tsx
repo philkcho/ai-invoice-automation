@@ -28,27 +28,29 @@ export default function PublicNav({ activePage }: { activePage: PageName }) {
 
   const linkClass = (page: PageName) =>
     page === activePage
-      ? 'px-4 py-2 text-sm font-medium text-primary-600 border border-primary-200 rounded-lg bg-primary-50'
-      : 'px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:text-gray-900 hover:border-gray-300 transition-colors';
+      ? 'px-4 py-2 text-sm font-medium text-coral border border-coral/30 rounded-lg bg-coral/10'
+      : 'px-4 py-2 text-sm text-gray-400 rounded-lg hover:text-white transition-colors';
 
   const mobileLinkClass = (page: PageName) =>
     page === activePage
-      ? 'px-4 py-3 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg'
-      : 'px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors';
+      ? 'px-4 py-3 text-sm font-medium text-coral bg-coral/10 rounded-lg'
+      : 'px-4 py-3 text-sm font-medium text-gray-400 rounded-lg hover:text-white hover:bg-white/5 transition-colors';
 
   const getLabel = (link: (typeof NAV_LINKS)[0]) =>
     link.label === '__pricing__' ? t('common.pricing') : link.label;
 
   return (
-    <nav className="border-b border-gray-100">
+    <nav className="bg-base/80 backdrop-blur-xl border-b border-white/5">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/landing" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center">
               <SparklesIcon className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-lg">{t('common.aiInvoice')}</span>
+            <span className="font-bold text-lg text-white">
+              {t('common.aiInvoice')}
+            </span>
           </Link>
           {/* Desktop nav */}
           <div className="hidden lg:flex items-center gap-4">
@@ -57,17 +59,17 @@ export default function PublicNav({ activePage }: { activePage: PageName }) {
                 {getLabel(link)}
               </Link>
             ))}
-            <LanguageSwitcher className="text-gray-600 border-gray-300 hover:bg-gray-100" />
-            <Link href="/login" className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:text-gray-900 hover:border-gray-300 transition-colors">
+            <LanguageSwitcher className="text-gray-400 border-white/10 hover:bg-white/5 hover:text-white" />
+            <Link href="/login" className="px-4 py-2 text-sm text-gray-400 rounded-lg hover:text-white transition-colors">
               {t('common.signIn')}
             </Link>
-            <Link href="/signup" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors">
+            <Link href="/signup" className="px-5 py-2 text-sm font-medium text-white bg-coral rounded-full hover:bg-coral-dark transition-colors">
               {t('common.startFreeTrial')}
             </Link>
           </div>
           {/* Mobile hamburger */}
           <button
-            className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -85,7 +87,7 @@ export default function PublicNav({ activePage }: { activePage: PageName }) {
       </div>
       {/* Mobile dropdown */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-100 bg-white">
+        <div className="lg:hidden bg-surface-dark/95 backdrop-blur-xl border-t border-white/5">
           <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-2">
             {NAV_LINKS.map((link) => (
               <Link key={link.page} href={link.href} className={mobileLinkClass(link.page)} onClick={() => setMobileMenuOpen(false)}>
@@ -93,13 +95,13 @@ export default function PublicNav({ activePage }: { activePage: PageName }) {
               </Link>
             ))}
             <div className="px-4 py-2">
-              <LanguageSwitcher className="text-gray-600 border-gray-300 hover:bg-gray-100" />
+              <LanguageSwitcher className="text-gray-400 border-white/10 hover:bg-white/5 hover:text-white" />
             </div>
-            <hr className="border-gray-100 my-1" />
-            <Link href="/login" className="px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+            <hr className="border-white/5 my-1" />
+            <Link href="/login" className="px-4 py-3 text-sm font-medium text-gray-400 rounded-lg hover:text-white hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
               {t('common.signIn')}
             </Link>
-            <Link href="/signup" className="px-4 py-3 text-sm font-medium text-center text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/signup" className="px-4 py-3 text-sm font-medium text-center text-white bg-coral rounded-full hover:bg-coral-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>
               {t('common.startFreeTrial')}
             </Link>
           </div>

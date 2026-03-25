@@ -34,7 +34,6 @@ const FALLBACK_PLANS: SubscriptionPlan[] = [
   },
 ];
 
-// 플랜별 부제목 키 매핑
 const PLAN_SUBTITLE_KEYS: Record<string, string> = {
   free_trial: 'pricing.plans.freeTrialSub',
   starter: 'pricing.plans.starterSub',
@@ -42,7 +41,6 @@ const PLAN_SUBTITLE_KEYS: Record<string, string> = {
   enterprise: 'pricing.plans.enterpriseSub',
 };
 
-// 플랜별 기능 설명 키 매핑 (누적 형태)
 type FeatureItem = { key: string; params?: Record<string, string | number> };
 const PLAN_FEATURE_KEYS: Record<string, { prefixKey?: string; items: FeatureItem[] }> = {
   free_trial: {
@@ -87,9 +85,8 @@ const PLAN_FEATURE_KEYS: Record<string, { prefixKey?: string; items: FeatureItem
   },
 };
 
-// 플랜 아이콘
 function PlanIcon({ plan }: { plan: string }) {
-  const cls = 'w-10 h-10 text-gray-800';
+  const cls = 'w-10 h-10 text-gray-300';
   if (plan === 'free_trial') {
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
@@ -120,7 +117,7 @@ function PlanIcon({ plan }: { plan: string }) {
 
 function CheckMark() {
   return (
-    <svg className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="w-4 h-4 text-coral shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
     </svg>
   );
@@ -139,15 +136,15 @@ export default function PricingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-base font-sans text-white overflow-x-hidden">
       <PublicNav activePage="pricing" />
 
       {/* Header */}
       <div className="pt-16 pb-14 text-center">
-        <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3">
+        <h1 className="text-2xl sm:text-4xl font-bold text-white mb-3">
           {t('pricing.title')}
         </h1>
-        <p className="text-base text-gray-500 max-w-lg mx-auto">
+        <p className="text-base text-gray-400 max-w-lg mx-auto">
           {t('pricing.subtitle')}
         </p>
       </div>
@@ -155,12 +152,13 @@ export default function PricingPage() {
       {/* Plans grid */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-28">
         {loading ? (
-          <div className="text-center py-20 text-gray-400">{t('common.loadingPlans')}</div>
+          <div className="text-center py-20 text-gray-500">{t('common.loadingPlans')}</div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-0 border border-gray-200 rounded-2xl overflow-hidden">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-0 border border-white/5 rounded-2xl overflow-hidden">
             {plans.map((plan, idx) => {
               const featureInfo = PLAN_FEATURE_KEYS[plan.name] || { items: [] };
               const isLast = idx === plans.length - 1;
+              const isFeatured = plan.name === 'professional';
               const planNameKeyMap: Record<string, string> = {
                 free_trial: 'pricing.plans.freeTrial',
                 starter: 'pricing.plans.starter',
@@ -175,34 +173,40 @@ export default function PricingPage() {
               return (
                 <div
                   key={plan.id}
-                  className={`flex flex-col p-7 bg-white ${
-                    !isLast ? 'lg:border-r border-b lg:border-b-0 border-gray-200' : ''
+                  className={`flex flex-col p-7 bg-surface-dark ${
+                    isFeatured ? 'ring-1 ring-coral/30 relative' : ''
+                  } ${
+                    !isLast ? 'lg:border-r border-b lg:border-b-0 border-white/5' : ''
                   }`}
                 >
+                  {isFeatured && (
+                    <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-coral to-coral-light" />
+                  )}
+
                   {/* Icon */}
                   <div className="mb-5">
                     <PlanIcon plan={plan.name} />
                   </div>
 
                   {/* Plan name + subtitle */}
-                  <h3 className="text-xl font-bold text-gray-900">
+                  <h3 className="text-xl font-bold text-white">
                     {planNameKeyMap[plan.name] ? t(planNameKeyMap[plan.name]) : plan.display_name}
                   </h3>
-                  <p className="text-sm text-gray-400 mt-0.5 mb-5">
+                  <p className="text-sm text-gray-500 mt-0.5 mb-5">
                     {PLAN_SUBTITLE_KEYS[plan.name] ? t(PLAN_SUBTITLE_KEYS[plan.name]) : ''}
                   </p>
 
                   {/* Price */}
                   <div className="mb-6">
                     {plan.name === 'enterprise' ? (
-                      <div className="text-3xl font-bold text-gray-900">{t('common.custom')}</div>
+                      <div className="text-3xl font-bold text-white">{t('common.custom')}</div>
                     ) : (
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-gray-900">
+                        <span className="text-3xl font-bold text-white">
                           ${plan.monthly_price}
                         </span>
                         {plan.monthly_price > 0 && (
-                          <span className="text-sm text-gray-400">/ {t('common.month')}</span>
+                          <span className="text-sm text-gray-500">/ {t('common.month')}</span>
                         )}
                       </div>
                     )}
@@ -212,18 +216,25 @@ export default function PricingPage() {
                   {plan.name === 'free_trial' ? (
                     <Link
                       href="/signup"
-                      className="block w-full py-2.5 text-center text-sm font-medium border border-gray-300 text-gray-700 rounded-full hover:bg-gray-50 transition-colors mb-7"
+                      className="block w-full py-2.5 text-center text-sm font-medium border border-white/10 text-gray-300 rounded-full hover:bg-white/5 hover:border-white/20 transition-colors mb-7"
                     >
                       {t('common.startFreeTrial')}
                     </Link>
                   ) : plan.name === 'enterprise' ? (
-                    <button className="w-full py-2.5 text-sm font-medium bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors mb-7">
+                    <button className="w-full py-2.5 text-sm font-medium border border-white/10 text-gray-300 rounded-full hover:bg-white/5 hover:border-white/20 transition-colors mb-7">
                       {t('common.contactSales')}
                     </button>
+                  ) : isFeatured ? (
+                    <Link
+                      href="/signup"
+                      className="block w-full py-2.5 text-center text-sm font-medium bg-coral text-white rounded-full hover:bg-coral-dark transition-colors mb-7"
+                    >
+                      {ctaKeyMap[plan.name] ? t(ctaKeyMap[plan.name]) : `Get ${plan.display_name}`}
+                    </Link>
                   ) : (
                     <Link
                       href="/signup"
-                      className="block w-full py-2.5 text-center text-sm font-medium bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors mb-7"
+                      className="block w-full py-2.5 text-center text-sm font-medium border border-white/10 text-gray-300 rounded-full hover:bg-white/5 hover:border-white/20 transition-colors mb-7"
                     >
                       {ctaKeyMap[plan.name] ? t(ctaKeyMap[plan.name]) : `Get ${plan.display_name}`}
                     </Link>
@@ -232,13 +243,13 @@ export default function PricingPage() {
                   {/* Features list */}
                   <div className="flex-1">
                     {featureInfo.prefixKey && (
-                      <p className="text-sm font-semibold text-gray-700 mb-3">
+                      <p className="text-sm font-semibold text-gray-300 mb-3">
                         {t(featureInfo.prefixKey)}
                       </p>
                     )}
                     <ul className="space-y-2.5">
                       {featureInfo.items.map((item) => (
-                        <li key={item.key} className="flex items-start gap-2.5 text-sm text-gray-600">
+                        <li key={item.key} className="flex items-start gap-2.5 text-sm text-gray-400">
                           <CheckMark />
                           <span>{t(item.key, item.params)}</span>
                         </li>

@@ -3,7 +3,7 @@ from datetime import datetime, date
 
 from sqlalchemy import (
     String, Text, Integer, Boolean, Date,
-    Enum as SAEnum, DateTime, ForeignKey, Numeric, func,
+    Enum as SAEnum, DateTime, ForeignKey, Numeric, func, Index,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -13,6 +13,11 @@ from app.core.database import Base
 
 class Invoice(Base):
     __tablename__ = "invoices"
+    __table_args__ = (
+        Index("idx_invoices_company_status", "company_id", "status"),
+        Index("idx_invoices_company_created", "company_id", "created_at"),
+        Index("idx_invoices_company_due_date", "company_id", "due_date"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

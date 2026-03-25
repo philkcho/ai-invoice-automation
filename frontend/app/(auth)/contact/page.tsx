@@ -52,20 +52,20 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen font-sans text-gray-900 bg-white overflow-x-hidden">
+    <div className="min-h-screen font-sans text-white bg-base overflow-x-hidden">
       <PublicNav activePage="contact" />
 
       {/* ── Hero ────────────────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
+      <section className="relative bg-base overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(244,63,94,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(248,113,113,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(248,113,113,0.5) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-500/10 rounded-full blur-[200px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-coral/10 rounded-full blur-[200px]" />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <h1 className="text-3xl sm:text-5xl font-bold text-white mb-4">
@@ -82,20 +82,20 @@ export default function ContactPage() {
         <div className="grid lg:grid-cols-3 gap-12">
           {/* Left — Contact Info */}
           <div>
-            <div className="bg-surface-50 rounded-2xl p-8 border border-gray-100">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center mb-5 shadow-lg shadow-primary-500/20">
+            <div className="bg-surface-dark rounded-2xl p-8 border border-white/5">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center mb-5 shadow-lg shadow-coral/20">
                 <EnvelopeIcon className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
+              <h3 className="text-lg font-bold text-white mb-2">
                 {t('contact.emailLabel')}
               </h3>
               <a
                 href={`mailto:${t('contact.emailAddress')}`}
-                className="text-primary-600 font-medium hover:text-primary-700 transition-colors"
+                className="text-coral font-medium hover:text-coral-light transition-colors"
               >
                 {t('contact.emailAddress')}
               </a>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-gray-400 mt-2">
                 {t('contact.emailDesc')}
               </p>
             </div>
@@ -106,13 +106,13 @@ export default function ContactPage() {
             {sent ? (
               /* Success State */
               <div className="text-center py-16">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-6">
-                  <CheckCircleIcon className="w-8 h-8 text-green-600" />
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/15 mb-6">
+                  <CheckCircleIcon className="w-8 h-8 text-emerald-400" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                <h2 className="text-2xl font-bold text-white mb-3">
                   {t('contact.successTitle')}
                 </h2>
-                <p className="text-gray-500 mb-8">
+                <p className="text-gray-400 mb-8">
                   {t('contact.successDesc')}
                 </p>
                 <button
@@ -120,7 +120,7 @@ export default function ContactPage() {
                     setSent(false);
                     setForm({ name: '', email: '', subject: '', message: '' });
                   }}
-                  className="px-6 py-3 text-sm font-medium text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+                  className="px-6 py-3 text-sm font-medium text-coral border border-coral/30 rounded-lg hover:bg-coral/10 transition-colors"
                 >
                   {t('contact.sendAnother')}
                 </button>
@@ -128,13 +128,13 @@ export default function ContactPage() {
             ) : (
               /* Form */
               <form onSubmit={handleSubmit} className="space-y-5">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                <h2 className="text-2xl font-bold text-white mb-6">
                   {t('contact.formTitle')}
                 </h2>
 
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5">
                       {t('contact.name')} *
                     </label>
                     <input
@@ -143,11 +143,11 @@ export default function ContactPage() {
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       placeholder={t('contact.namePlaceholder')}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
+                      className="w-full px-4 py-3 rounded-lg bg-surface-dark-light border border-white/10 text-white placeholder-gray-500 focus:ring-2 focus:ring-coral/50 focus:border-coral/50 outline-none transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5">
                       {t('contact.email')} *
                     </label>
                     <input
@@ -156,13 +156,13 @@ export default function ContactPage() {
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                       placeholder={t('contact.emailPlaceholder')}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
+                      className="w-full px-4 py-3 rounded-lg bg-surface-dark-light border border-white/10 text-white placeholder-gray-500 focus:ring-2 focus:ring-coral/50 focus:border-coral/50 outline-none transition-colors"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">
                     {t('contact.subject')} *
                   </label>
                   <input
@@ -171,12 +171,12 @@ export default function ContactPage() {
                     value={form.subject}
                     onChange={(e) => setForm({ ...form, subject: e.target.value })}
                     placeholder={t('contact.subjectPlaceholder')}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-lg bg-surface-dark-light border border-white/10 text-white placeholder-gray-500 focus:ring-2 focus:ring-coral/50 focus:border-coral/50 outline-none transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">
                     {t('contact.message')} *
                   </label>
                   <textarea
@@ -185,12 +185,12 @@ export default function ContactPage() {
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                     placeholder={t('contact.messagePlaceholder')}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors resize-none"
+                    className="w-full px-4 py-3 rounded-lg bg-surface-dark-light border border-white/10 text-white placeholder-gray-500 focus:ring-2 focus:ring-coral/50 focus:border-coral/50 outline-none transition-colors resize-none"
                   />
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg px-4 py-3">
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg px-4 py-3">
                     {error}
                   </div>
                 )}
@@ -198,7 +198,7 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={sending}
-                  className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-lg shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:from-primary-400 hover:to-primary-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-8 py-3.5 bg-coral text-white font-semibold rounded-lg shadow-lg shadow-coral/25 hover:bg-coral-dark hover:shadow-coral/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {sending ? t('contact.sending') : t('contact.send')}
                 </button>
@@ -209,8 +209,8 @@ export default function ContactPage() {
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────── */}
-      <section className="bg-gradient-to-br from-[#1c1917] to-[#292524]">
-        <div className="border-t border-white/10">
+      <section className="bg-surface-dark">
+        <div className="border-t border-white/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
             <p className="text-sm text-gray-500">
               {t('common.copyright')}

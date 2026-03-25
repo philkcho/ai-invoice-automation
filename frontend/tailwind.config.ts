@@ -67,6 +67,17 @@ const config: Config = {
           100: "#ffe4e6",
           200: "#fecdd3",
         },
+        /* Raycast-style dark theme palette */
+        base: '#1a1a2e',
+        'surface-dark': {
+          DEFAULT: '#22223a',
+          light: '#2c2c48',
+        },
+        coral: {
+          DEFAULT: '#f87171',
+          light: '#fca5a5',
+          dark: '#ef4444',
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar))",
           foreground: "hsl(var(--sidebar-foreground))",

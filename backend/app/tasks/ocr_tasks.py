@@ -23,7 +23,6 @@ def _run_async(coro):
 @celery_app.task(
     bind=True,
     max_retries=3,
-    default_retry_delay=60,
     name="app.tasks.ocr_tasks.process_invoice_ocr",
 )
 def process_invoice_ocr(self, invoice_id: str, file_path: str):
@@ -37,7 +36,8 @@ def process_invoice_ocr(self, invoice_id: str, file_path: str):
     except Exception as exc:
         logger.error("OCR failed for invoice %s: %s", invoice_id, exc)
         if self.request.retries < self.max_retries:
-            raise self.retry(exc=exc, countdown=60)
+            # Exponential backoff: 60s → 120s → 240s
+            raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
         else:
             logger.critical("OCR max retries exceeded for invoice %s", invoice_id)
             _run_async(_mark_ocr_failed(invoice_id))

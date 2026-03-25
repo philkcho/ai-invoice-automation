@@ -106,12 +106,12 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen font-sans text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen font-sans text-white overflow-x-hidden bg-base">
       {/* ── Section 1: Navigation Bar ──────────────────────────────────────── */}
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? 'bg-[#1c1917]/80 backdrop-blur-xl shadow-lg'
+            ? 'bg-base/80 backdrop-blur-xl shadow-lg shadow-black/20 border-b border-white/5'
             : 'bg-transparent'
         }`}
       >
@@ -119,7 +119,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center">
                 <SparklesIcon className="w-5 h-5 text-white" />
               </div>
               <span className="text-white font-bold text-lg">{t('common.aiInvoice')}</span>
@@ -128,45 +128,45 @@ export default function LandingPage() {
             <div className="hidden lg:flex items-center gap-3">
               <Link
                 href="/faq"
-                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
+                className="px-5 py-2 text-sm font-medium text-gray-400 rounded-lg hover:text-white transition-colors"
               >
                 FAQ
               </Link>
               <Link
                 href="/guide"
-                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
+                className="px-5 py-2 text-sm font-medium text-gray-400 rounded-lg hover:text-white transition-colors"
               >
                 Guide
               </Link>
               <Link
                 href="/pricing"
-                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
+                className="px-5 py-2 text-sm font-medium text-gray-400 rounded-lg hover:text-white transition-colors"
               >
                 {t('common.pricing')}
               </Link>
               <Link
                 href="/contact"
-                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
+                className="px-5 py-2 text-sm font-medium text-gray-400 rounded-lg hover:text-white transition-colors"
               >
                 Contact
               </Link>
-              <LanguageSwitcher className="text-white border-white/20 hover:bg-white/10" />
+              <LanguageSwitcher className="text-gray-400 border-white/10 hover:bg-white/5 hover:text-white" />
               <Link
                 href="/login"
-                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
+                className="px-5 py-2 text-sm font-medium text-gray-400 border border-white/10 rounded-lg hover:text-white hover:bg-white/5 transition-colors"
               >
                 {t('common.signIn')}
               </Link>
               <Link
                 href="/signup"
-                className="px-5 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-400 transition-colors"
+                className="px-5 py-2 text-sm font-medium text-white bg-coral rounded-lg hover:bg-coral-dark transition-colors"
               >
                 {t('common.signUp')}
               </Link>
             </div>
             {/* Mobile hamburger button */}
             <button
-              className="lg:hidden p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
             >
@@ -184,28 +184,28 @@ export default function LandingPage() {
         </div>
         {/* Mobile menu dropdown */}
         {mobileMenuOpen && (
-          <div className="lg:hidden bg-[#1c1917]/95 backdrop-blur-xl border-t border-white/10">
+          <div className="lg:hidden bg-surface-dark/95 backdrop-blur-xl border-t border-white/5">
             <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-2">
-              <Link href="/faq" className="px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white/10 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/faq" className="px-4 py-3 text-sm font-medium text-gray-400 rounded-lg hover:text-white hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 FAQ
               </Link>
-              <Link href="/guide" className="px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white/10 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/guide" className="px-4 py-3 text-sm font-medium text-gray-400 rounded-lg hover:text-white hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 Guide
               </Link>
-              <Link href="/pricing" className="px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white/10 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/pricing" className="px-4 py-3 text-sm font-medium text-gray-400 rounded-lg hover:text-white hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 {t('common.pricing')}
               </Link>
-              <Link href="/contact" className="px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white/10 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/contact" className="px-4 py-3 text-sm font-medium text-gray-400 rounded-lg hover:text-white hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 Contact
               </Link>
               <div className="px-4 py-2">
-                <LanguageSwitcher className="text-white border-white/20 hover:bg-white/10" />
+                <LanguageSwitcher className="text-gray-400 border-white/10 hover:bg-white/5 hover:text-white" />
               </div>
-              <hr className="border-white/10 my-1" />
-              <Link href="/login" className="px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white/10 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+              <hr className="border-white/5 my-1" />
+              <Link href="/login" className="px-4 py-3 text-sm font-medium text-gray-400 rounded-lg hover:text-white hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 {t('common.signIn')}
               </Link>
-              <Link href="/signup" className="px-4 py-3 text-sm font-medium text-center text-white bg-primary-500 rounded-lg hover:bg-primary-400 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/signup" className="px-4 py-3 text-sm font-medium text-center text-white bg-coral rounded-lg hover:bg-coral-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 {t('common.signUp')}
               </Link>
             </div>
@@ -214,26 +214,26 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Section 2: Hero ────────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex items-center bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
+      <section className="relative min-h-screen flex items-center bg-base overflow-hidden">
         {/* Grid pattern */}
         <div
-          className="absolute inset-0 opacity-[0.07]"
+          className="absolute inset-0 opacity-100"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(244,63,94,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(248,113,113,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(248,113,113,0.03) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
 
         {/* Glow orbs */}
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-primary-500/20 rounded-full blur-[120px] animate-glow" />
-        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-primary-600/15 rounded-full blur-[150px] animate-glow-delayed" />
-        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-rose-500/10 rounded-full blur-[100px] animate-glow" />
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-coral/20 rounded-full blur-[120px] animate-glow" />
+        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-coral-dark/15 rounded-full blur-[150px] animate-glow-delayed" />
+        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-coral/10 rounded-full blur-[100px] animate-glow" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 grid lg:grid-cols-2 gap-12 items-center">
           {/* Left — Text */}
           <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-300 text-sm font-medium">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-coral/10 border border-coral/20 text-coral-light text-sm font-medium">
               <SparklesIcon className="w-4 h-4" />
               {t('landing.poweredByAi')}
             </div>
@@ -242,20 +242,20 @@ export default function LandingPage() {
               {t('landing.heroTitle')}
             </h1>
 
-            <p className="text-lg text-gray-300 max-w-lg leading-relaxed">
+            <p className="text-lg text-gray-400 max-w-lg leading-relaxed">
               {t('landing.heroSubtitle')}
             </p>
 
             <div className="flex flex-wrap gap-4">
               <Link
                 href="/signup"
-                className="inline-flex items-center px-6 py-3 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:from-primary-400 hover:to-primary-500 transition-all"
+                className="inline-flex items-center px-6 py-3 rounded-lg bg-gradient-to-r from-coral to-coral-dark text-white font-semibold shadow-lg shadow-coral/25 hover:shadow-coral/40 hover:from-coral-light hover:to-coral transition-all"
               >
                 {t('common.startFreeTrial')}
               </Link>
               <Link
                 href="/demo"
-                className="inline-flex items-center px-6 py-3 rounded-lg border border-white/20 text-white font-semibold hover:bg-white/5 transition-colors"
+                className="inline-flex items-center px-6 py-3 rounded-lg border border-white/10 text-white font-semibold hover:bg-white/5 transition-colors"
               >
                 <SparklesIcon className="w-5 h-5 mr-2" />
                 Try Demo
@@ -267,13 +267,13 @@ export default function LandingPage() {
           <div className="hidden lg:block relative">
             <div className="animate-float">
               {/* Main card */}
-              <div className="relative bg-white/[0.07] backdrop-blur-xl border border-white/[0.12] rounded-2xl p-6 shadow-2xl">
+              <div className="relative bg-surface-dark/80 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 shadow-2xl">
                 {/* Header bar */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-400" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                    <div className="w-3 h-3 rounded-full bg-green-400" />
+                    <div className="w-3 h-3 rounded-full bg-coral/80" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
                   </div>
                   <div className="h-4 w-32 bg-white/10 rounded" />
                 </div>
@@ -281,29 +281,29 @@ export default function LandingPage() {
                 {/* Stat cards row */}
                 <div className="grid grid-cols-3 gap-3 mb-6">
                   {[
-                    { label: t('landing.processed'), value: '1,284', color: 'from-primary-400 to-primary-600' },
+                    { label: t('landing.processed'), value: '1,284', color: 'from-coral to-coral-dark' },
                     { label: t('landing.pending'), value: '23', color: 'from-amber-400 to-orange-500' },
                     { label: t('landing.accuracy'), value: '99.2%', color: 'from-emerald-400 to-green-500' },
                   ].map((stat) => (
                     <div
                       key={stat.label}
-                      className="bg-white/[0.06] rounded-xl p-3 border border-white/[0.08]"
+                      className="bg-surface-dark-light/60 rounded-xl p-3 border border-white/[0.06]"
                     >
                       <div className={`text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r ${stat.color}`}>
                         {stat.value}
                       </div>
-                      <div className="text-xs text-gray-400 mt-0.5">{stat.label}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{stat.label}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Chart placeholder */}
-                <div className="bg-white/[0.04] rounded-xl p-4 border border-white/[0.06]">
+                <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.05]">
                   <div className="flex items-end gap-1.5 h-24 justify-between px-2">
                     {[40, 65, 45, 80, 55, 90, 70, 85, 60, 95, 75, 88].map((h, i) => (
                       <div
                         key={i}
-                        className="flex-1 bg-gradient-to-t from-primary-500 to-primary-400 rounded-sm opacity-80"
+                        className="flex-1 bg-gradient-to-t from-coral to-coral-light rounded-sm opacity-80"
                         style={{ height: `${h}%` }}
                       />
                     ))}
@@ -315,19 +315,19 @@ export default function LandingPage() {
                   {[
                     { id: 'INV-2024-0891', vendor: 'Acme Corp', status: 'Approved', statusColor: 'bg-green-400' },
                     { id: 'INV-2024-0892', vendor: 'TechSupply Inc', status: 'Pending', statusColor: 'bg-amber-400' },
-                    { id: 'INV-2024-0893', vendor: 'Global Logistics', status: 'Processing', statusColor: 'bg-primary-400' },
+                    { id: 'INV-2024-0893', vendor: 'Global Logistics', status: 'Processing', statusColor: 'bg-coral' },
                   ].map((inv) => (
                     <div
                       key={inv.id}
-                      className="flex items-center justify-between bg-white/[0.04] rounded-lg px-3 py-2 border border-white/[0.06]"
+                      className="flex items-center justify-between bg-white/[0.03] rounded-lg px-3 py-2 border border-white/[0.05]"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="text-xs font-mono text-gray-400">{inv.id}</div>
+                        <div className="text-xs font-mono text-gray-500">{inv.id}</div>
                         <div className="text-sm text-gray-300">{inv.vendor}</div>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <div className={`w-1.5 h-1.5 rounded-full ${inv.statusColor}`} />
-                        <span className="text-xs text-gray-400">{inv.status}</span>
+                        <span className="text-xs text-gray-500">{inv.status}</span>
                       </div>
                     </div>
                   ))}
@@ -335,13 +335,13 @@ export default function LandingPage() {
               </div>
 
               {/* Floating badge */}
-              <div className="absolute -top-4 -right-4 animate-float-delayed bg-white/[0.1] backdrop-blur-lg border border-white/[0.15] rounded-xl px-4 py-2.5 shadow-xl">
+              <div className="absolute -top-4 -right-4 animate-float-delayed bg-surface-dark/90 backdrop-blur-lg border border-white/[0.1] rounded-xl px-4 py-2.5 shadow-xl">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
                     <CheckIcon className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400">{t('landing.aiVerified')}</div>
+                    <div className="text-xs text-gray-500">{t('landing.aiVerified')}</div>
                     <div className="text-sm font-semibold text-white">$12,450.00</div>
                   </div>
                 </div>
@@ -352,7 +352,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Section 3: Social Proof Stats ──────────────────────────────────── */}
-      <section className="bg-white border-b border-gray-100">
+      <section className="bg-surface-dark border-y border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
@@ -362,7 +362,7 @@ export default function LandingPage() {
               { value: '24/7', label: t('landing.stats.automatedMonitoring') },
             ].map((stat) => (
               <div key={stat.label}>
-                <div className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-primary-500">
+                <div className="text-3xl sm:text-4xl font-bold text-coral">
                   {stat.value}
                 </div>
                 <div className="text-sm text-gray-500 mt-1 font-medium">{stat.label}</div>
@@ -372,30 +372,30 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Section 3.5: Why Teams Switch (도입 효과) ────────────────────── */}
-      <section className="bg-white">
+      {/* ── Section 3.5: Why Teams Switch ────────────────────────────────── */}
+      <section className="bg-base">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left — Impact list */}
             <div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
                 {t('landing.impact.title')}
               </h2>
-              <p className="text-lg text-gray-500 mb-10">
+              <p className="text-lg text-gray-400 mb-10">
                 {t('landing.impact.subtitle')}
               </p>
 
               <div className="space-y-6">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <div key={n} className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-primary-500/25">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-coral/25">
                       {n}
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 mb-1">
+                      <h3 className="font-bold text-white mb-1">
                         {t(`landing.impact.item${n}Title`)}
                       </h3>
-                      <p className="text-sm text-gray-500 leading-relaxed">
+                      <p className="text-sm text-gray-400 leading-relaxed">
                         {t(`landing.impact.item${n}Desc`)}
                       </p>
                     </div>
@@ -406,13 +406,13 @@ export default function LandingPage() {
 
             {/* Right — Pipeline mockup */}
             <div className="hidden lg:block">
-              <div className="relative bg-gray-50 rounded-2xl p-6 shadow-card border border-gray-100">
+              <div className="relative bg-surface-dark rounded-2xl p-6 border border-white/[0.08]">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-400" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                    <div className="w-3 h-3 rounded-full bg-green-400" />
+                    <div className="w-3 h-3 rounded-full bg-coral/80" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
                   </div>
                   <span className="text-xs font-semibold text-gray-500">{t('landing.impact.mockupTitle')}</span>
                 </div>
@@ -420,18 +420,18 @@ export default function LandingPage() {
                 {/* Pipeline bars */}
                 <div className="space-y-3">
                   {[
-                    { stage: 'RECEIVED', count: 42, pct: 100, color: 'from-gray-400 to-gray-500' },
+                    { stage: 'RECEIVED', count: 42, pct: 100, color: 'from-gray-500 to-gray-600' },
                     { stage: 'PENDING', count: 28, pct: 67, color: 'from-blue-400 to-blue-500' },
-                    { stage: 'IN APPROVAL', count: 15, pct: 36, color: 'from-rose-400 to-rose-500' },
+                    { stage: 'IN APPROVAL', count: 15, pct: 36, color: 'from-coral-light to-coral' },
                     { stage: 'APPROVED', count: 124, pct: 95, color: 'from-emerald-400 to-emerald-500' },
-                    { stage: 'PAID', count: 1284, pct: 100, color: 'from-primary-400 to-primary-500' },
+                    { stage: 'PAID', count: 1284, pct: 100, color: 'from-coral to-coral-dark' },
                   ].map((item) => (
                     <div key={item.stage}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium text-gray-600">{item.stage}</span>
-                        <span className="text-xs font-bold text-gray-900">{item.count}</span>
+                        <span className="text-xs font-medium text-gray-400">{item.stage}</span>
+                        <span className="text-xs font-bold text-white">{item.count}</span>
                       </div>
-                      <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-2.5 bg-white/[0.06] rounded-full overflow-hidden">
                         <div
                           className={`h-full bg-gradient-to-r ${item.color} rounded-full`}
                           style={{ width: `${item.pct}%` }}
@@ -448,8 +448,8 @@ export default function LandingPage() {
                     { label: 'Accuracy', value: '99.2%' },
                     { label: 'Time Saved', value: '80%' },
                   ].map((stat) => (
-                    <div key={stat.label} className="bg-white rounded-lg p-3 border border-gray-100 text-center">
-                      <div className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-primary-600">
+                    <div key={stat.label} className="bg-surface-dark-light rounded-lg p-3 border border-white/[0.06] text-center">
+                      <div className="text-lg font-bold text-coral">
                         {stat.value}
                       </div>
                       <div className="text-[10px] text-gray-500 mt-0.5">{stat.label}</div>
@@ -458,10 +458,10 @@ export default function LandingPage() {
                 </div>
 
                 {/* Floating badge */}
-                <div className="absolute -top-3 -right-3 bg-white rounded-xl px-4 py-2 shadow-lg border border-gray-100">
+                <div className="absolute -top-3 -right-3 bg-surface-dark-light rounded-xl px-4 py-2 shadow-lg border border-white/[0.08]">
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-gray-600 font-medium">{t('landing.impact.mockupBadge')}</span>
+                    <span className="text-gray-400 font-medium">{t('landing.impact.mockupBadge')}</span>
                   </div>
                 </div>
               </div>
@@ -471,13 +471,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── Section 4: 4 Core Features ─────────────────────────────────────── */}
-      <section className="bg-surface-50">
+      <section className="bg-surface-dark">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">
               {t('landing.features.sectionTitle')}
             </h2>
-            <p className="mt-4 text-lg text-gray-500">
+            <p className="mt-4 text-lg text-gray-400">
               {t('landing.features.sectionSubtitle')}
             </p>
           </div>
@@ -507,15 +507,15 @@ export default function LandingPage() {
             ].map((feature) => (
               <div
                 key={feature.title}
-                className="group bg-white rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1"
+                className="group bg-surface-dark-light rounded-2xl p-8 border border-white/5 hover:border-white/10 transition-all duration-300 hover:-translate-y-1"
               >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center mb-5 shadow-lg shadow-primary-500/20">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center mb-5 shadow-lg shadow-coral/20">
                   {feature.icon}
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                <h3 className="text-xl font-bold text-white mb-3">
                   {feature.title}
                 </h3>
-                <p className="text-gray-500 leading-relaxed">{feature.desc}</p>
+                <p className="text-gray-400 leading-relaxed">{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -523,13 +523,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── Section 5: How It Works ────────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
+      <section className="relative bg-base overflow-hidden">
         {/* Subtle grid */}
         <div
-          className="absolute inset-0 opacity-[0.05]"
+          className="absolute inset-0 opacity-100"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(244,63,94,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(248,113,113,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(248,113,113,0.03) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
@@ -543,7 +543,7 @@ export default function LandingPage() {
 
           <div className="grid md:grid-cols-4 gap-8 relative">
             {/* Connecting line (desktop only) */}
-            <div className="hidden md:block absolute top-10 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-primary-500/40 via-primary-500/60 to-primary-500/40" />
+            <div className="hidden md:block absolute top-10 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-coral/20 via-coral/40 to-coral/20" />
 
             {[
               {
@@ -572,13 +572,13 @@ export default function LandingPage() {
               },
             ].map((item) => (
               <div key={item.step} className="relative text-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-500/20 to-primary-600/20 border border-primary-500/30 mb-5">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-coral/10 border border-coral/20 mb-5">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center shadow-lg shadow-coral/25">
                     {item.icon}
                   </div>
                 </div>
                 <div className="absolute -top-2 -right-2 md:static md:mb-2">
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-500 text-white text-xs font-bold md:hidden">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-coral text-white text-xs font-bold md:hidden">
                     {item.step}
                   </span>
                 </div>
@@ -591,21 +591,21 @@ export default function LandingPage() {
       </section>
 
       {/* ── Section 6: AI Chat Preview ─────────────────────────────────────── */}
-      <section className="bg-white">
+      <section className="bg-surface-dark">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left — Text */}
             <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-50 border border-primary-100 text-primary-600 text-sm font-medium">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-coral/10 border border-coral/20 text-coral-light text-sm font-medium">
                 <SparklesIcon className="w-4 h-4" />
                 {t('landing.aiChat.badge')}
               </div>
 
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+              <h2 className="text-3xl sm:text-4xl font-bold text-white">
                 {t('landing.aiChat.title')}
               </h2>
 
-              <p className="text-lg text-gray-500 leading-relaxed">
+              <p className="text-lg text-gray-400 leading-relaxed">
                 {t('landing.aiChat.subtitle')}
               </p>
 
@@ -616,10 +616,10 @@ export default function LandingPage() {
                   t('landing.aiChat.feature3'),
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3">
-                    <div className="mt-0.5 w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                      <CheckIcon className="w-3 h-3 text-primary-600" />
+                    <div className="mt-0.5 w-5 h-5 rounded-full bg-coral/20 flex items-center justify-center flex-shrink-0">
+                      <CheckIcon className="w-3 h-3 text-coral" />
                     </div>
-                    <span className="text-gray-600">{item}</span>
+                    <span className="text-gray-300">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -627,16 +627,16 @@ export default function LandingPage() {
 
             {/* Right — Chat mockup */}
             <div className="relative">
-              <div className="bg-gray-50 rounded-2xl p-6 shadow-card border border-gray-100">
+              <div className="bg-surface-dark-light rounded-2xl p-6 border border-white/[0.08]">
                 {/* Chat header */}
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/[0.08]">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center">
                     <SparklesIcon className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-900 text-sm">{t('landing.aiChat.assistant')}</div>
-                    <div className="text-xs text-green-500 flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    <div className="font-semibold text-white text-sm">{t('landing.aiChat.assistant')}</div>
+                    <div className="text-xs text-green-400 flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
                       {t('landing.aiChat.online')}
                     </div>
                   </div>
@@ -644,15 +644,15 @@ export default function LandingPage() {
 
                 {/* User message */}
                 <div className="flex justify-end mb-4">
-                  <div className="bg-primary-500 text-white rounded-2xl rounded-br-md px-4 py-3 max-w-[80%] text-sm">
+                  <div className="bg-coral text-white rounded-2xl rounded-br-md px-4 py-3 max-w-[80%] text-sm">
                     {t('landing.aiChat.userMsg')}
                   </div>
                 </div>
 
                 {/* AI message */}
                 <div className="flex justify-start mb-4">
-                  <div className="bg-white rounded-2xl rounded-bl-md px-5 py-4 max-w-[90%] text-sm shadow-sm border border-gray-100">
-                    <p className="text-gray-700 mb-3">
+                  <div className="bg-surface-dark rounded-2xl rounded-bl-md px-5 py-4 max-w-[90%] text-sm border border-white/[0.06]">
+                    <p className="text-gray-300 mb-3">
                       {t('landing.aiChat.botMsg')}
                     </p>
                     {/* Mini chart */}
@@ -666,12 +666,12 @@ export default function LandingPage() {
                       ].map((v) => (
                         <div key={v.name} className="space-y-1">
                           <div className="flex justify-between text-xs">
-                            <span className="text-gray-600">{v.name}</span>
-                            <span className="font-medium text-gray-900">{v.amount}</span>
+                            <span className="text-gray-400">{v.name}</span>
+                            <span className="font-medium text-white">{v.amount}</span>
                           </div>
-                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-primary-500 to-primary-400 rounded-full"
+                              className="h-full bg-gradient-to-r from-coral to-coral-light rounded-full"
                               style={{ width: `${v.pct}%` }}
                             />
                           </div>
@@ -685,9 +685,9 @@ export default function LandingPage() {
                 </div>
 
                 {/* Input */}
-                <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 px-4 py-3">
-                  <span className="text-sm text-gray-400 flex-1">{t('landing.aiChat.inputPlaceholder')}</span>
-                  <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
+                <div className="flex items-center gap-2 bg-surface-dark rounded-xl border border-white/[0.08] px-4 py-3">
+                  <span className="text-sm text-gray-500 flex-1">{t('landing.aiChat.inputPlaceholder')}</span>
+                  <div className="w-8 h-8 rounded-lg bg-coral flex items-center justify-center">
                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
                     </svg>
@@ -696,10 +696,10 @@ export default function LandingPage() {
               </div>
 
               {/* Floating notification */}
-              <div className="absolute -top-3 -left-3 animate-float-delayed bg-white rounded-xl px-4 py-2.5 shadow-lg border border-gray-100">
+              <div className="absolute -top-3 -left-3 animate-float-delayed bg-surface-dark-light rounded-xl px-4 py-2.5 shadow-lg border border-white/[0.08]">
                 <div className="flex items-center gap-2 text-sm">
                   <div className="w-2 h-2 rounded-full bg-amber-400" />
-                  <span className="text-gray-600 font-medium">{t('landing.aiChat.anomalies')}</span>
+                  <span className="text-gray-400 font-medium">{t('landing.aiChat.anomalies')}</span>
                 </div>
               </div>
             </div>
@@ -708,12 +708,12 @@ export default function LandingPage() {
       </section>
 
       {/* ── Section 7: Interactive Demo ─────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
+      <section className="relative bg-base overflow-hidden">
         <div
-          className="absolute inset-0 opacity-[0.05]"
+          className="absolute inset-0 opacity-100"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(244,63,94,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(248,113,113,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(248,113,113,0.03) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
@@ -722,7 +722,7 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-start">
             {/* Left — Upload area */}
             <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-300 text-sm font-medium">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-coral/10 border border-coral/20 text-coral-light text-sm font-medium">
                 <SparklesIcon className="w-4 h-4" />
                 {t('landing.demo.badge')}
               </div>
@@ -730,7 +730,7 @@ export default function LandingPage() {
               <h2 className="text-3xl sm:text-4xl font-bold text-white">
                 {t('landing.demo.title')}
               </h2>
-              <p className="text-lg text-gray-300">
+              <p className="text-lg text-gray-400">
                 {t('landing.demo.subtitle')}
               </p>
 
@@ -747,11 +747,11 @@ export default function LandingPage() {
                 }}
                 className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
                   dragOver
-                    ? 'border-primary-400 bg-primary-500/10'
-                    : 'border-white/20 hover:border-white/40'
+                    ? 'border-coral bg-coral/10'
+                    : 'border-white/20 hover:border-coral/40'
                 }`}
               >
-                <svg className="w-10 h-10 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <svg className="w-10 h-10 text-gray-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                 </svg>
                 <p className="text-gray-300 font-medium">{t('landing.demo.dropzone')}</p>
@@ -768,7 +768,7 @@ export default function LandingPage() {
                       setDemoState('loading');
                       setTimeout(() => setDemoState('result'), 1500);
                     }}
-                    className="px-3 sm:px-4 py-2.5 rounded-lg bg-white/[0.07] border border-white/[0.12] text-sm text-gray-300 hover:bg-white/[0.12] hover:text-white transition-colors"
+                    className="px-3 sm:px-4 py-2.5 rounded-lg bg-surface-dark-light border border-white/[0.08] text-sm text-gray-400 hover:bg-white/[0.08] hover:text-white transition-colors"
                   >
                     {t(`landing.demo.sample${i + 1}`)}
                   </button>
@@ -777,10 +777,10 @@ export default function LandingPage() {
             </div>
 
             {/* Right — Result card */}
-            <div className="bg-white/[0.07] backdrop-blur-xl border border-white/[0.12] rounded-2xl p-6 shadow-2xl min-h-[480px] flex flex-col">
+            <div className="bg-surface-dark backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 shadow-2xl min-h-[480px] flex flex-col">
               {demoState === 'idle' && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-surface-dark-light border border-white/[0.08] flex items-center justify-center mb-4">
                     <SparklesIcon className="w-8 h-8 text-gray-500" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-300">{t('landing.demo.idleTitle')}</h3>
@@ -790,7 +790,7 @@ export default function LandingPage() {
 
               {demoState === 'loading' && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
-                  <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mb-4" />
+                  <div className="w-12 h-12 border-4 border-coral/30 border-t-coral rounded-full animate-spin mb-4" />
                   <p className="text-gray-300 font-medium">{t('landing.demo.loading')}</p>
                 </div>
               )}
@@ -844,9 +844,9 @@ export default function LandingPage() {
                 return (
                   <div className="flex-1 flex flex-col">
                     {/* Overall confidence */}
-                    <div className="flex items-center gap-3 mb-4 bg-white/[0.06] rounded-lg px-3 py-2 border border-white/[0.08]">
-                      <span className="text-[10px] text-gray-400">AI Confidence</span>
-                      <div className="flex-1 h-1.5 bg-white/[0.1] rounded-full overflow-hidden">
+                    <div className="flex items-center gap-3 mb-4 bg-surface-dark-light rounded-lg px-3 py-2 border border-white/[0.06]">
+                      <span className="text-[10px] text-gray-500">AI Confidence</span>
+                      <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                         <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${inv.avgConf}%` }} />
                       </div>
                       <span className="text-xs font-bold text-emerald-400">{inv.avgConf}%</span>
@@ -860,7 +860,7 @@ export default function LandingPage() {
                         { label: t('landing.demo.date'), value: inv.date, c: inv.conf.date },
                         { label: t('landing.demo.dueDate'), value: inv.dueDate, c: inv.conf.dueDate },
                       ].map((f) => (
-                        <div key={f.label} className="bg-white/[0.06] rounded-lg px-3 py-2 border border-white/[0.08]">
+                        <div key={f.label} className="bg-surface-dark-light rounded-lg px-3 py-2 border border-white/[0.06]">
                           <div className="flex items-center justify-between">
                             <div className="text-[10px] text-gray-500 uppercase tracking-wider">{f.label}</div>
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -873,7 +873,7 @@ export default function LandingPage() {
                     </div>
 
                     {inv.poNumber && (
-                      <div className="bg-white/[0.06] rounded-lg px-3 py-2 border border-white/[0.08] mb-4">
+                      <div className="bg-surface-dark-light rounded-lg px-3 py-2 border border-white/[0.06] mb-4">
                         <div className="text-[10px] text-gray-500 uppercase tracking-wider">{t('landing.demo.poNumber')}</div>
                         <div className="text-sm font-medium text-emerald-400 mt-0.5">{inv.poNumber}</div>
                       </div>
@@ -881,10 +881,10 @@ export default function LandingPage() {
 
                     {/* Line items */}
                     <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">{t('landing.demo.lineItems')}</div>
-                    <div className="bg-white/[0.04] rounded-lg border border-white/[0.06] overflow-hidden mb-4">
+                    <div className="bg-white/[0.03] rounded-lg border border-white/[0.05] overflow-hidden mb-4">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-white/[0.08]">
+                          <tr className="border-b border-white/[0.06]">
                             <th className="text-left px-3 py-2 text-[10px] text-gray-500 font-medium">{t('landing.demo.description')}</th>
                             <th className="text-right px-3 py-2 text-[10px] text-gray-500 font-medium">{t('landing.demo.qty')}</th>
                             <th className="text-right px-3 py-2 text-[10px] text-gray-500 font-medium">{t('landing.demo.unitPrice')}</th>
@@ -913,28 +913,28 @@ export default function LandingPage() {
                     {/* Totals */}
                     <div className="mt-auto space-y-1.5">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">{t('landing.demo.subtotal')}</span>
+                        <span className="text-gray-500">{t('landing.demo.subtotal')}</span>
                         <span className="text-gray-300">${inv.subtotal.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">{t('landing.demo.tax')}</span>
+                        <span className="text-gray-500">{t('landing.demo.tax')}</span>
                         <span className="text-gray-300">${inv.tax.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between text-base font-bold border-t border-white/[0.1] pt-2">
+                      <div className="flex justify-between text-base font-bold border-t border-white/[0.08] pt-2">
                         <span className="text-white">{t('landing.demo.total')}</span>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-500">${inv.total.toLocaleString()}</span>
+                        <span className="text-coral">${inv.total.toLocaleString()}</span>
                       </div>
                     </div>
 
                     {/* Footer */}
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.08]">
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.06]">
                       <div className="flex items-center gap-1.5 text-xs text-emerald-400">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                         {t('landing.demo.extractedIn')}
                       </div>
                       <button
                         onClick={() => setDemoState('idle')}
-                        className="text-xs text-primary-300 hover:text-primary-200 transition-colors"
+                        className="text-xs text-coral-light hover:text-coral transition-colors"
                       >
                         {t('landing.demo.tryAnother')}
                       </button>
@@ -948,10 +948,10 @@ export default function LandingPage() {
           {/* Bottom CTA */}
           {demoState === 'result' && (
             <div className="mt-10 text-center">
-              <p className="text-gray-300 mb-4">{t('landing.demo.ctaText')}</p>
+              <p className="text-gray-400 mb-4">{t('landing.demo.ctaText')}</p>
               <Link
                 href="/signup"
-                className="inline-flex items-center px-7 py-3.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:from-primary-400 hover:to-primary-500 transition-all"
+                className="inline-flex items-center px-7 py-3.5 rounded-xl bg-gradient-to-r from-coral to-coral-dark text-white font-semibold shadow-lg shadow-coral/25 hover:shadow-coral/40 hover:from-coral-light hover:to-coral transition-all"
               >
                 {t('common.startFreeTrial')}
               </Link>
@@ -961,13 +961,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── Section 8: FAQ ──────────────────────────────────────────────────── */}
-      <section className="bg-surface-50">
+      <section className="bg-surface-dark">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">
               {t('landing.faq.title')}
             </h2>
-            <p className="mt-4 text-lg text-gray-500">
+            <p className="mt-4 text-lg text-gray-400">
               {t('landing.faq.subtitle')}
             </p>
           </div>
@@ -976,17 +976,17 @@ export default function LandingPage() {
             {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
               <div
                 key={n}
-                className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+                className="bg-surface-dark-light rounded-xl border border-white/5 overflow-hidden"
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === n ? null : n)}
-                  className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-white/[0.03] transition-colors"
                 >
-                  <span className="font-semibold text-gray-900 pr-4">
+                  <span className="font-semibold text-white pr-4">
                     {t(`landing.faq.q${n}`)}
                   </span>
                   <svg
-                    className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${
+                    className={`w-5 h-5 text-gray-500 flex-shrink-0 transition-transform duration-200 ${
                       openFaq === n ? 'rotate-180' : ''
                     }`}
                     fill="none"
@@ -1002,7 +1002,7 @@ export default function LandingPage() {
                     openFaq === n ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'
                   }`}
                 >
-                  <div className="px-6 pb-5 text-gray-500 leading-relaxed">
+                  <div className="px-6 pb-5 text-gray-400 leading-relaxed">
                     {t(`landing.faq.a${n}`)}
                   </div>
                 </div>
@@ -1012,30 +1012,30 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Section 8: Final CTA + Footer ──────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
+      {/* ── Section 9: Final CTA + Footer ──────────────────────────────────── */}
+      <section className="relative bg-gradient-to-br from-coral to-coral-dark overflow-hidden">
         {/* Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-500/10 rounded-full blur-[200px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/10 rounded-full blur-[200px]" />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
             {t('landing.cta.title')}
           </h2>
-          <p className="text-lg text-gray-300 mb-10 max-w-2xl mx-auto">
+          <p className="text-lg text-white/80 mb-10 max-w-2xl mx-auto">
             {t('landing.cta.subtitle')}
           </p>
           <Link
             href="/signup"
-            className="inline-flex items-center px-8 py-4 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold text-lg shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:from-primary-400 hover:to-primary-500 transition-all"
+            className="inline-flex items-center px-8 py-4 rounded-xl bg-white text-coral-dark font-semibold text-lg shadow-lg shadow-black/20 hover:bg-gray-100 transition-all"
           >
             {t('common.getStarted')}
           </Link>
         </div>
 
         {/* Footer */}
-        <div className="border-t border-white/10">
+        <div className="border-t border-white/20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-white/60">
               {t('common.copyright')}
             </p>
           </div>

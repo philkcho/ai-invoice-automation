@@ -119,20 +119,20 @@ export default function GuidePage() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen font-sans text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen font-sans text-white bg-base overflow-x-hidden">
       <PublicNav activePage="guide" />
 
       {/* ── Section 1: Hero ─────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
+      <section className="relative bg-base overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(244,63,94,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(248,113,113,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(248,113,113,0.5) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-500/10 rounded-full blur-[200px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-coral/10 rounded-full blur-[200px]" />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
           <h1 className="text-3xl sm:text-5xl font-bold text-white mb-5">
@@ -144,7 +144,7 @@ export default function GuidePage() {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/signup"
-              className="inline-flex items-center px-7 py-3.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:from-primary-400 hover:to-primary-500 transition-all"
+              className="inline-flex items-center px-7 py-3.5 rounded-xl bg-coral text-white font-semibold shadow-lg shadow-coral/25 hover:bg-coral-dark hover:shadow-coral/40 transition-all"
             >
               {t('common.startFreeTrial')}
             </Link>
@@ -153,13 +153,13 @@ export default function GuidePage() {
       </section>
 
       {/* ── Section 2: Before vs After ──────────────────────────── */}
-      <section className="bg-white">
+      <section className="bg-surface-dark">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">
               {t('guide.beforeAfterTitle')}
             </h2>
-            <p className="mt-4 text-lg text-gray-500">
+            <p className="mt-4 text-lg text-gray-400">
               {t('guide.beforeAfterSubtitle')}
             </p>
           </div>
@@ -168,8 +168,8 @@ export default function GuidePage() {
             {/* Before column */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <XCircleIcon className="w-5 h-5 text-red-500" />
-                <span className="font-bold text-red-600 text-sm uppercase tracking-wide">
+                <XCircleIcon className="w-5 h-5 text-red-400" />
+                <span className="font-bold text-red-400 text-sm uppercase tracking-wide">
                   {t('guide.before')}
                 </span>
               </div>
@@ -177,10 +177,10 @@ export default function GuidePage() {
                 {[1, 2, 3, 4, 5].map((n) => (
                   <div
                     key={n}
-                    className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-xl px-5 py-4"
+                    className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-5 py-4"
                   >
                     <XCircleIcon className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">{t(`guide.ba${n}Before`)}</span>
+                    <span className="text-gray-300">{t(`guide.ba${n}Before`)}</span>
                   </div>
                 ))}
               </div>
@@ -189,8 +189,8 @@ export default function GuidePage() {
             {/* After column */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                <span className="font-bold text-green-600 text-sm uppercase tracking-wide">
+                <CheckCircleIcon className="w-5 h-5 text-emerald-400" />
+                <span className="font-bold text-emerald-400 text-sm uppercase tracking-wide">
                   {t('guide.after')}
                 </span>
               </div>
@@ -198,10 +198,10 @@ export default function GuidePage() {
                 {[1, 2, 3, 4, 5].map((n) => (
                   <div
                     key={n}
-                    className="flex items-start gap-3 bg-green-50 border border-green-100 rounded-xl px-5 py-4"
+                    className="flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-5 py-4"
                   >
-                    <CheckCircleIcon className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">{t(`guide.ba${n}After`)}</span>
+                    <CheckCircleIcon className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span className="text-gray-300">{t(`guide.ba${n}After`)}</span>
                   </div>
                 ))}
               </div>
@@ -211,13 +211,13 @@ export default function GuidePage() {
       </section>
 
       {/* ── Section 3: 5-Step Guide ─────────────────────────────── */}
-      <section className="bg-surface-50">
+      <section className="bg-base">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">
               {t('guide.stepsTitle')}
             </h2>
-            <p className="mt-4 text-lg text-gray-500">
+            <p className="mt-4 text-lg text-gray-400">
               {t('guide.stepsSubtitle')}
             </p>
           </div>
@@ -232,27 +232,27 @@ export default function GuidePage() {
               >
                 {/* Step number + icon */}
                 <div className="flex-shrink-0 w-full md:w-48 text-center">
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-500/20 to-primary-600/20 border border-primary-500/30 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-coral/10 border border-coral/20 mb-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center shadow-lg shadow-coral/25">
                       {STEP_ICONS[i]}
                     </div>
                   </div>
-                  <div className="text-sm font-bold text-primary-500 uppercase tracking-wider">
+                  <div className="text-sm font-bold text-coral uppercase tracking-wider">
                     Step {n}
                   </div>
                 </div>
 
                 {/* Content card */}
-                <div className="flex-1 bg-white rounded-2xl p-8 shadow-card border border-gray-100">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                <div className="flex-1 bg-surface-dark rounded-2xl p-8 border border-white/5">
+                  <h3 className="text-xl font-bold text-white mb-3">
                     {t(`guide.step${n}Title`)}
                   </h3>
-                  <p className="text-gray-500 leading-relaxed mb-4">
+                  <p className="text-gray-400 leading-relaxed mb-4">
                     {t(`guide.step${n}Desc`)}
                   </p>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-50 border border-primary-100">
-                    <SparklesIcon className="w-4 h-4 text-primary-500" />
-                    <span className="text-sm font-medium text-primary-700 italic">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-coral/10 border border-coral/20">
+                    <SparklesIcon className="w-4 h-4 text-coral" />
+                    <span className="text-sm font-medium text-coral-light italic">
                       {t(`guide.step${n}Quote`)}
                     </span>
                   </div>
@@ -264,12 +264,12 @@ export default function GuidePage() {
       </section>
 
       {/* ── Section 4: Dashboard Preview ────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
+      <section className="relative bg-surface-dark overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(244,63,94,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(248,113,113,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(248,113,113,0.5) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
@@ -287,17 +287,17 @@ export default function GuidePage() {
           <div className="grid sm:grid-cols-2 gap-4">
             {(['dashKpi', 'dashPipeline', 'dashTrends', 'dashActions'] as const).map((key, i) => {
               const icons = [
-                <ChartBarIcon key="d1" className="w-5 h-5 text-primary-400" />,
-                <InboxIcon key="d2" className="w-5 h-5 text-primary-400" />,
-                <BanknotesIcon key="d3" className="w-5 h-5 text-primary-400" />,
-                <ShieldCheckIcon key="d4" className="w-5 h-5 text-primary-400" />,
+                <ChartBarIcon key="d1" className="w-5 h-5 text-coral" />,
+                <InboxIcon key="d2" className="w-5 h-5 text-coral" />,
+                <BanknotesIcon key="d3" className="w-5 h-5 text-coral" />,
+                <ShieldCheckIcon key="d4" className="w-5 h-5 text-coral" />,
               ];
               return (
                 <div
                   key={key}
-                  className="flex items-start gap-4 bg-white/[0.07] backdrop-blur-lg border border-white/[0.12] rounded-xl p-5"
+                  className="flex items-start gap-4 bg-surface-dark-light border border-white/10 rounded-xl p-5"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-coral/15 flex items-center justify-center flex-shrink-0">
                     {icons[i]}
                   </div>
                   <p className="text-gray-300 text-sm leading-relaxed">
@@ -311,10 +311,10 @@ export default function GuidePage() {
       </section>
 
       {/* ── Section 5: Features Grid ────────────────────────────── */}
-      <section className="bg-white">
+      <section className="bg-base">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">
               {t('guide.featuresTitle')}
             </h2>
           </div>
@@ -323,15 +323,15 @@ export default function GuidePage() {
             {[1, 2, 3, 4, 5, 6].map((n, i) => (
               <div
                 key={n}
-                className="bg-white rounded-2xl p-6 shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 border border-gray-100"
+                className="bg-surface-dark rounded-2xl p-6 hover:bg-surface-dark-light transition-all duration-300 hover:-translate-y-1 border border-white/5 hover:border-coral/20"
               >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center mb-4 shadow-lg shadow-primary-500/20">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center mb-4 shadow-lg shadow-coral/20">
                   {FEATURE_ICONS[i]}
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                <h3 className="text-lg font-bold text-white mb-2">
                   {t(`guide.feat${n}Title`)}
                 </h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
+                <p className="text-gray-400 text-sm leading-relaxed">
                   {t(`guide.feat${n}Desc`)}
                 </p>
               </div>
@@ -341,19 +341,19 @@ export default function GuidePage() {
       </section>
 
       {/* ── Section 6: Quick Start ──────────────────────────────── */}
-      <section className="bg-surface-50">
+      <section className="bg-surface-dark">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-12">
             {t('guide.quickStartTitle')}
           </h2>
 
           <div className="grid md:grid-cols-3 gap-6 mb-10">
             {[1, 2, 3].map((n) => (
               <div key={n} className="relative">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-white text-xl font-bold mb-4 shadow-lg shadow-primary-500/25">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-coral to-coral-dark text-white text-xl font-bold mb-4 shadow-lg shadow-coral/25">
                   {n}
                 </div>
-                <p className="text-gray-700 font-medium">
+                <p className="text-gray-300 font-medium">
                   {t(`guide.min${n}`)}
                 </p>
               </div>
@@ -367,8 +367,8 @@ export default function GuidePage() {
       </section>
 
       {/* ── Section 7: CTA ──────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-500/10 rounded-full blur-[200px]" />
+      <section className="relative bg-base overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-coral/10 rounded-full blur-[200px]" />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
@@ -380,13 +380,13 @@ export default function GuidePage() {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/signup"
-              className="inline-flex items-center px-8 py-4 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold text-lg shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:from-primary-400 hover:to-primary-500 transition-all"
+              className="inline-flex items-center px-8 py-4 rounded-xl bg-coral text-white font-semibold text-lg shadow-lg shadow-coral/25 hover:bg-coral-dark hover:shadow-coral/40 transition-all"
             >
               {t('common.getStarted')}
             </Link>
             <Link
               href="/pricing"
-              className="inline-flex items-center px-8 py-4 rounded-xl border border-white/20 text-white font-semibold text-lg hover:bg-white/5 transition-colors"
+              className="inline-flex items-center px-8 py-4 rounded-xl border border-white/10 text-white font-semibold text-lg hover:bg-white/5 transition-colors"
             >
               {t('common.pricing')}
             </Link>
@@ -394,7 +394,7 @@ export default function GuidePage() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-white/10">
+        <div className="border-t border-white/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
             <p className="text-sm text-gray-500">
               {t('common.copyright')}

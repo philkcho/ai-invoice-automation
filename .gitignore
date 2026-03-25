@@ -1,13 +1,15 @@
 # 환경 변수 (절대 커밋 금지)
 .env
 .env.*
-!.env.example
-!.env.prod.example
 
 # Google 서비스 계정 키 (절대 커밋 금지)
 credentials/
 *.json.key
 Key/
+
+# SSH/SSL 키 (절대 커밋 금지)
+*.pem
+*.key
 
 # Python
 __pycache__/

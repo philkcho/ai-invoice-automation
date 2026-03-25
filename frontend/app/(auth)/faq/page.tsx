@@ -33,20 +33,20 @@ export default function FaqPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <div className="min-h-screen font-sans text-gray-900 bg-white overflow-x-hidden">
+    <div className="min-h-screen font-sans text-white bg-base overflow-x-hidden">
       <PublicNav activePage="faq" />
 
       {/* ── Hero ────────────────────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
+      <section className="relative bg-base overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(244,63,94,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(248,113,113,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(248,113,113,0.5) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-500/10 rounded-full blur-[200px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-coral/10 rounded-full blur-[200px]" />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <h1 className="text-3xl sm:text-5xl font-bold text-white mb-4">
@@ -62,8 +62,8 @@ export default function FaqPage() {
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         {FAQ_CATEGORIES.map((category) => (
           <div key={category.key} className="mb-12 last:mb-0">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <div className="w-1.5 h-6 rounded-full bg-gradient-to-b from-primary-500 to-primary-600" />
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <div className="w-1.5 h-6 rounded-full bg-gradient-to-b from-coral to-coral-dark" />
               {t(`landing.faq.cat_${category.key}`)}
             </h2>
 
@@ -71,13 +71,13 @@ export default function FaqPage() {
               {category.items.map((n) => (
                 <div
                   key={n}
-                  className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+                  className="bg-surface-dark rounded-xl border border-white/5 overflow-hidden"
                 >
                   <button
                     onClick={() => setOpenFaq(openFaq === n ? null : n)}
-                    className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-surface-dark-light transition-colors"
                   >
-                    <span className="font-semibold text-gray-900 pr-4">
+                    <span className="font-semibold text-white pr-4">
                       {t(`landing.faq.q${n}`)}
                     </span>
                     <ChevronDownIcon
@@ -91,7 +91,7 @@ export default function FaqPage() {
                       openFaq === n ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'
                     }`}
                   >
-                    <div className="px-6 pb-5 text-gray-500 leading-relaxed">
+                    <div className="px-6 pb-5 text-gray-400 leading-relaxed">
                       {t(`landing.faq.a${n}`)}
                     </div>
                   </div>
@@ -103,8 +103,8 @@ export default function FaqPage() {
       </section>
 
       {/* ── CTA ─────────────────────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#1c1917] to-[#292524] overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-500/10 rounded-full blur-[200px]" />
+      <section className="relative bg-surface-dark overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-coral/10 rounded-full blur-[200px]" />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
@@ -116,13 +116,13 @@ export default function FaqPage() {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/signup"
-              className="inline-flex items-center px-8 py-4 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold text-lg shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:from-primary-400 hover:to-primary-500 transition-all"
+              className="inline-flex items-center px-8 py-4 rounded-xl bg-coral text-white font-semibold text-lg shadow-lg shadow-coral/25 hover:bg-coral-dark hover:shadow-coral/40 transition-all"
             >
               {t('common.getStarted')}
             </Link>
             <Link
               href="/pricing"
-              className="inline-flex items-center px-8 py-4 rounded-xl border border-white/20 text-white font-semibold text-lg hover:bg-white/5 transition-colors"
+              className="inline-flex items-center px-8 py-4 rounded-xl border border-white/10 text-white font-semibold text-lg hover:bg-white/5 transition-colors"
             >
               {t('common.pricing')}
             </Link>
@@ -130,7 +130,7 @@ export default function FaqPage() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-white/10">
+        <div className="border-t border-white/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
             <p className="text-sm text-gray-500">
               {t('common.copyright')}
