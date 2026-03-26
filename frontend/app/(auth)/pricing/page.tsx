@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import api from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import PublicNav from '@/components/layout/PublicNav';
 import type { SubscriptionPlan } from '@/types';
@@ -95,15 +93,7 @@ const PLAN_FEATURE_KEYS: Record<string, { prefixKey?: string; items: FeatureItem
 
 export default function PricingPage() {
   const { t } = useTranslation();
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get('/api/v1/billing/plans')
-      .then(({ data }) => setPlans(data.items?.length ? data.items : FALLBACK_PLANS))
-      .catch(() => setPlans(FALLBACK_PLANS))
-      .finally(() => setLoading(false));
-  }, []);
+  const plans = FALLBACK_PLANS;
 
   const planNameKey: Record<string, string> = {
     free_trial: 'pricing.plans.freeTrial',
@@ -129,10 +119,7 @@ export default function PricingPage() {
 
       {/* ── Plans ─────────────────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
-        {loading ? (
-          <div className="text-center py-20 text-gray-500">{t('common.loadingPlans')}</div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {plans.map((plan) => {
               const featureInfo = PLAN_FEATURE_KEYS[plan.name] || { items: [] };
               const isFeatured = plan.name === 'professional';
@@ -203,7 +190,6 @@ export default function PricingPage() {
               );
             })}
           </div>
-        )}
       </section>
 
       {/* ── Footer ────────────────────────────────────────────────── */}
