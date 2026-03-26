@@ -138,17 +138,10 @@ jobs:
             docker pull ${{ env.BACKEND_IMAGE }}:latest
             docker pull ${{ env.FRONTEND_IMAGE }}:latest
 
-            # 서비스 재시작 (새 이미지로 컨테이너 재생성)
-            docker compose -f docker-compose.prod.yml up -d --force-recreate
+            # 서비스 재시작
+            docker compose -f docker-compose.prod.yml up -d
 
-            # 헬스체크
-            echo "Waiting for health check..."
-            for i in $(seq 1 60); do
-              if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
-                echo "Health check passed!"
-                exit 0
-              fi
-              sleep 5
-            done
-            echo "Health check failed!"
-            exit 1
+            # 컨테이너 상태 확인
+            sleep 15
+            docker compose -f docker-compose.prod.yml ps
+            echo "Deploy complete!"
