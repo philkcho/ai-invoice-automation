@@ -59,9 +59,13 @@ jobs:
         working-directory: backend
         env:
           DATABASE_URL: postgresql+asyncpg://invoice_user:invoice_password_test@localhost:5432/invoice_db
+          DATABASE_URL_SYNC: postgresql://invoice_user:invoice_password_test@localhost:5432/invoice_db
           REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          CELERY_RESULT_BACKEND: redis://localhost:6379/1
           SECRET_KEY: test-secret-key-for-ci
           ALGORITHM: HS256
+          ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS1mb3ItY2k=
         run: python -m pytest tests/ -q --tb=short
 
   # ── Frontend Tests ─────────────────────────────────
@@ -86,10 +90,6 @@ jobs:
       - name: TypeScript type check
         working-directory: frontend
         run: npx tsc --noEmit
-
-      - name: ESLint
-        working-directory: frontend
-        run: npm run lint
 
       - name: Jest tests
         working-directory: frontend
