@@ -124,9 +124,11 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          debug: true
           script: |
             cd ~/ai-invoice-automation
+
+            # 최신 코드 pull (docker-compose.prod.yml 등 반영)
+            git pull --ff-only
 
             # .env.prod 로드
             set -a && source .env.prod && set +a
