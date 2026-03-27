@@ -57,8 +57,8 @@ services:
     image: ghcr.io/philkcho/ai-invoice-automation/backend:latest
     container_name: invoice_backend
     restart: unless-stopped
-    # 프로덕션: --reload 제거, 워커 수 설정 (Oracle ARM OCPU 수에 맞게 조정)
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    # 프로덕션: 1GB RAM 서버 — 워커 1개로 메모리 절약
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
     env_file:
       - .env.prod
     volumes:
@@ -81,7 +81,7 @@ services:
       resources:
         limits:
           cpus: "1"
-          memory: 512M
+          memory: 300M
     logging: *default-logging
 
   # ── Celery Worker ───────────────────────────────────
@@ -89,7 +89,7 @@ services:
     image: ghcr.io/philkcho/ai-invoice-automation/backend:latest
     container_name: invoice_celery_worker
     restart: unless-stopped
-    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=1
     env_file:
       - .env.prod
     volumes:
@@ -109,8 +109,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1"
-          memory: 512M
+          cpus: "0.5"
+          memory: 200M
     logging: *default-logging
 
   # ── Celery Beat (스케줄러) ──────────────────────────
@@ -136,8 +136,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 256M
+          cpus: "0.25"
+          memory: 100M
     logging: *default-logging
 
   # ── Next.js Frontend ────────────────────────────────
@@ -155,8 +155,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1"
-          memory: 256M
+          cpus: "0.5"
+          memory: 128M
     logging: *default-logging
 
 volumes:
